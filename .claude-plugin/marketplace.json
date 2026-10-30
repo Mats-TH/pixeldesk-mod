@@ -1,0 +1,6 @@
+{
+  "name": "pixeldesk-mod",
+  "owner": { "name": "Mats-TH" },
+  "description": "A pixel art office for your Claude Code subagents.",
+  "plugins": [{ "name": "pixeldesk", "source": "./", "description": "A pixel art office for your Claude Code subagents: a live bar, one desk per agent, a floor plan." }]
+}

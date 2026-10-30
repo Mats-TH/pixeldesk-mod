@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in the bar or the panel is wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead. A screenshot helps a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we reproduce it?
+      placeholder: |
+        1. Start a conversation
+        2. Launch two subagents
+        3. Open /pixeldesk
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: pixeldesk version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where do you run it?
+      options:
+        - Terminal
+        - Desktop app
+        - VS Code
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true

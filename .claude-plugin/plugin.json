@@ -1,0 +1,23 @@
+{
+  "name": "pixeldesk",
+  "version": "1.0.0",
+  "description": "A tiny pixel-art office for Claude Code: your plan and limits in a live band, and a desk for every subagent at work.",
+  "author": {
+    "name": "Mats-TH",
+    "url": "https://github.com/Mats-TH"
+  },
+  "homepage": "https://github.com/Mats-TH/pixeldesk-mod",
+  "repository": "https://github.com/Mats-TH/pixeldesk-mod",
+  "license": "MIT AND OFL-1.1",
+  "keywords": ["pixel-art", "progress", "subagents", "plan", "rate-limits", "statusbar", "mod"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "PixelDesk language: auto follows Claude Code and your system.",
+      "options": ["auto", "fr", "en"],
+      "default": "auto"
+    }
+  }
+}

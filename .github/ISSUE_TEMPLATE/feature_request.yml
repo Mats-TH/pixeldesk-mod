@@ -1,0 +1,16 @@
+name: Feature request
+description: An idea for the bar or the panel.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to do?
+      description: Start with the need, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How it could look or work. A sketch is welcome.
