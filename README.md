@@ -4,7 +4,25 @@
 
 **Your Claude Code agents, hard at work in a tiny pixel office.**
 
+Made for the Claude desktop app. That is where you get the pixel bar, the live room and the floor plan.
+
 ![The PixelDesk bar above the prompt](assets/bar.gif)
+
+## Install in the desktop app
+
+Paste this into any terminal:
+
+```
+claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
+```
+
+Then open a new conversation in the **Code** tab of the Claude desktop app. That's it.
+
+No `claude` command on your machine? Do it from the app. Click **+** next to the prompt box, then **Plugins**, then **Add marketplace**. Paste this, then click **Add plugin**:
+
+```
+Mats-TH/pixeldesk-mod
+```
 
 ## What it does
 
@@ -24,27 +42,17 @@ Your plan, your usage limits and every subagent stay on screen, live, right next
 
 ![The PixelDesk panel](assets/panel.png)
 
-In the terminal, you get the same information as text: a bar drawn in characters and a list of agents.
+## In the terminal
 
-## Install
+PixelDesk also runs in a terminal session, as a simpler text version: a bar drawn in characters and a list of agents. The pixel art stays in the desktop app.
 
-**Terminal session**
+To install it from a running terminal session:
 
 ```
 /plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
 ```
 
 Answer `y` to add the marketplace, then choose a scope.
-
-**Shell**
-
-```
-claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
-```
-
-**Desktop app**
-
-`/plugin` does not run there. Click **+** next to the prompt box, then **Plugins**. Choose **Add marketplace**, enter `Mats-TH/pixeldesk-mod`, then **Add plugin**.
 
 ## Usage
 

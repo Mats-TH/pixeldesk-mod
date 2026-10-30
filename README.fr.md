@@ -4,7 +4,25 @@
 
 **Tes agents Claude Code au travail, dans un petit bureau en pixel art.**
 
+Pensé pour l'application de bureau Claude. C'est là que tu profites de la barre pixel, de la pièce en direct et du plan d'étage.
+
 ![La barre PixelDesk au-dessus de la saisie](assets/bar.gif)
+
+## Installer dans l'application de bureau
+
+Colle ceci dans n'importe quel terminal :
+
+```
+claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
+```
+
+Ouvre ensuite une nouvelle conversation dans l'onglet **Code** de l'application de bureau Claude. C'est tout.
+
+Pas de commande `claude` sur ta machine ? Passe par l'application. Clique sur **+** à côté de la zone de saisie, puis **Plugins**, puis **Add marketplace**. Colle ceci, puis clique sur **Add plugin** :
+
+```
+Mats-TH/pixeldesk-mod
+```
 
 ## À quoi ça sert
 
@@ -24,27 +42,17 @@ Ton plan, tes limites d'usage et chaque sous-agent restent à l'écran, en direc
 
 ![Le panneau PixelDesk](assets/panel.png)
 
-Dans le terminal, tu retrouves les mêmes infos en texte : une barre en caractères et la liste des agents.
+## Dans le terminal
 
-## Installation
+PixelDesk tourne aussi dans une session terminal, en version texte plus simple : une barre en caractères et la liste des agents. Le pixel art reste dans l'application de bureau.
 
-**Dans une session terminal**
+Pour l'installer depuis une session terminal ouverte :
 
 ```
 /plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
 ```
 
 Réponds `y` pour ajouter la marketplace, puis choisis un scope.
-
-**Depuis le shell**
-
-```
-claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
-```
-
-**Dans l'application de bureau**
-
-`/plugin` n'y tourne pas. Clique sur **+** à côté de la zone de saisie, puis **Plugins**. Choisis **Add marketplace**, saisis `Mats-TH/pixeldesk-mod`, puis **Add plugin**.
 
 ## Utilisation
 
