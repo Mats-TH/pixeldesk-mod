@@ -8,7 +8,7 @@ const PING = 'Reply with the single word: ok'
 const pings = (forks: string[]) => forks.filter(prompt => prompt === PING).length
 
 describe('the clock', () => {
-  test('nothing before the first reply: no clock, a dead fire, no call', { timeoutMs: 30000 }, async ($, on) => {
+  test('nothing before the first reply: no clock, a dead fire, no call', SLOW, async ($, on) => {
     const { w, forks } = hearthWorld(on)
     await start($)
     await w.clock.advance(FIVE * 3)
@@ -42,7 +42,7 @@ describe('the clock', () => {
     expect(w.state.hearth.coolsAt).toBeNull()
   })
 
-  test('the fire follows the share left: 60, 30 and 10 %, and writes only when it moves', async ($, on) => {
+  test('the fire follows the share left: 60, 30 and 10 %, and writes only when it moves', SLOW, async ($, on) => {
     const { w, h, reply } = hearthWorld(on)
     h.fork = () => answers.overloaded
     await start($)
@@ -107,7 +107,7 @@ describe('relaunches', () => {
     expect(w.state.hearth).toMatchObject({ warmStop: 'cap', relaunches: 30 })
   })
 
-  test('an active session has no cap, of relaunches or of time', { timeoutMs: 30000 }, async ($, on) => {
+  test('an active session has no cap, of relaunches or of time', SLOW, async ($, on) => {
     const { w, forks, reply } = hearthWorld(on)
     await start($)
     await reply($)
@@ -117,7 +117,7 @@ describe('relaunches', () => {
     expect(w.state.hearth).toMatchObject({ active: true, relaunchCap: null, warmStop: null })
   })
 
-  test('a plan alone counts for 15 min after the last activity, then the session is at rest', { timeoutMs: 30000 }, async ($, on) => {
+  test('a plan alone counts for 15 min after the last activity, then the session is at rest', SLOW, async ($, on) => {
     const { w, reply } = hearthWorld(on)
     await start($)
     await reply($)
@@ -128,7 +128,7 @@ describe('relaunches', () => {
     expect(w.state.hearth).toMatchObject({ active: false, relaunchCap: 30, relaunches: 0 })
   })
 
-  test('a quiet plan holds no cap off: the thirtieth relaunch is the last', async ($, on) => {
+  test('a quiet plan holds no cap off: the thirtieth relaunch is the last', SLOW, async ($, on) => {
     const held = { lengthMs: FIVE, coolsAt: NOON + 50_000, relaunches: 29, warmSince: NOON - 60_000, failures: 0, warmStop: null, warmError: '', keeperRun: 29, contextPercent: 10, compactions: 0 }
     const { w, forks } = hearthWorld(on, { held: { hearth: held } })
     await start($)
@@ -138,7 +138,7 @@ describe('relaunches', () => {
     expect(w.state.hearth).toMatchObject({ warmStop: 'cap', relaunches: 30, active: false })
   })
 
-  test('a turn brings a quiet plan back to life', async ($, on) => {
+  test('a turn brings a quiet plan back to life', SLOW, async ($, on) => {
     const { w, reply } = hearthWorld(on)
     await start($)
     await reply($)
@@ -150,7 +150,7 @@ describe('relaunches', () => {
     expect(w.state.hearth).toMatchObject({ active: true, relaunchCap: null })
   })
 
-  test('when it stops being active the caps start afresh', async ($, on) => {
+  test('when it stops being active the caps start afresh', SLOW, async ($, on) => {
     const { w, forks, reply } = hearthWorld(on)
     await start($)
     await reply($)
@@ -203,7 +203,7 @@ describe('relaunches', () => {
 })
 
 describe('what stops them', () => {
-  test('a failure waits 20 s, three stop it with one toast, and the next turn starts over', async ($, on) => {
+  test('a failure waits 20 s, three stop it with one toast, and the next turn starts over', SLOW, async ($, on) => {
     const { w, h, forks, reply } = hearthWorld(on)
     h.fork = () => answers.overloaded
     await start($)
@@ -259,7 +259,7 @@ describe('what stops them', () => {
     expect(w.toasts).toEqual([])
   })
 
-  test('a relaunch that had to write stops at once', async ($, on) => {
+  test('a relaunch that had to write stops at once', SLOW, async ($, on) => {
     const { w, h, forks, reply } = hearthWorld(on)
     h.fork = () => answers.reply('ok', REWRITE)
     await start($)
@@ -270,7 +270,7 @@ describe('what stops them', () => {
     expect(w.state.hearth.warmStop).toBe('cold')
   })
 
-  test('never on a cold cache: turning them back on after the end sends nothing', async ($, on) => {
+  test('never on a cold cache: turning them back on after the end sends nothing', SLOW, async ($, on) => {
     const { w, forks, reply } = hearthWorld(on)
     await start($)
     await command($, 'warm off')

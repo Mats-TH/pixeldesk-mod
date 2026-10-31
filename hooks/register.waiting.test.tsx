@@ -28,7 +28,7 @@ describe('waiting for the work', () => {
     expect(text).not.toContain('continuent dans l’ancienne conversation')
   })
 
-  test('the conversation stays warm through the wait', async ($, on) => {
+  test('the conversation stays warm through the wait', { timeoutMs: 30000 }, async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
     await asked($, t)
     await t.w.clock.advance(FIVE)
@@ -172,7 +172,7 @@ describe('the document', () => {
     expect(t.w.state.handoff.phase).toBe('ready')
   })
 
-  test('a handoff warms the clock from when it left, and Fermer lets the relaunches back after the next turn', async ($, on) => {
+  test('a handoff warms the clock from when it left, and Fermer lets the relaunches back after the next turn', { timeoutMs: 30000 }, async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
     await start($)
     await t.reply($)

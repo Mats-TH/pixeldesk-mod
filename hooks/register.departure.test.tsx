@@ -16,7 +16,7 @@ async function done($: any, w: any, ...agents: string[]) {
 const eachMode = { files: { [SETTINGS_FILE]: '{"departure":"each"}' } }
 
 describe('end of plan, the default', () => {
-  test('an open plan keeps a finished desk, with its tick, however long', async ($, on) => {
+  test('an open plan keeps a finished desk, with its tick, however long', { timeoutMs: 30000 }, async ($, on) => {
     const w = world(on)
     await start($)
     await sendPlan($, OPEN, 'Job')

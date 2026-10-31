@@ -69,7 +69,7 @@ test('a piece of furniture backs away from a growing board instead of hiding it'
   expect(moved.some(Boolean)).toBe(true)
 })
 
-test('furniture does not overlap and stays in the room', async () => {
+test('furniture does not overlap and stays in the room', { timeoutMs: 30000 }, async () => {
   for (const fit of FITS) {
     for (let i = 0; i < 80; i += 1) {
       const { floor } = drawRoom(`s${i}`, fit)

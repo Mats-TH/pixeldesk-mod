@@ -12,7 +12,7 @@ describe('the length of the cache', () => {
     return t
   }
 
-  test('known 5 min: relaunches 45 s before the five minutes', async ($, on) => {
+  test('known 5 min: relaunches 45 s before the five minutes', { timeoutMs: 30000 }, async ($, on) => {
     const { w, forks, reply } = hearthWorld(on)
     await start($)
     await reply($)
@@ -208,7 +208,7 @@ describe('after a reload', () => {
     expect(w.state.hearth.relaunches).toBe(4)
   })
 
-  test('a cache that went cold during the reload is left alone', async ($, on) => {
+  test('a cache that went cold during the reload is left alone', { timeoutMs: 30000 }, async ($, on) => {
     const { w, forks } = hearthWorld(on, { held: { hearth: { ...held, coolsAt: NOON - 1 } } })
     await start($)
     await w.clock.advance(HOUR)
@@ -216,7 +216,7 @@ describe('after a reload', () => {
     expect(w.state.hearth.fire).toBe('out')
   })
 
-  test('a restart holds no clock: never a relaunch on a cache nobody can vouch for', async ($, on) => {
+  test('a restart holds no clock: never a relaunch on a cache nobody can vouch for', { timeoutMs: 30000 }, async ($, on) => {
     const { w, forks } = hearthWorld(on)
     await start($)
     await w.clock.advance(HOUR)

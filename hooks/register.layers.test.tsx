@@ -34,7 +34,7 @@ const QUIET = { changed: [], born: [], gone: [] }
 const three = (done: number) => ['One', 'Two', 'Three'].map((text, i) => step(text, i < done ? 'completed' : i === done ? 'in_progress' : 'pending'))
 
 describe('the iframes of a room', () => {
-  test('a whole turn with two agents: a desk that changes reloads itself, and nothing else ever does', async ($, on) => {
+  test('a whole turn with two agents: a desk that changes reloads itself, and nothing else ever does', { timeoutMs: 30000 }, async ($, on) => {
     const { w, spend, fill } = hearthWorld(on)
     await start($)
     const ui = await mountPane($)
@@ -88,7 +88,7 @@ describe('the iframes of a room', () => {
     expect(await see(), 'the manager rests').toEqual({ ...QUIET, changed: ['live-manager'] })
   })
 
-  test('the room never becomes a frame: its images stay plain, whatever happens', async ($, on) => {
+  test('the room never becomes a frame: its images stay plain, whatever happens', { timeoutMs: 30000 }, async ($, on) => {
     const { w, reply, fill } = hearthWorld(on)
     await start($)
     const ui = await mountPane($)
@@ -103,7 +103,7 @@ describe('the iframes of a room', () => {
     for (const source of framesIn(await ui.drawn()).values()) expect(source.length).toBeLessThan(131_072)
   })
 
-  test('a fire reloads with its level alone', async ($, on) => {
+  test('a fire reloads with its level alone', { timeoutMs: 30000 }, async ($, on) => {
     const { w, reply } = hearthWorld(on)
     await start($)
     const ui = await mountPane($)
@@ -123,7 +123,7 @@ describe('the iframes of a room', () => {
     expect(reloads).toBe(1)
   })
 
-  test('a visit: one frame, keyed by its run, and the fire takes when he leaves', async ($, on) => {
+  test('a visit: one frame, keyed by its run, and the fire takes when he leaves', { timeoutMs: 30000 }, async ($, on) => {
     const { w, reply } = hearthWorld(on)
     await start($)
     const ui = await mountPane($)

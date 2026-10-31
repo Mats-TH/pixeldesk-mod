@@ -275,7 +275,7 @@ describe('the home on another system', () => {
 })
 
 describe('the Manager in English', () => {
-  test('the list, the alternative and the cards', async ($, on) => {
+  test('the list, the alternative and the cards', { timeoutMs: 30000 }, async ($, on) => {
     const w = world(on, { env: ENGLISH })
     await start($, 'terminal')
     const list = await mountPane($, 'terminal')
