@@ -11,8 +11,8 @@ export const PRESS_ZONES = ['settings-button', 'settings-plan', 'settings-each']
 const NO_BREAK = ' '
 const OPTIONS: readonly Departure[] = ['plan', 'each']
 
-/** The cells the open panel takes, for what must stay out from under it. */
-export type PanelCells = { left: number; top: number; cols: number; rows: number }
+/** The cells the open panel takes, for what must stay out from under it. `bare`: its places keep no look under the pointer. */
+export type PanelCells = { left: number; top: number; cols: number; rows: number; bare?: boolean }
 
 const ignore = () => undefined
 
@@ -76,7 +76,7 @@ function panelZone(ui: Table, key: string, pressKey: string, zone: Zone, lit: Li
   const { Box, Svg } = ui
   return (
     <Box key={key} position="absolute" left={zone.left - panel.left} top={zone.top - panel.top} width={zone.cols} height={zone.rows}>
-      {lit ? (
+      {lit && !panel.bare ? (
         <Box position="absolute" left={lit.left - zone.left} top={lit.top - zone.top} width={lit.cols} height={lit.rows} flexDirection="column" display="none" hover={{ display: 'flex' }}>
           <Svg source={lit.source} alt={t('settings.title')} width={lit.width} height={lit.height} />
         </Box>
@@ -127,19 +127,20 @@ export function panelCells(choice: Departure | SettingsView, frame: Frame): Pane
   return { left, top, cols, rows }
 }
 
-/** Over everything else in the room: the button, and while it is open the panel, last of all. */
-export function settingsElements(ui: Table, view: SettingsView, frame: Frame) {
+/** Over everything else in the room: the button, and while it is open the panel, last of all. `looks`: its places light up under the pointer. */
+export function settingsElements(ui: Table, view: SettingsView, frame: Frame, looks = true) {
   const { Box, Svg } = ui
   const button = settingsButton(ui, view.open, frame)
   if (!view.open) return button
   const place = settingsPlace(frame.width, frame.height, view.briefingMode)
   const drawn = settingsSvg(view, place)
+  const cells = { ...drawn, bare: !looks }
   const panel = (
     <Box key="settings-panel" position="absolute" left={drawn.left} top={drawn.top} width={drawn.cols} height={drawn.rows}>
       <Svg source={drawn.source} alt={drawn.alt} width={drawn.width} height={drawn.height} />
-      {OPTIONS.map(id => departureZone(ui, id, id === view.departure, drawn, place))}
-      {hearthZones(ui, view, drawn, place)}
-      {ROOM_THEMES.map(id => themeZone(ui, id, id === view.theme, drawn, place))}
+      {OPTIONS.map(id => departureZone(ui, id, id === view.departure, cells, place))}
+      {hearthZones(ui, view, cells, place)}
+      {ROOM_THEMES.map(id => themeZone(ui, id, id === view.theme, cells, place))}
     </Box>
   )
   return [...button, panel]

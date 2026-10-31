@@ -375,6 +375,44 @@ export const sourceOf = async (ui: Loose, key?: string): Promise<string> => (awa
 /** An element's children that are elements, in order. */
 export const kids = (el: Loose): Loose[] => (el?.children ?? []).filter((child: Loose) => typeof child === 'object' && child !== null)
 
+const wordsOf = (o: Loose) => Object.entries(o ?? {}).reduce((n, [key, value]) => n + key.length + (typeof value === 'string' ? value.length : 0), 0)
+
+function ownChars(el: Loose) {
+  if (el.type === 'Svg') return el.props.source.length + el.props.alt.length
+  if (el.type === 'Button') return el.props.key.length + el.props.label.length + PLUGIN.length + wordsOf(el.hover)
+  return wordsOf(el.props) + wordsOf(el.hover)
+}
+
+/** A tree as the desktop app weighs it, in its own terms. */
+export function appWeight(node: Loose, depth = 1): { nodes: number; depth: number; chars: number } {
+  if (typeof node === 'string') return { nodes: 1, depth: 1, chars: node.length }
+  const parts = (node.children ?? []).map((child: Loose) => appWeight(child, depth + 1))
+  return parts.reduce((all: Loose, part: Loose) => ({ nodes: all.nodes + part.nodes, depth: Math.max(all.depth, part.depth + 1), chars: all.chars + part.chars }), { nodes: 1, depth: 1, chars: ownChars(node) })
+}
+
+/** Whether the app takes a tree. It says nothing when it does not: the last one it took stays on the screen. */
+export function appTakes(tree: Loose) {
+  const { nodes, depth, chars } = appWeight(tree)
+  return nodes < 2000 && depth < 32 && chars < 262_144
+}
+
+/** What a person sees of a mounted pane: the newest tree the app took. */
+export function onScreen(ui: Loose) {
+  let shown: Loose
+  return async () => {
+    const tree = await ui.drawn()
+    if (appTakes(tree)) shown = tree
+    return shown
+  }
+}
+
+/** An element of a plain tree, by its key. */
+export function keyed(node: Loose, key: string): Loose {
+  if (typeof node !== 'object' || node === null) return undefined
+  if (node.props?.key === key) return node
+  return (node.children ?? []).reduce((found: Loose, child: Loose) => found ?? keyed(child, key), undefined)
+}
+
 /** The hidden card of a hover zone: the box the pointer reveals, and the drawing in it. */
 export function cardIn(zone: Loose) {
   const box = kids(zone)[0]

@@ -34,8 +34,8 @@ export function frameOf(e: Pane): Frame {
   return { width, height, fit: bodyRows || '100%', pane: { cols: Math.floor(width / CELL_W), rows: Math.floor(height / CELL_H) } }
 }
 
-// The client refuses a tree of 262 144 characters and more, in silence: the pane says its plugin has not drawn.
-export const TREE_ROOM = 256_000
+// The desktop app drops a whole tree from 262,144 characters on, with no word: the last drawing stays, its buttons seem dead, and a pane with none stays empty.
+export const TREE_ROOM = 260_000
 
 const strings = (o: object | undefined) => Object.entries(o ?? {}).reduce((n, [k, v]) => n + k.length + (typeof v === 'string' ? v.length : 0), 0)
 

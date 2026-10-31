@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { PRESS_ZONES, ZONE_ROWS } from './view-settings'
-import { ENGLISH, FRENCH, HOME, LOG_FILE, NOON, SETTINGS_FILE, altOf, callTool, endTurn, hasKey, kids, mountPane, sendPlan, sourceOf, spawn, start, step, world } from './test-kit'
+import { ENGLISH, FRENCH, HOME, LOG_FILE, NOON, SETTINGS_FILE, altOf, appTakes, callTool, command, endTurn, hasKey, keyed, kids, mountPane, onScreen, sendPlan, sourceOf, spawn, start, step, world } from './test-kit'
 
 const NO_BREAK = /^\u00A0+$/
 const press = (ui: any, key: string) => ui.press({ key })
@@ -236,7 +236,85 @@ describe('the panel', () => {
     expect(await hasKey(ui, 'plan-lines'), 'the panel reaches the board').toBe(false)
     await press(ui, 'settings-button-0')
     expect(await hasKey(ui, 'desk-a1')).toBe(true)
+  })
+
+  test('the lines of the board get their zones back when it closes', async ($, on) => {
+    const { ui } = await opened($, on, {}, { bodyColumns: 34, scroll: { offset: 0, bodyRows: 30 } })
+    await sendPlan($, [step('One', 'in_progress')], 'Job')
+    await ui.redraw()
+    expect(await hasKey(ui, 'plan-lines'), 'the panel reaches the board').toBe(false)
+    await press(ui, 'settings-button-0')
     expect(await hasKey(ui, 'plan-lines')).toBe(true)
+  })
+})
+
+describe('a drawing the app takes', () => {
+  const SLOW = { timeoutMs: 30000 }
+  const REAL = { bodyColumns: 187, scroll: { offset: 0, bodyRows: 63 } }
+  const THEMES = [['cosy', 'Cosy'], ['japonais', 'Japonais'], ['nature', 'Nature'], ['futuriste', 'Futuriste'], ['geek', 'Geek et jeu'], ['base', 'Base spatiale']] as const
+  const planOf = (n: number) => Array.from({ length: n }, (_, i) => step(`Étape ${i + 1} : lire le code du volet et comprendre`, i ? 'pending' : 'in_progress', { detail: 'Une phrase simple sur ce que fait cette étape.', who: 'Claude' }))
+
+  async function loaded($: any, on: any, steps: number, agents: number) {
+    const w = world(on)
+    await start($)
+    await sendPlan($, planOf(steps), 'Job')
+    for (let i = 0; i < agents; i += 1) await spawn($, w, `a${i}`)
+    const ui = await mountPane($, 'desktop', REAL)
+    return { w, ui, shown: onScreen(ui) }
+  }
+
+  async function tour(ui: any, shown: () => Promise<any>) {
+    await press(ui, 'settings-button-0')
+    expect(keyed(await shown(), 'settings-panel'), 'the panel opens').toBeDefined()
+    for (const [id, name] of [...THEMES, ...THEMES]) {
+      await press(ui, `theme-${id}`)
+      const panel = keyed(await shown(), 'settings-panel')
+      expect(kids(panel)[0].props.alt, `the panel follows ${id}`).toContain(`Thème. ${name}, choisi.`)
+    }
+    await press(ui, 'settings-button-0')
+    expect(keyed(await shown(), 'settings-panel'), 'the panel closes').toBeUndefined()
+  }
+
+  test('a room with a plan goes through the themes twice, and the panel closes', SLOW, async ($, on) => {
+    const { ui, shown } = await loaded($, on, 4, 0)
+    await tour(ui, shown)
+  })
+
+  test('so does a room with a long plan and desks at work', SLOW, async ($, on) => {
+    const { ui, shown } = await loaded($, on, 12, 7)
+    await tour(ui, shown)
+  })
+
+  test('what a press changes shows even with the panel shut', SLOW, async ($, on) => {
+    const { w, ui } = await loaded($, on, 12, 3)
+    await command($, 'theme nature')
+    await w.clock.advance(3000)
+    expect(appTakes(await ui.drawn())).toBe(true)
+  })
+
+  test('over the limit the room lets go of what only a hover shows, and keeps its buttons', SLOW, async ($, on) => {
+    const { ui } = await loaded($, on, 12, 0)
+    expect(await hasKey(ui, 'reveal-0')).toBe(false)
+    expect(await hasKey(ui, 'plan-lines')).toBe(false)
+    expect(await hasKey(ui, 'settings-button-0')).toBe(true)
+    expect(await hasKey(ui, 'desk-manager'), 'a card goes only if it must').toBe(true)
+    expect(await hasKey(ui, 'live-crab')).toBe(true)
+  })
+
+  test('a room under the limit keeps all of it', SLOW, async ($, on) => {
+    const { ui } = await loaded($, on, 2, 0)
+    expect(await hasKey(ui, 'reveal-0')).toBe(true)
+    expect(await hasKey(ui, 'plan-lines')).toBe(true)
+  })
+
+  test('a room no thinning can save stands whole in one image, and keeps its panel', SLOW, async ($, on) => {
+    const { ui, shown } = await loaded($, on, 12, 16)
+    await tour(ui, shown)
+    await press(ui, 'settings-button-0')
+    await press(ui, 'theme-nature')
+    expect(await hasKey(ui, 'live-a0')).toBe(false)
+    expect((await ui.findAll({ type: 'Svg' })).filter((svg: any) => svg.props.isInteractive)).toEqual([])
+    expect(await hasKey(ui, 'settings-panel')).toBe(true)
   })
 })
 

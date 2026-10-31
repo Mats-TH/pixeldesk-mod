@@ -153,7 +153,7 @@ export function crabLayer(p: RoomInput): Layer {
   })
 }
 
-/** The crab asleep in his basket, the lightest he gets: a room too heavy for the client gives up his walk first. */
+/** The crab asleep in his basket, the lightest he gets: what a room too heavy for the app leaves of his walk. */
 export function crabAsleep(p: RoomInput): Layer {
   return kept(`crab-asleep ${getLanguage()} ${roomKey(p)}`, () => {
     const g = paneOf(p)

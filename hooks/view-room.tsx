@@ -24,6 +24,7 @@ import { packOf } from './pixel/themes'
 
 // The engine refuses a drawing past this many characters.
 const SVG_MAX = 131_072
+const THIN_LEVELS = 5
 
 export type RoomView = {
   agents: readonly AgentRecord[]
@@ -250,7 +251,7 @@ function briefingZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells
   )
 }
 
-/** The room as a drawing; null when it will not fit the engine's limit, and the list takes over. */
+/** The room as a drawing, as thin as the app needs it; null when not even one image holds it, and the list takes over. */
 export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: Frame, view: RoomView, mobile: boolean, list: readonly RenderElement[] | null) {
   const { Box, Svg } = ui
   const desks: RoomDesk[] = view.agents.map(desk)
@@ -291,35 +292,46 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
   const panel = view.settings.open ? panelCells(view.settings, frame) : null
   // Once the panel reaches the board's column the lines have no zone left.
   const lines = panel && panel.left + panel.cols > Math.floor(board.left / CELL_W) ? [] : visibleLines(board.lines, frame.height)
-  const whole = (
+  /** The room at a level of thinning: the plan's lines go first, then the crab's walk, the looks of the panel, and the cards. */
+  const thinned = (level: number) => {
+    const hovered = level < 1 ? lines : []
+    const cards = level < 4
+    return (
+      <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
+        {image}
+        {count}
+        {decorLayers(input).map(l => liveBox(ui, l))}
+        {liveBox(ui, level < 2 ? crabLayer(input) : crabAsleep(input))}
+        {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
+        {liveBox(ui, fireLayer(input, look.fire))}
+        {labels}
+        {keeper ? liveBox(ui, keeper) : null}
+        {reveals(ui, view, input, hovered, board, frame)}
+        {cards ? managerZone(ui, view, frame, panel, false) : null}
+        {cards ? deskZones(ui, view, frame, panel) : null}
+        {cards ? hearthZone(ui, view, frame, panel) : null}
+        {briefingZone(ui, view, frame, panel)}
+        {hovered.length ? lineColumn(ui, hovered, frame) : null}
+        {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
+        {settingsElements(ui, view.settings, frame, level < 3)}
+      </Box>
+    )
+  }
+  const tree = lightest(thinned, THIN_LEVELS)
+  if (tree) return tree
+  // The last resort is a phone's room: one image, still, under the same buttons.
+  const whole = roomSvg(input)
+  if (whole.length > SVG_MAX) {
+    await log($, m, `room drawing too large: ${whole.length}`)
+    return null
+  }
+  return (
     <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
-      <Svg key="room-svg" source={roomSvg(input)} alt={alt} width={frame.width} height={frame.height} />
+      <Svg key="room-svg" source={whole} alt={alt} width={frame.width} height={frame.height} />
       {count}
-      {settingsElements(ui, view.settings, frame)}
-    </Box>
-  )
-  // Too heavy for the client, a room gives up the crab's walk, then the bubbles of its plan, then its cards, then its layers.
-  const tree = (shed: number) => shed > 3 ? whole : (
-    <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
-      {image}
-      {count}
-      {decorLayers(input).map(l => liveBox(ui, l))}
-      {liveBox(ui, shed ? crabAsleep(input) : crabLayer(input))}
-      {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
-      {liveBox(ui, fireLayer(input, look.fire))}
-      {labels}
-      {keeper ? liveBox(ui, keeper) : null}
-      {shed < 2 ? reveals(ui, view, input, lines, board, frame) : null}
-      {shed < 3 ? managerZone(ui, view, frame, panel, false) : null}
-      {shed < 3 ? deskZones(ui, view, frame, panel) : null}
-      {shed < 3 ? hearthZone(ui, view, frame, panel) : null}
       {briefingZone(ui, view, frame, panel)}
-      {lines.length && shed < 2 ? lineColumn(ui, lines, frame) : null}
       {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
-      {settingsElements(ui, view.settings, frame)}
+      {settingsElements(ui, view.settings, frame, false)}
     </Box>
   )
-  const drawn = lightest(tree, 5)
-  if (!drawn) await log($, m, 'room tree too heavy: the list takes over')
-  return drawn
 }

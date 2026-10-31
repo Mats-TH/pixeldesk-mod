@@ -319,22 +319,20 @@ describe('the desks', () => {
     expect(svg.props.source).toContain('shape-rendering="crispEdges"')
   })
 
-  test('five cards stand still, and sixteen desks keep a frame each: their cards are what the client has no room for', async ($, on) => {
+  test('sixteen desks stand still with no cards, too many for the app: 5 images, and one frame for each desk and each moving thing', async ($, on) => {
     const w = world(on)
     await start($)
-    for (let i = 0; i < 5; i += 1) await spawn($, w, `a${i}`)
+    for (let i = 0; i < 16; i += 1) await spawn($, w, `a${i}`)
     const ui = await mountPane($)
-    const read = async () => (await zones(ui, 'desk-')).map((zone: any) => cardIn(zone).svg.props.source as string)
+    expect(await zones(ui, 'desk-')).toEqual([])
+    const svgs = await ui.findAll({ type: 'Svg' })
+    expect(svgs.filter((svg: any) => !svg.props.isInteractive), 'the room, its count, its labels and the two looks of the button').toHaveLength(5)
+    const read = async () => (await ui.findAll({ type: 'Svg' })).filter((svg: any) => svg.props.isInteractive).map((svg: any) => svg.props.source as string)
     const first: string[] = await read()
-    expect(first).toHaveLength(6)
+    expect(first.length, 'the desks, the fire, at most the lights and the cat').toBeLessThanOrEqual(20)
     await w.clock.advance(10_000)
     await ui.redraw()
     expect(await read()).toEqual(first)
-    for (let i = 5; i < 16; i += 1) await spawn($, w, `a${i}`)
-    await ui.redraw()
-    const svgs = await ui.findAll({ type: 'Svg' })
-    expect(svgs.filter((svg: any) => svg.props.isInteractive).length, 'the desks, the fire, the crab, at most the lights and the cat').toBeLessThanOrEqual(21)
-    expect(svgs.filter((svg: any) => svg.props.isInteractive).length).toBeGreaterThanOrEqual(19)
   })
 
   test('a record with no plan shows the three dots', async ($, on) => {

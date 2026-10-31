@@ -62,15 +62,19 @@ describe('the weight of a drawing', () => {
     expect((await sourceOf(ui, 'live-crab')).length).toBeGreaterThan(20_000)
   })
 
-  test('the crab gives up his walk first, and the bubbles of the plan stay while they can', async ($, on) => {
+  test('the bubbles of the plan go first, and then the crab sleeps in his basket: he never leaves', async ($, on) => {
     const w = world(on, inTheme('nature'))
     await start($)
     const ui = await mountPane($, 'desktop', WIDE)
     await sendPlan($, planOf(6), 'Moyen')
     await spawn($, w, 'a')
     await ui.redraw()
-    expect((await sourceOf(ui, 'live-crab')).length, 'asleep in his basket').toBeLessThan(10_000)
-    expect(await hasKey(ui, 'reveal-5')).toBe(true)
+    expect(await hasKey(ui, 'plan-lines')).toBe(false)
+    expect((await sourceOf(ui, 'live-crab')).length, 'he still walks').toBeGreaterThan(20_000)
+    for (const id of ['b', 'c', 'd']) await spawn($, w, id)
+    await ui.redraw()
+    expect(await hasKey(ui, 'live-crab')).toBe(true)
+    expect((await sourceOf(ui, 'live-crab')).length, 'asleep').toBeLessThan(10_000)
   })
 
   test('the limit never takes the pane away: what cannot be drawn reads as the list', async ($, on) => {
