@@ -4,7 +4,7 @@ import { FIVE, HOUR, READ, REWRITE, answers, hearthWorld } from './test-hearth'
 import { NOON, SETTINGS_FILE, command, endTurn, mountBand, sendPlan, spawn, start, startTurn, step, usage } from './test-kit'
 
 const SLOW = { timeoutMs: 30000 }
-const PING = 'Reply with the single word: ok'
+const PING = 'Answer only: ok'
 const pings = (forks: string[]) => forks.filter(prompt => prompt === PING).length
 
 describe('the clock', () => {
@@ -46,7 +46,7 @@ describe('the clock', () => {
     const { w, h, reply } = hearthWorld(on)
     h.fork = () => answers.overloaded
     await start($)
-    await command($, 'warm off')
+    await command($, 'fire off')
     await reply($)
     await w.clock.settle()
     const states = () => w.stateWrites.filter(key => key === 'hearth').length
@@ -95,16 +95,16 @@ describe('relaunches', () => {
     await reply($)
     await w.clock.advance(2 * HOUR + FIVE * 2)
     expect(pings(forks)).toBe(28)
-    expect(w.state.hearth).toMatchObject({ warmStop: 'cap', fire: 'out', relaunchCap: 30, active: false })
+    expect(w.state.hearth).toMatchObject({ relaunchStop: 'cap', fire: 'out', relaunchCap: 30, active: false })
   })
 
   test('a session at rest stops at the thirtieth relaunch, never a thirty-first', async ($, on) => {
-    const held = { lengthMs: FIVE, coolsAt: NOON + 50_000, relaunches: 29, warmSince: NOON - 60_000, failures: 0, warmStop: null, warmError: '', keeperRun: 29, contextPercent: 10, compactions: 0 }
+    const held = { lengthMs: FIVE, coolsAt: NOON + 50_000, relaunches: 29, relaunchSince: NOON - 60_000, failures: 0, relaunchStop: null, relaunchError: '', keeperRun: 29, contextPercent: 10, compactions: 0 }
     const { w, forks } = hearthWorld(on, { held: { hearth: held } })
     await start($)
     await w.clock.advance(FIVE * 2)
     expect(pings(forks)).toBe(1)
-    expect(w.state.hearth).toMatchObject({ warmStop: 'cap', relaunches: 30 })
+    expect(w.state.hearth).toMatchObject({ relaunchStop: 'cap', relaunches: 30 })
   })
 
   test('an active session has no cap, of relaunches or of time', SLOW, async ($, on) => {
@@ -114,7 +114,7 @@ describe('relaunches', () => {
     await spawn($, w, 'a1')
     for (let part = 0; part < 14; part += 1) await w.clock.advance(HOUR / 6)
     expect(pings(forks)).toBe(32)
-    expect(w.state.hearth).toMatchObject({ active: true, relaunchCap: null, warmStop: null })
+    expect(w.state.hearth).toMatchObject({ active: true, relaunchCap: null, relaunchStop: null })
   })
 
   test('a plan alone counts for 15 min after the last activity, then the session is at rest', SLOW, async ($, on) => {
@@ -129,13 +129,13 @@ describe('relaunches', () => {
   })
 
   test('a quiet plan holds no cap off: the thirtieth relaunch is the last', SLOW, async ($, on) => {
-    const held = { lengthMs: FIVE, coolsAt: NOON + 50_000, relaunches: 29, warmSince: NOON - 60_000, failures: 0, warmStop: null, warmError: '', keeperRun: 29, contextPercent: 10, compactions: 0 }
+    const held = { lengthMs: FIVE, coolsAt: NOON + 50_000, relaunches: 29, relaunchSince: NOON - 60_000, failures: 0, relaunchStop: null, relaunchError: '', keeperRun: 29, contextPercent: 10, compactions: 0 }
     const { w, forks } = hearthWorld(on, { held: { hearth: held } })
     await start($)
     await sendPlan($, [step('Forgotten', 'in_progress')])
     await w.clock.advance(FIVE * 2)
     expect(pings(forks)).toBe(1)
-    expect(w.state.hearth).toMatchObject({ warmStop: 'cap', relaunches: 30, active: false })
+    expect(w.state.hearth).toMatchObject({ relaunchStop: 'cap', relaunches: 30, active: false })
   })
 
   test('a turn brings a quiet plan back to life', SLOW, async ($, on) => {
@@ -159,7 +159,7 @@ describe('relaunches', () => {
     expect(pings(forks)).toBe(1)
     await sendPlan($, [step('Long job', 'completed')])
     await w.clock.advance(5000)
-    expect(w.state.hearth).toMatchObject({ active: false, relaunches: 0, relaunchCap: 30, warmStop: null })
+    expect(w.state.hearth).toMatchObject({ active: false, relaunches: 0, relaunchCap: 30, relaunchStop: null })
     await w.clock.advance(FIVE)
     expect(pings(forks)).toBe(2)
   })
@@ -176,7 +176,7 @@ describe('relaunches', () => {
     expect(w.state.hearth).toMatchObject({ active: true, relaunchCap: null })
   })
 
-  test('a long tool in the middle of a turn is kept warm, a request in flight is not doubled', async ($, on) => {
+  test('a long tool in the middle of a turn is kept fire, a request in flight is not doubled', async ($, on) => {
     const { w, forks, spend } = hearthWorld(on)
     await start($)
     await startTurn($)
@@ -210,14 +210,14 @@ describe('what stops them', () => {
     await reply($)
     await w.clock.advance(FIVE - 45_000)
     expect(forks).toHaveLength(1)
-    expect(w.state.hearth).toMatchObject({ failures: 1, warmStop: null })
+    expect(w.state.hearth).toMatchObject({ failures: 1, relaunchStop: null })
     await w.clock.advance(19_999)
     expect(forks).toHaveLength(1)
     await w.clock.advance(1)
     expect(forks).toHaveLength(2)
     await w.clock.advance(20_000)
     expect(forks).toHaveLength(3)
-    expect(w.state.hearth).toMatchObject({ warmStop: 'failed', failures: 3, warmError: 'overloaded 529' })
+    expect(w.state.hearth).toMatchObject({ relaunchStop: 'failed', failures: 3, relaunchError: 'overloaded 529' })
     await w.clock.advance(HOUR)
     expect(forks).toHaveLength(3)
     expect(w.toasts.filter(text => text.includes('3 essais'))).toHaveLength(1)
@@ -236,7 +236,7 @@ describe('what stops them', () => {
     await start($)
     await reply($)
     await w.clock.advance(FIVE - 45_000)
-    expect(w.state.hearth).toMatchObject({ failures: 1, warmError: 'erreur' })
+    expect(w.state.hearth).toMatchObject({ failures: 1, relaunchError: 'erreur' })
   })
 
   test('a reply with no words read the conversation all the same', async ($, on) => {
@@ -255,7 +255,7 @@ describe('what stops them', () => {
     await reply($)
     await w.clock.advance(FIVE)
     expect(forks).toHaveLength(1)
-    expect(w.state.hearth.warmStop).toBe('nothing')
+    expect(w.state.hearth.relaunchStop).toBe('nothing')
     expect(w.toasts).toEqual([])
   })
 
@@ -267,16 +267,16 @@ describe('what stops them', () => {
     await w.clock.advance(FIVE - 45_000)
     await w.clock.advance(FIVE)
     expect(forks).toHaveLength(1)
-    expect(w.state.hearth.warmStop).toBe('cold')
+    expect(w.state.hearth.relaunchStop).toBe('cold')
   })
 
   test('never on a cold cache: turning them back on after the end sends nothing', SLOW, async ($, on) => {
     const { w, forks, reply } = hearthWorld(on)
     await start($)
-    await command($, 'warm off')
+    await command($, 'fire off')
     await reply($)
     await w.clock.advance(FIVE + 1000)
-    await command($, 'warm on')
+    await command($, 'fire on')
     await w.clock.advance(HOUR)
     expect(forks).toEqual([])
   })
@@ -288,14 +288,14 @@ describe('what stops them', () => {
     h.model = 'sonnet'
     await w.clock.advance(FIVE)
     expect(forks).toEqual([])
-    expect(w.state.hearth).toMatchObject({ coolsAt: null, warmStop: 'cold' })
+    expect(w.state.hearth).toMatchObject({ coolsAt: null, relaunchStop: 'cold' })
   })
 
   test('off in the settings file: no call at all, and the fire still follows the clock', async ($, on) => {
-    const { w, forks, reply } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ warm: false }) } })
+    const { w, forks, reply } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire: false }) } })
     await start($)
     await reply($)
-    expect(w.state.settings.warm).toBe(false)
+    expect(w.state.settings.fire).toBe(false)
     await w.clock.advance(FIVE * 2)
     expect(forks).toEqual([])
     expect(w.state.hearth.fire).toBe('out')

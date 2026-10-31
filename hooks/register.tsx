@@ -4,11 +4,11 @@ import { act, arrive, endTurn, known, publish } from './agents'
 import { closeTurn, noteCall, openTurn } from './chat'
 import { onCompact } from './compaction'
 import { guard } from './disk'
-import { afterTurn, answerRefresh, clearHearth, pressGesture } from './hearth'
+import { afterTurn, answerMove, clearHearth, pressGesture } from './hearth'
 import { isForkTurn, stepBack, stepLeaves } from './heat'
 import { setLanguage, t } from './i18n'
 import { forcedBy } from './language'
-import { PLAN_TOOL, REFRESH_TOOL, createMemory } from './memory'
+import { PLAN_TOOL, MOVE_TOOL, createMemory } from './memory'
 import type { Memory } from './memory'
 import { entered, received } from './news'
 import { pressSettings } from './preferences'
@@ -83,7 +83,7 @@ export const register: Register = (on, options) => {
     const tool = String(e.tool)
     const input = e as Record<string, unknown>
     if (tool === PLAN_TOOL) return answerPlan($, m, input, e.agentId)
-    if (tool === REFRESH_TOOL) return answerRefresh($, m, e.agentId)
+    if (tool === MOVE_TOOL) return answerMove($, m, e.agentId)
     if (e.agentId === undefined && isMirror(tool)) m.turn = { ...m.turn, planSeen: true }
     if (e.agentId !== undefined) await guard($, m, 'agent action', () => act($, m, e.agentId!, tool, input))
     else await guard($, m, 'turn call', () => noteCall($, m, tool, input))
@@ -156,7 +156,7 @@ export const register: Register = (on, options) => {
     }
   }
 
-  on('ui.press', { plugin: 'pixeldesk', element: /^(?:handoff|hearth)-/ }, ($, e) => pressGesture($, m, e))
+  on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth)-/ }, ($, e) => pressGesture($, m, e))
 
   on('ui.render', { component: 'Pane', requestId: 'pixeldesk' }, ($, e) => drawPane($, m, e))
 

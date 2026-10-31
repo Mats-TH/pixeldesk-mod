@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { FIVE, HANDOFF_TEXT, MANUAL, NOTES, STATE_FILE, answers, claudeRun, hearthWorld, linksOpened, press, saved } from './test-hearth'
+import { FIVE, BRIEFING_TEXT, MANUAL, NOTES, STATE_FILE, answers, claudeRun, hearthWorld, linksOpened, press, saved } from './test-hearth'
 import { CWD, SESSION, SETTINGS_FILE, altOf, command, endTurn, mountBand, spawn, start, startTurn, textsOf, usage } from './test-kit'
 
 const UUID = /^[0-9a-f-]{36}$/
@@ -31,12 +31,12 @@ describe('the ash', () => {
     await reply($)
     await w.clock.advance(2000)
     expect(h.compacts).toEqual([])
-    expect(w.state.handoff.phase).toBe('idle')
+    expect(w.state.briefing.phase).toBe('idle')
   })
 })
 
 describe('auto: compact under the cursor, change past it', () => {
-  test('under the cursor it compacts at the end of the turn, with the handoff brief and notes first', async ($, on) => {
+  test('under the cursor it compacts at the end of the turn, with the briefing brief and notes first', async ($, on) => {
     const { w, h, reply, fill } = hearthWorld(on)
     h.messages = [{ role: 'user', text: 'Fais le mod, on garde la cheminée à gauche.', toolUses: [] }, { role: 'assistant', text: '', toolUses: [{ tool: 'Edit', input: { file_path: 'C:/work/app/a.ts' } }] }]
     fill(80)
@@ -45,7 +45,7 @@ describe('auto: compact under the cursor, change past it', () => {
     expect(h.compacts, 'never inside the turn').toEqual([])
     await w.clock.advance(1000)
     expect(h.compacts).toHaveLength(1)
-    expect(h.compacts[0].instructions).toContain(`~/.claude/pixeldesk/handoffs/notes-${SESSION}.md`)
+    expect(h.compacts[0].instructions).toContain(`~/.claude/pixeldesk/briefings/notes-${SESSION}.md`)
     expect(w.state.hearth).toMatchObject({ compactions: 1, keeper: 'broom', keeperRun: 1, coolsAt: null })
     expect(w.json(STATE_FILE).compactions).toBe(1)
     const notes = w.file(NOTES)!
@@ -140,7 +140,7 @@ describe('auto: compact under the cursor, change past it', () => {
     await reply($)
     await w.clock.advance(1000)
     expect(h.compacts).toEqual([])
-    expect(w.state.handoff.phase, 'the row closes once the conversation is open').toBe('idle')
+    expect(w.state.briefing.phase, 'the row closes once the conversation is open').toBe('idle')
     expect(saved(w)).toHaveLength(1)
     const run = claudeRun(w)
     const id = run.argv[4]
@@ -173,7 +173,7 @@ describe('auto: compact under the cursor, change past it', () => {
     await w.clock.advance(FIVE)
     expect(h.compacts).toEqual([])
     expect(h.forks).toEqual([])
-    expect(w.state.handoff.phase).toBe('offered')
+    expect(w.state.briefing.phase).toBe('offered')
   })
 
   test('agents hold it back, and it goes alone when the last one ends', async ($, on) => {
@@ -184,7 +184,7 @@ describe('auto: compact under the cursor, change past it', () => {
     await reply($)
     await w.clock.advance(2000)
     expect(h.compacts).toEqual([])
-    expect(w.state.handoff).toMatchObject({ phase: 'waiting', waitingAgents: 1, waitingChats: 0, asked: false })
+    expect(w.state.briefing).toMatchObject({ phase: 'waiting', waitingAgents: 1, waitingChats: 0, asked: false })
     await endTurn($, { agentId: 'a1' })
     await w.clock.advance(1000)
     expect(h.compacts).toHaveLength(1)
@@ -192,32 +192,32 @@ describe('auto: compact under the cursor, change past it', () => {
 })
 
 describe('the two settings are independent', () => {
-  for (const warm of [true, false]) {
-    for (const handoffMode of ['auto', 'manual'] as const) {
-      test(`warm ${warm}, ${handoffMode}: warm rules the relaunches, the mode rules the rest`, async ($, on) => {
-        const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ warm, handoffMode }) } })
+  for (const fire of [true, false]) {
+    for (const briefingMode of ['auto', 'manual'] as const) {
+      test(`fire ${fire}, ${briefingMode}: fire rules the relaunches, the mode rules the rest`, async ($, on) => {
+        const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire, briefingMode }) } })
         fill(10)
         await start($)
         await reply($)
         await w.clock.advance(FIVE - 45_000)
-        expect(h.forks).toHaveLength(warm ? 1 : 0)
+        expect(h.forks).toHaveLength(fire ? 1 : 0)
         fill(85)
         await reply($)
         await w.clock.advance(1000)
-        expect(h.compacts).toHaveLength(handoffMode === 'auto' ? 1 : 0)
-        expect(w.state.handoff.phase).toBe(handoffMode === 'auto' ? 'idle' : 'offered')
+        expect(h.compacts).toHaveLength(briefingMode === 'auto' ? 1 : 0)
+        expect(w.state.briefing.phase).toBe(briefingMode === 'auto' ? 'idle' : 'offered')
       })
 
-      test(`warm ${warm}, ${handoffMode}: the change of conversation follows the mode alone`, async ($, on) => {
-        const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ warm, handoffMode, compactBefore: 0 }) } })
+      test(`fire ${fire}, ${briefingMode}: the change of conversation follows the mode alone`, async ($, on) => {
+        const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire, briefingMode, compactBefore: 0 }) } })
         w.answerRun = () => ({ value: { exitCode: 0, stdout: '', stderr: '' } })
         fill(85)
         await start($)
         await reply($)
         await w.clock.advance(1000)
         expect(h.compacts).toEqual([])
-        expect(claudeRun(w) !== undefined).toBe(handoffMode === 'auto')
-        expect(saved(w)).toHaveLength(handoffMode === 'auto' ? 1 : 0)
+        expect(claudeRun(w) !== undefined).toBe(briefingMode === 'auto')
+        expect(saved(w)).toHaveLength(briefingMode === 'auto' ? 1 : 0)
       })
     }
   }
@@ -233,48 +233,48 @@ describe('manual: the button', () => {
     await start($)
     await reply($)
     await w.clock.advance(5000)
-    expect(w.state.handoff.phase).toBe('offered')
+    expect(w.state.briefing.phase).toBe('offered')
     expect(h.forks).toEqual([])
     expect(h.compacts).toEqual([])
     const ui = await mountBand($)
     expect(await textsOf(ui), 'on the desktop, the row is an image').not.toContain('Contexte à 81 %. PixelDesk conseille de changer de conversation.')
-    expect(await altOf(ui, 'handoff-row')).toBe('Grosse conversation. Rafraîchir ?. Rafraîchir. Fermer')
-    expect(await pressKeys(ui)).toEqual(['handoff-change', 'handoff-cancel'])
+    expect(await altOf(ui, 'briefing-row')).toBe('Grosse conversation. Déménager ?. Déménager. Fermer')
+    expect(await pressKeys(ui)).toEqual(['briefing-change', 'briefing-cancel'])
     const terminal = await mountBand($, 'terminal')
     expect(await textsOf(terminal)).toContain('Contexte à 81 %. PixelDesk conseille de changer de conversation.')
-    expect(await pressKeys(terminal)).toEqual(['handoff-change', 'handoff-cancel'])
+    expect(await pressKeys(terminal)).toEqual(['briefing-change', 'briefing-cancel'])
     fill(30)
     await w.clock.advance(5000)
-    expect(w.state.handoff.phase).toBe('idle')
+    expect(w.state.briefing.phase).toBe('idle')
   })
 
-  test('a ready handoff waits for the person: a toast, and the conversation opens at the click', async ($, on) => {
+  test('a ready briefing waits for the person: a toast, and the conversation opens at the click', async ($, on) => {
     const { w, reply, fill } = hearthWorld(on, { files: MANUAL })
     w.answerRun = () => ({ value: { exitCode: 0, stdout: '', stderr: '' } })
     fill(81)
     await start($)
     await reply($)
     await w.clock.advance(1000)
-    await press($, 'handoff-change')
+    await press($, 'briefing-change')
     await w.clock.settle()
-    expect(w.state.handoff.phase).toBe('ready')
+    expect(w.state.briefing.phase).toBe('ready')
     expect(w.toasts).toContain('Passation prête. Clique sur Nouvelle conversation.')
     expect(w.runs, 'nothing opens on its own').toEqual([])
-    await press($, 'handoff-start')
+    await press($, 'briefing-start')
     expect(claudeRun(w).argv[1]).toBe('-p')
   })
 
-  test('the buttons of a ready handoff, on both surfaces', async ($, on) => {
+  test('the buttons of a ready briefing, on both surfaces', async ($, on) => {
     const { w, reply, fill } = hearthWorld(on, { files: MANUAL })
     fill(81)
     await start($)
     await reply($)
     await w.clock.advance(1000)
-    await press($, 'handoff-change')
+    await press($, 'briefing-change')
     await w.clock.settle()
     for (const surface of ['desktop', 'terminal']) {
       const ui = await mountBand($, surface)
-      expect(await pressKeys(ui)).toEqual(['handoff-start', 'handoff-copy', 'handoff-open', 'handoff-close'])
+      expect(await pressKeys(ui)).toEqual(['briefing-start', 'briefing-copy', 'briefing-open', 'briefing-close'])
       await ui.unmount()
     }
   })
@@ -285,16 +285,16 @@ describe('manual: the button', () => {
     await start($)
     await reply($)
     await w.clock.advance(1000)
-    await press($, 'handoff-cancel')
+    await press($, 'briefing-cancel')
     await w.clock.settle()
-    expect(w.state.handoff.phase).toBe('idle')
+    expect(w.state.briefing.phase).toBe('idle')
     expect(w.json(STATE_FILE).snooze).toBe(910_000)
     fill(85, 850_000)
     await w.clock.advance(5000)
-    expect(w.state.handoff.phase).toBe('idle')
+    expect(w.state.briefing.phase).toBe('idle')
     fill(92, 920_000)
     await w.clock.advance(5000)
-    expect(w.state.handoff.phase).toBe('offered')
+    expect(w.state.briefing.phase).toBe('offered')
   })
 
   test('a click during a turn writes at its end, never over it', async ($, on) => {
@@ -303,31 +303,31 @@ describe('manual: the button', () => {
     await start($)
     await startTurn($)
     await spend($, usage(5))
-    await press($, 'handoff-change')
+    await press($, 'briefing-change')
     await w.clock.settle()
-    expect(w.state.handoff).toMatchObject({ phase: 'waiting', waitingAgents: 0, asked: true })
+    expect(w.state.briefing).toMatchObject({ phase: 'waiting', waitingAgents: 0, asked: true })
     expect(h.forks).toEqual([])
     await endTurn($)
     await w.clock.advance(1000)
-    expect(w.state.handoff.phase).toBe('ready')
+    expect(w.state.briefing.phase).toBe('ready')
   })
   test('Fermer during the writing stops it for good: nothing saved, and the row stays away', async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
     let answer = (_: unknown) => {}
-    t.h.fork = (prompt: string) => (prompt.includes('single word') ? answers.pong() : new Promise(resolve => (answer = resolve)))
+    t.h.fork = (prompt: string) => (prompt.includes('Answer only') ? answers.pong() : new Promise(resolve => (answer = resolve)))
     await start($)
     await t.reply($)
     await t.w.clock.advance(1000)
-    await command($, 'refresh')
+    await command($, 'move')
     await t.w.clock.settle()
-    expect(t.w.state.handoff.phase).toBe('writing')
-    await press($, 'handoff-close')
-    expect(t.w.state.handoff.phase).toBe('idle')
+    expect(t.w.state.briefing.phase).toBe('writing')
+    await press($, 'briefing-close')
+    expect(t.w.state.briefing.phase).toBe('idle')
     const toasts = t.w.toasts.length
-    answer(answers.reply(HANDOFF_TEXT))
+    answer(answers.reply(BRIEFING_TEXT))
     await t.w.clock.settle()
     await t.w.clock.advance(2000)
-    expect(t.w.state.handoff).toMatchObject({ phase: 'idle', file: null })
+    expect(t.w.state.briefing).toMatchObject({ phase: 'idle', file: null })
     expect(saved(t.w)).toEqual([])
     expect(t.w.toasts).toHaveLength(toasts)
   })

@@ -1,30 +1,30 @@
 import type { EngineInterface } from 'claude-code'
 
-import { guard, handoffsDir, hearthPath, listed, onDisk, readText } from './disk'
+import { guard, briefingsDir, hearthPath, listed, onDisk, readText } from './disk'
 import type { Memory } from './memory'
 
 const KEEP = 20
 const NOTES_KEEP = 200_000
-const HANDOFF_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-.+\.md$/
+const BRIEFING_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-.+\.md$/
 const NOTES_NAME = /^notes-.+\.md$/
 const DRAFT_NAME = /^draft-.+\.md$/
 
-export const draftPath = (m: Memory) => `${handoffsDir(m)}/draft-${m.sessionId}.md`
-export const notesPath = (m: Memory) => `${handoffsDir(m)}/notes-${m.sessionId}.md`
+export const draftPath = (m: Memory) => `${briefingsDir(m)}/draft-${m.sessionId}.md`
+export const notesPath = (m: Memory) => `${briefingsDir(m)}/notes-${m.sessionId}.md`
 
 /**
  * Keeps the latest of a kind. `$.fs` cannot delete and no command may, so what falls out of the list is emptied:
  * the text is gone from the disk, and an empty file no longer counts.
  */
 async function keepLatest($: EngineInterface, m: Memory, name: RegExp) {
-  const entries = (await listed($, handoffsDir(m))).filter(entry => entry.kind === 'file' && entry.size > 0 && name.test(entry.name))
+  const entries = (await listed($, briefingsDir(m))).filter(entry => entry.kind === 'file' && entry.size > 0 && name.test(entry.name))
   const newestFirst = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs || b.name.localeCompare(a.name))
-  for (const entry of newestFirst.slice(KEEP)) await $.fs.write(`${handoffsDir(m)}/${entry.name}`, '')
+  for (const entry of newestFirst.slice(KEEP)) await $.fs.write(`${briefingsDir(m)}/${entry.name}`, '')
 }
 
 /** One pass for each kind of file the folder holds. A failure leaves one file too many, nothing worse. */
-export async function pruneHandoffs($: EngineInterface, m: Memory) {
-  for (const name of [HANDOFF_NAME, NOTES_NAME, DRAFT_NAME]) await guard($, m, 'handoff files', () => keepLatest($, m, name))
+export async function pruneBriefings($: EngineInterface, m: Memory) {
+  for (const name of [BRIEFING_NAME, NOTES_NAME, DRAFT_NAME]) await guard($, m, 'briefing files', () => keepLatest($, m, name))
 }
 
 /** What this conversation's compactions left. */

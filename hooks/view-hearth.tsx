@@ -1,15 +1,15 @@
 import type { Elements, EngineInterface, RenderInput } from 'claude-code'
 
-import type { Handoff } from '../types'
+import type { Briefing } from '../types'
 import { zoneCells } from './card'
-import { handoffButtons, handoffRow, rowArea } from './card-handoff'
-import type { HandoffButton, PlacedButton } from './card-handoff'
-import { tilde } from './handoff-gather'
+import { briefingButtons, briefingRow, rowArea } from './card-briefing'
+import type { BriefingButton, PlacedButton } from './card-briefing'
+import { tilde } from './briefing-gather'
 import { plural, t } from './i18n'
 import type { TextKey } from './i18n'
 import { cut } from './lines'
 import type { Memory } from './memory'
-import { readHandoff, readHearth } from './state'
+import { readBriefing, readHearth } from './state'
 import { pressRows } from './view-settings'
 import { bandWidth } from './view-shared'
 import type { Table } from './view-shared'
@@ -17,7 +17,7 @@ import type { Table } from './view-shared'
 type Band = RenderInput<'AbovePrompt'>
 type Row = Pick<Elements['desktop'], 'Box' | 'Text' | 'Button'>
 
-const STEPS: readonly TextKey[] = ['handoff.step1', 'handoff.step2', 'handoff.step3', 'handoff.step4', 'handoff.step5']
+const STEPS: readonly TextKey[] = ['briefing.step1', 'briefing.step2', 'briefing.step3', 'briefing.step4', 'briefing.step5']
 const LINE = 'truncate-end'
 const WIDTH_MARGIN = 2
 // A plain image stops at the body, where the band's frame runs past it.
@@ -25,34 +25,34 @@ const ROW_PAST = 10
 const ignore = () => undefined
 
 /** The presses reach their hooks by key, whatever the row became in between. */
-function wordButtons({ Box, Button }: Row, labels: readonly HandoffButton[]) {
+function wordButtons({ Box, Button }: Row, labels: readonly BriefingButton[]) {
   return (
-    <Box key="handoff-buttons" flexDirection="row" gap={1}>
+    <Box key="briefing-buttons" flexDirection="row" gap={1}>
       {labels.map(b => <Button key={b.key} label={b.label} variant={b.primary ? 'primary' : 'secondary'} onPress={ignore} />)}
     </Box>
   )
 }
 
-function waitingWords(view: Handoff, percent: number) {
+function waitingWords(view: Briefing, percent: number) {
   const n = view.waitingAgents + view.waitingChats
-  const words = n ? plural('handoff.waiting', n, { n }) : t('handoff.waitingTurn')
-  return view.urgent ? `${words} ${t('handoff.urgent', { percent })}` : words
+  const words = n ? plural('briefing.waiting', n, { n }) : t('briefing.waitingTurn')
+  return view.urgent ? `${words} ${t('briefing.urgent', { percent })}` : words
 }
 
-const WORDS: Record<Exclude<Handoff['phase'], 'idle'>, (view: Handoff, percent: number, home: string) => string> = {
-  offered: (_v, percent) => t('handoff.offer', { percent }),
+const WORDS: Record<Exclude<Briefing['phase'], 'idle'>, (view: Briefing, percent: number, home: string) => string> = {
+  offered: (_v, percent) => t('briefing.offer', { percent }),
   waiting: waitingWords,
-  writing: view => t('handoff.writing', { n: view.step + 1, step: t(STEPS[view.step] ?? 'handoff.step1') }),
-  ready: (view, _p, home) => `${t('handoff.titleReady', { n: view.words })} ${t('handoff.savedIn', { file: tilde(view.file ?? '', home) })}`,
-  failed: (view, _p, home) => `${t('handoff.titleFailed', { error: view.error })}${view.file ? ` ${t('handoff.draftIn', { file: tilde(view.file, home) })}` : ''}`,
+  writing: view => t('briefing.writing', { n: view.step + 1, step: t(STEPS[view.step] ?? 'briefing.step1') }),
+  ready: (view, _p, home) => `${t('briefing.titleReady', { n: view.words })} ${t('briefing.savedIn', { file: tilde(view.file ?? '', home) })}`,
+  failed: (view, _p, home) => `${t('briefing.titleFailed', { error: view.error })}${view.file ? ` ${t('briefing.draftIn', { file: tilde(view.file, home) })}` : ''}`,
 }
 
-/** The handoff in words, with its buttons, where no drawing goes: the terminal and a phone. */
-function wordRow(ui: Row, view: Handoff, phase: keyof typeof WORDS, percent: number, width: number, home: string) {
+/** The briefing in words, with its buttons, where no drawing goes: the terminal and a phone. */
+function wordRow(ui: Row, view: Briefing, phase: keyof typeof WORDS, percent: number, width: number, home: string) {
   const { Box, Text } = ui
-  const labels = handoffButtons(view)
+  const labels = briefingButtons(view)
   return (
-    <Box key="handoff-row" flexDirection="column">
+    <Box key="briefing-row" flexDirection="column">
       <Text wrap={LINE}>{cut(WORDS[phase](view, percent, home), width)}</Text>
       {view.note ? <Text dimColor wrap={LINE}>{cut(view.note, width)}</Text> : null}
       {labels.length ? wordButtons(ui, labels) : null}
@@ -74,20 +74,20 @@ function buttonZone(ui: Table, b: PlacedButton) {
 }
 
 /** The row of the design: a plain image the width of the band, and the presses laid over its buttons. */
-function drawnRow(ui: Table, view: Handoff, width: number, top: number) {
+function drawnRow(ui: Table, view: Briefing, width: number, top: number) {
   const { Box, Svg } = ui
-  const row = handoffRow(view, width)
+  const row = briefingRow(view, width)
   return (
-    <Box key="handoff-row" flexDirection="column" marginX={-1} marginTop={top}>
+    <Box key="briefing-row" flexDirection="column" marginX={-1} marginTop={top}>
       <Svg source={row.source} alt={row.alt} width={row.width} height={row.height} />
       {row.buttons.map(b => buttonZone(ui, b))}
     </Box>
   )
 }
 
-/** What the band adds above itself, or null: it only speaks when a handoff is under way, and the band itself never moves for it. */
+/** What the band adds above itself, or null: it only speaks when a briefing is under way, and the band itself never moves for it. */
 export async function hearthRows($: EngineInterface, m: Memory, e: Band, top: number) {
-  const view = await readHandoff($)
+  const view = await readBriefing($)
   if (!view || view.phase === 'idle') return null
   if (e.surface === 'desktop' || e.surface === 'vscode') return drawnRow($.ui.resolve(e) as unknown as Table, view, ROW_PAST + bandWidth(e.props.bodyColumns), top)
   const percent = (await readHearth($))?.contextPercent ?? 0

@@ -651,7 +651,7 @@ test('the settings button stays 32 px, on the design grid, in its three looks', 
 
 test('the settings panel says the words of the design, the chosen option gold and ticked', async () => {
   const place = settingsPlace(780, 760)
-  const choices = { departure: 'plan', warm: true, handoffMode: 'auto', compactBefore: 2 } as const
+  const choices = { departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2 } as const
   const on = settingsSvg(choices, place)
   expect(on.alt).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
   expect(on.source, 'the chosen option').toContain('fill="#FFDF8F"')
@@ -678,7 +678,7 @@ test('the zones follow the design at 780, and stay in true pixels elsewhere', as
   expect(at.button).toEqual({ x: 10, y: 10, w: 32, h: 32 })
   expect(at.options.plan).toEqual({ x: 25, y: 121, w: 262, h: 72 })
   expect(at.options.each).toEqual({ x: 25, y: 199, w: 262, h: 54 })
-  expect(at.options.warm).toEqual({ x: 25, y: 283, w: 262, h: 72 })
+  expect(at.options.fire).toEqual({ x: 25, y: 283, w: 262, h: 72 })
   expect(at.options.auto).toEqual({ x: 25, y: 385, w: 262, h: 54 })
   expect(at.options.manual).toEqual({ x: 25, y: 517, w: 262, h: 54 })
   expect(at.steps[4]).toEqual({ value: 'always', x: 193, y: 467, w: 94, h: 22 })

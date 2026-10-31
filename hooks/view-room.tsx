@@ -1,11 +1,11 @@
 import type { EngineInterface, RenderElement } from 'claude-code'
 
-import type { AgentRecord, ChatTurn, DrawnPlan, Handoff, Hearth, Seen, SettingsView } from '../types'
+import type { AgentRecord, ChatTurn, DrawnPlan, Briefing, Hearth, Seen, SettingsView } from '../types'
 import { desk, metaOf, sayOf, summaryOf } from './agents'
 import { SHADOW, WIDE, bubblePlace, agentCard, cardAlt, cardPlace, cardSvg, managerCard, stepCard, zoneCells } from './card'
 import type { CardZone, StepAgent } from './card'
-import { handoffCard } from './card-handoff'
-import type { HandoffCard } from './card-handoff'
+import { briefingCard } from './card-briefing'
+import type { BriefingCard } from './card-briefing'
 import { hearthCard } from './card-hearth'
 import { managerSay, minutesBetween } from './chat'
 import { managerOf } from './desks'
@@ -35,7 +35,7 @@ export type RoomView = {
   chat: ChatTurn
   settings: SettingsView
   hearth: Hearth | null
-  handoff: Handoff | null
+  briefing: Briefing | null
 }
 
 /** What the open settings panel leaves a zone: it only exists from its right or from below it. */
@@ -147,26 +147,26 @@ function drawings(m: Memory, input: RoomInput, previous: number, image: (p: Room
 }
 
 /** What the plate over the stove says, when it says anything. */
-function panelOf(hearth: Hearth | null, handoff: Handoff | null): HearthPanel | null {
+function panelOf(hearth: Hearth | null, briefing: Briefing | null): HearthPanel | null {
   const title = t('hearth.panel.title')
   const panel = (sub: string, letter: HearthPanel['letter']) => ({ title, sub, letter, button: false })
-  switch (handoff?.phase) {
+  switch (briefing?.phase) {
     case 'offered': return { title: t('hearth.panel.change'), sub: '', letter: 'discreet', button: true }
     case 'waiting': {
-      const n = handoff.waitingAgents + handoff.waitingChats
+      const n = briefing.waitingAgents + briefing.waitingChats
       return panel(n ? plural('hearth.panel.after', n, { n }) : t('hearth.panel.afterTurn'), 'waiting')
     }
     case 'writing': return panel(t('hearth.panel.writing'), 'discreet')
     case 'ready': return panel(t('hearth.panel.ready'), 'bright')
-    default: return hearth?.ash === 'full' && handoff?.phase !== 'failed' ? panel('', 'discreet') : null
+    default: return hearth?.ash === 'full' && briefing?.phase !== 'failed' ? panel('', 'discreet') : null
   }
 }
 
-const LETTERS: Partial<Record<Handoff['phase'], HearthLook['letter']>> = { offered: 'discreet', waiting: 'waiting', writing: 'discreet', ready: 'bright', failed: 'discreet' }
+const LETTERS: Partial<Record<Briefing['phase'], HearthLook['letter']>> = { offered: 'discreet', waiting: 'waiting', writing: 'discreet', ready: 'bright', failed: 'discreet' }
 
 /** The hearth as the room shows it. A visit holds back what the logic has already moved, until the keeper gets there. */
-function hearthLook(m: Memory, { hearth, handoff }: RoomView): HearthLook {
-  const letter = LETTERS[handoff?.phase ?? 'idle'] ?? null
+function hearthLook(m: Memory, { hearth, briefing }: RoomView): HearthLook {
+  const letter = LETTERS[briefing?.phase ?? 'idle'] ?? null
   if (!hearth) return { ...COLD_HEARTH, letter }
   const shown = m.hearthShown ?? { fire: hearth.fire, ash: hearth.ash }
   if (!hearth.keeper) {
@@ -174,7 +174,7 @@ function hearthLook(m: Memory, { hearth, handoff }: RoomView): HearthLook {
     m.visit = null
   } else if (m.visit?.run !== hearth.keeperRun) m.visit = { ...shown, run: hearth.keeperRun, tool: hearth.keeper, layer: null }
   const fire = m.visit?.tool === 'log' ? m.visit.fire : hearth.fire
-  return { fire, ash: hearth.ash, letter, panel: panelOf(hearth, handoff) }
+  return { fire, ash: hearth.ash, letter, panel: panelOf(hearth, briefing) }
 }
 
 /** The keeper's drawing, once for each visit: a source that moved would start him over. */
@@ -199,11 +199,11 @@ function hearthZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells |
   const n = view.agents.length
   const zone = zoneOf(hearthBox(n, frame.width, frame.height), n, frame)
   if (!view.hearth || !clearOf(zone, panel)) return null
-  const card = hearthCard({ hearth: view.hearth, warm: view.settings.warm, now: view.now })
+  const card = hearthCard({ hearth: view.hearth, fire: view.settings.fire, now: view.now })
   return hoverZone(ui, 'hearth-card', zone, cardSvg(card, frame.width, frame.height), cardAlt(card), frame)
 }
 
-// The height of a button on the handoff's card, as `card-handoff.ts` draws it.
+// The height of a button on the briefing's card, as `card-briefing.ts` draws it.
 const CARD_BUTTON_H = 24
 
 /** The first row of a zone goes by the gesture's own key, the next ones add their row to it. */
@@ -219,14 +219,14 @@ function changeZone(ui: Table, input: RoomInput, label: string) {
         <Svg source={lit.source} alt={label} width={lit.width} height={lit.height} />
       </Box>
       <Box position="absolute" left={0} top={0} width={lit.cols} height={lit.rows} overflow="hidden">
-        {pressRows(ui, gestureRow('handoff-change'), lit.cols, lit.rows)}
+        {pressRows(ui, gestureRow('briefing-change'), lit.cols, lit.rows)}
       </Box>
     </Box>
   )
 }
 
-/** The press of a button the handoff's card draws, in the cells of the card. */
-function cardButton(ui: Table, b: HandoffCard['buttons'][number], k: number) {
+/** The press of a button the briefing's card draws, in the cells of the card. */
+function cardButton(ui: Table, b: BriefingCard['buttons'][number], k: number) {
   const { Box } = ui
   const zone = zoneCells({ x: b.x * k, y: b.y * k, w: b.w * k, h: CARD_BUTTON_H * k })
   return (
@@ -236,20 +236,20 @@ function cardButton(ui: Table, b: HandoffCard['buttons'][number], k: number) {
   )
 }
 
-/** The card of a handoff under way, over the letter: it stays open while the pointer is on it, for its buttons. */
-function handoffZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null) {
+/** The card of a briefing under way, over the letter: it stays open while the pointer is on it, for its buttons. */
+function briefingZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null) {
   const { Box, Svg } = ui
-  const handoff = view.handoff
-  if (!handoff || handoff.phase === 'idle') return null
+  const briefing = view.briefing
+  if (!briefing || briefing.phase === 'idle') return null
   const n = view.agents.length
   const zone = zoneOf(letterBox(n, frame.width, frame.height), n, frame)
   if (!clearOf(zone, panel)) return null
-  const card = handoffCard(handoff)
+  const card = briefingCard(briefing)
   const drawn = cardSvg(card, frame.width, frame.height)
   const size = cellsOf(drawn)
   const at = cardPlace(zone, size, frame.pane)
   return (
-    <Box key="handoff-card" position="absolute" left={zone.left} top={zone.top} width={zone.width} height={zone.height}>
+    <Box key="briefing-card" position="absolute" left={zone.left} top={zone.top} width={zone.width} height={zone.height}>
       <Box position="absolute" left={at.left - zone.left} top={at.top - zone.top} width={size.cols} height={size.rows} display="none" hover={{ display: 'flex' }}>
         <Svg source={drawn.source} alt={cardAlt(card)} width={drawn.width} height={drawn.height} />
         {card.buttons.map(b => cardButton(ui, b, drawn.width / (WIDE + SHADOW)))}
@@ -313,7 +313,7 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
       {managerZone(ui, view, frame, panel, false)}
       {deskZones(ui, view, frame, panel)}
       {hearthZone(ui, view, frame, panel)}
-      {handoffZone(ui, view, frame, panel)}
+      {briefingZone(ui, view, frame, panel)}
       {lines.length ? lineColumn(ui, lines, frame) : null}
       {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
       {settingsElements(ui, view.settings, frame)}

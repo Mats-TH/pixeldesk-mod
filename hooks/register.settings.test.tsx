@@ -91,7 +91,7 @@ describe('the button', () => {
     await start($)
     const ui = await mountPane($)
     await press(ui, 'settings-button-0')
-    for (const button of await ui.findAll({ type: 'Button' })) expect(button.props.key).toMatch(/^(settings-(button|plan|each)-\d|hearth-(warm-on|warm-off|mode-auto|mode-manual|compact-[0-3]|compact-always)(-\d)?)$/)
+    for (const button of await ui.findAll({ type: 'Button' })) expect(button.props.key).toMatch(/^(settings-(button|plan|each)-\d|hearth-(fire-on|fire-off|mode-auto|mode-manual|compact-[0-3]|compact-always)(-\d)?)$/)
     expect(w.state.settings.open).toBe(true)
   })
 })
@@ -124,7 +124,7 @@ describe('the panel', () => {
     const [source, alt] = [await sourceOf(ui), await altOf(ui)]
     await press(ui, 'settings-each-1')
     expect(w.file(SETTINGS_FILE)).toBe('{\n  "theme": "night",\n  "hidden": true,\n  "departure": "each"\n}\n')
-    expect(w.state.settings).toEqual({ open: true, departure: 'each', warm: true, handoffMode: 'auto', compactBefore: 2 })
+    expect(w.state.settings).toEqual({ open: true, departure: 'each', fire: true, briefingMode: 'auto', compactBefore: 2 })
     expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
     expect([await sourceOf(ui), await altOf(ui)]).toEqual([source, alt])
     await press(ui, 'settings-each-0')
@@ -306,7 +306,7 @@ describe('in both languages', () => {
     await start($)
     const ui = await mountPane($)
     await press(ui, 'settings-button-0')
-    expect(await altOf(ui, 'settings-panel')).toBe('Settings. When desks leave. End of plan, selected. As they finish. Cache. Keep the cache warm, selected. Handoff. Automatic, selected. Manual. Compacts twice, then changes conversation.')
+    expect(await altOf(ui, 'settings-panel')).toBe('Settings. When desks leave. End of plan, selected. As they finish. Cache. Keep the fire going, selected. Briefing. Automatic, selected. Manual. Compacts twice, then changes conversation.')
     expect(await altOf(ui, 'settings-look')).toBe('Close settings')
   })
 

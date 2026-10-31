@@ -28,7 +28,7 @@ describe('a session in English', () => {
     expect((await command($)).text).toBe('PixelDesk is open. Cards appear when Claude starts a subagent.')
     expect((await command($, 'hide')).text).toBe('PixelDesk panel hidden. The bar stays visible and tracking continues. Bring it back with /pixeldesk show.')
     expect((await command($, 'show')).text).toBe('PixelDesk panel is back on screen.')
-    expect((await command($, 'nope')).text).toBe('Unknown option. Use /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm, /pixeldesk refresh or /pixeldesk compact.')
+    expect((await command($, 'nope')).text).toBe('Unknown option. Use /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk fire, /pixeldesk move or /pixeldesk compact.')
     await spawn($, w, 'a1')
     expect((await command($)).text).toBe('PixelDesk is open.')
   })

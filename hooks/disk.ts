@@ -24,7 +24,7 @@ export const stateDir = (m: Memory) => `${root(m)}/state`
 export const planPath = (m: Memory) => `${stateDir(m)}/plan-${m.sessionId}.json`
 export const deskPath = (m: Memory, id: string) => `${stateDir(m)}/desk-${id}.json`
 export const hearthPath = (m: Memory) => `${stateDir(m)}/hearth-${m.sessionId}.json`
-export const handoffsDir = (m: Memory) => `${root(m)}/handoffs`
+export const briefingsDir = (m: Memory) => `${root(m)}/briefings`
 const logPath = (m: Memory) => `${root(m)}/logs/pixeldesk.log`
 
 /** Without a home or a session id nothing goes near the disk: the mod carries on in memory. */

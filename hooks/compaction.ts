@@ -1,8 +1,8 @@
 import type { EngineInterface, SessionCompactInput, SessionCompactResult, SessionMessage } from 'claude-code'
 
 import { guard, log, reason, toast } from './disk'
-import { pruneHandoffs, saveHearth, addNotes, notesPath } from './handoff-disk'
-import { gather, scrubbed, tilde } from './handoff-gather'
+import { pruneBriefings, saveHearth, addNotes, notesPath } from './briefing-disk'
+import { gather, scrubbed, tilde } from './briefing-gather'
 import { keeperCalls } from './heat'
 import { t } from './i18n'
 import type { Memory } from './memory'
@@ -19,7 +19,7 @@ export async function writeNotes($: EngineInterface, m: Memory, messages: readon
   const title = t('notes.title', { n: m.heat.compactions + 1, date })
   const body = [section(t('notes.files'), found.files.slice(0, NOTE_FILES)), section(t('notes.decisions'), found.decisions), section(t('notes.requests'), found.asks)]
   await addNotes($, m, scrubbed(`## ${title}\n${body.filter(Boolean).join('')}`))
-  await pruneHandoffs($, m)
+  await pruneBriefings($, m)
 }
 
 /** One compaction more for this conversation, whoever ran it. The cached prefix is gone with the old messages. */
@@ -63,7 +63,7 @@ async function compacted($: EngineInterface, m: Memory, brief: string): Promise<
   return m.heat.compactions === before ? { skip: 'the command compacted nothing' } : {}
 }
 
-/** The mod compacts, between two turns, with the handoff's brief. A hook's refusal or a turn in the way is logged, and answers false. */
+/** The mod compacts, between two turns, with the instructions of a briefing. A hook's refusal or a turn in the way is logged, and answers false. */
 export async function compactNow($: EngineInterface, m: Memory) {
   const h = m.heat
   const before = h.compactions
@@ -71,13 +71,13 @@ export async function compactNow($: EngineInterface, m: Memory) {
   h.compacting = true
   try {
     await guard($, m, 'compaction notes', async () => writeNotes($, m, await $.session.messages()))
-    const done = await compacted($, m, t('handoff.compactBrief', { file: tilde(notesPath(m), m.home) }))
+    const done = await compacted($, m, t('briefing.compactBrief', { file: tilde(notesPath(m), m.home) }))
     if (done.skip !== undefined) {
       await log($, m, `compaction skipped: ${done.skip}`)
       return false
     }
     if (h.compactions === before) await counted($, m)
-    toast($, m, t('handoff.compactedToast'))
+    toast($, m, t('briefing.compactedToast'))
     return true
   } catch (err) {
     await log($, m, `compaction: ${reason(err)}`)

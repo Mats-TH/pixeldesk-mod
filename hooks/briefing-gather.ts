@@ -34,7 +34,7 @@ export type Found = { files: string[]; skills: string[]; links: string[]; asks: 
 
 /** Secrets of a known shape go, before anything is saved or copied. */
 export function scrubbed(text: string) {
-  const gone = t('handoff.secret')
+  const gone = t('briefing.secret')
   return SECRETS.reduce((clean, shape) => clean.replace(shape, gone), text).replace(BEARER, `Bearer ${gone}`)
 }
 
@@ -102,7 +102,7 @@ export const MOST_FILES = MAX_FILES
 /** The home folder as `~`, for what is read rather than opened. */
 export const tilde = (path: string, home: string) => (home && path.startsWith(home) ? `~${path.slice(home.length)}` : path)
 
-const listOr = (items: readonly string[]) => (items.length ? items.join(', ') : t('handoff.none'))
+const listOr = (items: readonly string[]) => (items.length ? items.join(', ') : t('briefing.none'))
 
 /** What a request to the model shows of the conversation. */
 export const promptValues = (found: Found) => ({ files: listOr(found.files), skills: listOr(found.skills), links: listOr(found.links) })
@@ -113,9 +113,9 @@ export function unwrapped(reply: string) {
   return text.match(/^```[^\n]*\n([\s\S]*)\n```$/)?.[1]?.trim() ?? text
 }
 
-/** The name a handoff is saved under, from its title. */
+/** The name a briefing is saved under, from its title. */
 export function slugOf(text: string) {
-  const title = text.match(/^# (?:Passation :|Handoff:)(.*)$/m)?.[1] ?? ''
+  const title = text.match(/^# (?:Passation :|Briefing:)(.*)$/m)?.[1] ?? ''
   const slug = title.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/, '')
   return slug || 'session'
 }

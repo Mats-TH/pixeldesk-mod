@@ -148,22 +148,22 @@ describe('the iframes of a room', () => {
     expect(await see(), 'gone, and the fire catches up').toEqual({ changed: ['live-fire'], born: [], gone: ['live-keeper-1'] })
   })
 
-  test('the card of a handoff lays its presses over the buttons it draws', async ($, on) => {
+  test('the card of a briefing lays its presses over the buttons it draws', async ($, on) => {
     const { w, reply } = hearthWorld(on)
     await start($)
     await reply($)
     await spawn($, w, 'a1')
-    await command($, 'refresh')
+    await command($, 'move')
     await w.clock.settle()
-    expect(w.state.handoff.phase).toBe('waiting')
+    expect(w.state.briefing.phase).toBe('waiting')
     const ui = await mountPane($)
-    const zone = await ui.find({ key: 'handoff-card' })
+    const zone = await ui.find({ key: 'briefing-card' })
     expect(kids(zone)[0].props.display).toBe('none')
-    for (const key of ['handoff-now', 'handoff-cancel']) expect(await hasKey(ui, key), key).toBe(true)
-    await ui.press({ key: 'handoff-cancel' })
+    for (const key of ['briefing-now', 'briefing-cancel']) expect(await hasKey(ui, key), key).toBe(true)
+    await ui.press({ key: 'briefing-cancel' })
     await w.clock.settle()
-    expect(w.state.handoff.phase).toBe('idle')
-    expect(await hasKey(ui, 'handoff-card')).toBe(false)
+    expect(w.state.briefing.phase).toBe('idle')
+    expect(await hasKey(ui, 'briefing-card')).toBe(false)
   })
 
   test('the hearth has its card, and a phone stays whole, with no frame', async ($, on) => {
@@ -179,13 +179,13 @@ describe('the iframes of a room', () => {
   })
 
   test('the button on the stove stands there in the offered phase only', async ($, on) => {
-    const { w, fill, reply } = hearthWorld(on, { held: { handoff: { phase: 'offered', waitingAgents: 0, waitingChats: 0, step: 0, file: null, urgent: false, words: 0, error: '', note: '', asked: false } } })
+    const { w, fill, reply } = hearthWorld(on, { held: { briefing: { phase: 'offered', waitingAgents: 0, waitingChats: 0, step: 0, file: null, urgent: false, words: 0, error: '', note: '', asked: false } } })
     fill(90)
     await start($)
     await reply($)
     await w.clock.settle()
     const ui = await mountPane($)
-    expect(await hasKey(ui, 'handoff-change')).toBe(true)
+    expect(await hasKey(ui, 'briefing-change')).toBe(true)
     expect(await hasKey(ui, 'hearth-change')).toBe(true)
   })
 })

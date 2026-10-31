@@ -1,6 +1,6 @@
 import type { EngineInterface } from 'claude-code'
 
-import type { CompactBefore, Departure, HandoffMode, SettingsView } from '../types'
+import type { CompactBefore, Departure, BriefingMode, SettingsView } from '../types'
 import { sweep } from './agents'
 import { departureOf } from './desks'
 import { guard, log, onDisk, reason, settingsPath } from './disk'
@@ -40,12 +40,12 @@ async function save($: EngineInterface, m: Memory, change: (settings: SettingsFi
   }
 }
 
-/** What the settings say of the cache and the handoff. Anything else in the file is the default. */
-const warmOf = (settings: SettingsFile) => settings.warm !== false
-const modeOf = (settings: SettingsFile): HandoffMode => (settings.handoffMode === 'manual' ? 'manual' : 'auto')
+/** What the settings say of the cache and the briefing. Anything else in the file is the default. */
+const fireSetting = (settings: SettingsFile) => settings.fire !== false
+const modeOf = (settings: SettingsFile): BriefingMode => (settings.briefingMode === 'manual' ? 'manual' : 'auto')
 const compactOf = (value: unknown): CompactBefore => (value === 0 || value === 1 || value === 2 || value === 3 || value === 'always' ? value : 2)
 
-const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, warm: m.warm, handoffMode: m.handoffMode, compactBefore: m.compactBefore })
+const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore })
 
 function closePane($: EngineInterface, m: Memory) {
   return guard($, m, 'close pane', () => $.ui.close({ id: PANE }))
@@ -55,9 +55,9 @@ async function isOpen($: EngineInterface) {
   return (await readSettings($))?.open ?? false
 }
 
-async function applyHearth($: EngineInterface, m: Memory, warm: boolean, handoffMode: HandoffMode, compactBefore: CompactBefore) {
-  m.warm = warm
-  m.handoffMode = handoffMode
+async function applyHearth($: EngineInterface, m: Memory, fire: boolean, briefingMode: BriefingMode, compactBefore: CompactBefore) {
+  m.fire = fire
+  m.briefingMode = briefingMode
   m.compactBefore = compactBefore
   await writeSettings($, viewOf(m, await isOpen($)))
   m.wake()
@@ -83,21 +83,21 @@ export async function setHidden($: EngineInterface, m: Memory, hidden: boolean) 
 }
 
 /** The relaunches, on or off, for every conversation. */
-export async function setWarm($: EngineInterface, m: Memory, warm: boolean) {
-  await save($, m, settings => ({ ...settings, warm }))
-  await applyHearth($, m, warm, m.handoffMode, m.compactBefore)
+export async function setFire($: EngineInterface, m: Memory, fire: boolean) {
+  await save($, m, settings => ({ ...settings, fire }))
+  await applyHearth($, m, fire, m.briefingMode, m.compactBefore)
 }
 
 /** How a conversation changes, for every conversation. */
-export async function setHandoffMode($: EngineInterface, m: Memory, handoffMode: HandoffMode) {
-  await save($, m, settings => ({ ...settings, handoffMode }))
-  await applyHearth($, m, m.warm, handoffMode, m.compactBefore)
+export async function setBriefingMode($: EngineInterface, m: Memory, briefingMode: BriefingMode) {
+  await save($, m, settings => ({ ...settings, briefingMode }))
+  await applyHearth($, m, m.fire, briefingMode, m.compactBefore)
 }
 
 /** How many compactions before a change, for every conversation. */
 export async function setCompactBefore($: EngineInterface, m: Memory, compactBefore: CompactBefore) {
   await save($, m, settings => ({ ...settings, compactBefore }))
-  await applyHearth($, m, m.warm, m.handoffMode, compactBefore)
+  await applyHearth($, m, m.fire, m.briefingMode, compactBefore)
 }
 
 /** One read for every setting. A conversation that sees the mod come back waits for the next agents to reopen its pane. */
@@ -112,8 +112,8 @@ export async function followSettings($: EngineInterface, m: Memory) {
   }
   const departure = departureOf(settings)
   if (departure !== m.departure) await applyDeparture($, m, departure)
-  const [warm, mode, before] = [warmOf(settings), modeOf(settings), compactOf(settings.compactBefore)]
-  if (warm !== m.warm || mode !== m.handoffMode || before !== m.compactBefore) await applyHearth($, m, warm, mode, before)
+  const [fire, mode, before] = [fireSetting(settings), modeOf(settings), compactOf(settings.compactBefore)]
+  if (fire !== m.fire || mode !== m.briefingMode || before !== m.compactBefore) await applyHearth($, m, fire, mode, before)
 }
 
 /** Each start closes the settings panel: its state never reaches the disk. */

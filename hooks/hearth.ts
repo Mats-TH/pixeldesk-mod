@@ -1,15 +1,15 @@
 import type { EngineInterface, RenderSurface } from 'claude-code'
 
 import { readLength } from './cachelength'
-import { askChange, canCompact, cancelChange, closeChange, copyHandoff, forceChange, openHandoff, restoreChange, retryChange, settleChange, startConversation } from './change'
+import { askChange, canCompact, cancelChange, closeChange, copyBriefing, forceChange, openBriefing, restoreChange, retryChange, settleChange, startConversation } from './change'
 import { compactNow } from './compaction'
 import { guard, toast } from './disk'
-import { restoreHearth } from './handoff-disk'
+import { restoreHearth } from './briefing-disk'
 import { clearHeat, coolsAtOf, fireMoments, heatPass, publishHearth, readContext, relaunchMoment, restoreHeat, turnEnded } from './heat'
 import { plural, t } from './i18n'
 import type { TextKey } from './i18n'
 import type { Memory } from './memory'
-import { setCompactBefore, setHandoffMode, setWarm } from './preferences'
+import { setCompactBefore, setBriefingMode, setFire } from './preferences'
 
 const SETTLE_MS = 1000
 
@@ -44,7 +44,7 @@ export async function pulse($: EngineInterface, m: Memory) {
     h.again = false
     await guard($, m, 'context', () => readContext($, m))
     await guard($, m, 'cache', () => heatPass($, m))
-    await guard($, m, 'handoff', () => settleChange($, m))
+    await guard($, m, 'briefing', () => settleChange($, m))
     await guard($, m, 'hearth', () => publishHearth($, m))
   } while (h.again)
   h.pulsing = false
@@ -64,7 +64,7 @@ export async function startHearth($: EngineInterface, m: Memory, first: boolean)
   if (first) {
     const held = await guard($, m, 'hearth', () => restoreHeat($, m))
     await guard($, m, 'hearth file', () => restoreHearth($, m))
-    if (held) await guard($, m, 'handoff', () => restoreChange($, m))
+    if (held) await guard($, m, 'briefing', () => restoreChange($, m))
   }
   void guard($, m, 'cache length', () => readLength($, m))
   m.wake()
@@ -76,28 +76,28 @@ export function clearHearth(m: Memory) {
 }
 
 /** The tool of the model: it asks, and the writing waits for the end of the turn. An agent gets no say. */
-export async function answerRefresh($: EngineInterface, m: Memory, agentId: string | undefined) {
-  if (agentId !== undefined) return { result: t('handoff.toolAgent') }
+export async function answerMove($: EngineInterface, m: Memory, agentId: string | undefined) {
+  if (agentId !== undefined) return { result: t('briefing.toolAgent') }
   await askChange($, m)
   m.wake()
-  return { result: t('handoff.toolOk') }
+  return { result: t('briefing.toolOk') }
 }
 
-/** `/pixeldesk refresh`: the same request as the button. */
-export async function runRefresh($: EngineInterface, m: Memory) {
-  if (!(await askChange($, m))) return { text: t('handoff.busy') }
+/** `/pixeldesk move`: the same request as the button. */
+export async function runMove($: EngineInterface, m: Memory) {
+  if (!(await askChange($, m))) return { text: t('briefing.busy') }
   await pulse($, m)
-  return { text: t(m.change.phase === 'writing' ? 'handoff.running' : 'handoff.queued') }
+  return { text: t(m.change.phase === 'writing' ? 'briefing.running' : 'briefing.queued') }
 }
 
 /** `/pixeldesk compact`: the compaction of the automatic mode, now, and it counts as one. */
 export async function runCompact($: EngineInterface, m: Memory) {
-  if (!(await canCompact($, m))) return { text: t('handoff.compactBusy') }
+  if (!(await canCompact($, m))) return { text: t('briefing.compactBusy') }
   void compactNow($, m).then(done => {
-    if (!done) toast($, m, t('handoff.compactFailed'))
+    if (!done) toast($, m, t('briefing.compactFailed'))
     m.wake()
   })
-  return { text: t('handoff.compactStarted') }
+  return { text: t('briefing.compactStarted') }
 }
 
 const clockWord = (ms: number) => {
@@ -105,25 +105,25 @@ const clockWord = (ms: number) => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-const STOP_WORDS: Record<string, TextKey> = { cap: 'warm.stoppedCap', cold: 'warm.stoppedCold', nothing: 'warm.stoppedNothing', handoff: 'warm.stoppedHandoff' }
+const STOP_WORDS: Record<string, TextKey> = { cap: 'fire.stoppedCap', cold: 'fire.stoppedCold', nothing: 'fire.stoppedNothing', briefing: 'fire.stoppedBriefing' }
 
 function stateWords(m: Memory, now: number) {
   const h = m.heat
   const cools = coolsAtOf(h)
-  const time = cools !== null && cools > now ? t('warm.left', { time: clockWord(cools - now) }) : t('warm.cold')
-  const count = plural('warm.count', h.relaunches, { n: h.relaunches })
-  if (!h.known) return `${time} ${t('warm.lengthUnknown')}`
+  const time = cools !== null && cools > now ? t('fire.left', { time: clockWord(cools - now) }) : t('fire.cold')
+  const count = plural('fire.count', h.relaunches, { n: h.relaunches })
+  if (!h.known) return `${time} ${t('fire.lengthUnknown')}`
   if (!h.stop) return `${time} ${count}`
-  return `${time} ${count} ${h.stop === 'failed' ? t('warm.stoppedFailed', { error: h.error }) : t(STOP_WORDS[h.stop]!)}`
+  return `${time} ${count} ${h.stop === 'failed' ? t('fire.stoppedFailed', { error: h.error }) : t(STOP_WORDS[h.stop]!)}`
 }
 
-/** `/pixeldesk warm`: says where the relaunches stand, or turns them on or off. */
-export async function runWarm($: EngineInterface, m: Memory, value: string | undefined) {
-  if (value === undefined) return { text: m.warm ? t('warm.isOn', { state: stateWords(m, await $.clock.now()) }) : t('warm.isOff') }
-  if (value !== 'on' && value !== 'off') return { text: t('warm.usage') }
+/** `/pixeldesk fire`: says where the relaunches stand, or turns them on or off. */
+export async function runFire($: EngineInterface, m: Memory, value: string | undefined) {
+  if (value === undefined) return { text: m.fire ? t('fire.isOn', { state: stateWords(m, await $.clock.now()) }) : t('fire.isOff') }
+  if (value !== 'on' && value !== 'off') return { text: t('fire.usage') }
   if (value === 'on') Object.assign(m.heat, { stop: null, failures: 0, retryAt: 0 })
-  await setWarm($, m, value === 'on')
-  return { text: t(value === 'on' ? 'warm.turnedOn' : 'warm.turnedOff') }
+  await setFire($, m, value === 'on')
+  return { text: t(value === 'on' ? 'fire.turnedOn' : 'fire.turnedOff') }
 }
 
 type Press = { element: string; surface: RenderSurface }
@@ -131,18 +131,18 @@ type Press = { element: string; surface: RenderSurface }
 /** Runs a gesture by the key of its Button. The engine follows `$` only through plain calls, hence no table. */
 async function runGesture($: EngineInterface, m: Memory, name: string, surface: RenderSurface) {
   switch (name) {
-    case 'handoff-change': return askChange($, m)
-    case 'handoff-cancel': return cancelChange($, m)
-    case 'handoff-now': return forceChange(m)
-    case 'handoff-close': return closeChange($, m)
-    case 'handoff-copy': return copyHandoff($, m, surface)
-    case 'handoff-start': return startConversation($, m)
-    case 'handoff-open': return openHandoff($, m)
-    case 'handoff-retry': return retryChange($, m)
-    case 'hearth-warm-on': return setWarm($, m, true)
-    case 'hearth-warm-off': return setWarm($, m, false)
-    case 'hearth-mode-auto': return setHandoffMode($, m, 'auto')
-    case 'hearth-mode-manual': return setHandoffMode($, m, 'manual')
+    case 'briefing-change': return askChange($, m)
+    case 'briefing-cancel': return cancelChange($, m)
+    case 'briefing-now': return forceChange(m)
+    case 'briefing-close': return closeChange($, m)
+    case 'briefing-copy': return copyBriefing($, m, surface)
+    case 'briefing-start': return startConversation($, m)
+    case 'briefing-open': return openBriefing($, m)
+    case 'briefing-retry': return retryChange($, m)
+    case 'hearth-fire-on': return setFire($, m, true)
+    case 'hearth-fire-off': return setFire($, m, false)
+    case 'hearth-mode-auto': return setBriefingMode($, m, 'auto')
+    case 'hearth-mode-manual': return setBriefingMode($, m, 'manual')
     case 'hearth-compact-0': return setCompactBefore($, m, 0)
     case 'hearth-compact-1': return setCompactBefore($, m, 1)
     case 'hearth-compact-2': return setCompactBefore($, m, 2)

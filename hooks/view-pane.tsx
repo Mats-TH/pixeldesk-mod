@@ -8,7 +8,7 @@ import type { FloorRoom } from './desks'
 import { t } from './i18n'
 import { NO_TURN } from './memory'
 import type { Memory } from './memory'
-import { readAgents, readCardClock, readChat, readFloorRooms, readHandoff, readHearth, readMinute, readNews, readPlan, readSeen, readSettings, readSummaries, readTokens } from './state'
+import { readAgents, readCardClock, readChat, readFloorRooms, readBriefing, readHearth, readMinute, readNews, readPlan, readSeen, readSettings, readSummaries, readTokens } from './state'
 import { floorView } from './view-floor'
 import { roomView } from './view-room'
 import type { RoomView } from './view-room'
@@ -75,8 +75,8 @@ export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
   const now = await $.clock.now()
   if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile)
   const seen = (await readSeen($)) ?? { shown: agents.length, previous: agents.length }
-  const settings = (await readSettings($)) ?? { open: false, departure: m.departure, warm: m.warm, handoffMode: m.handoffMode, compactBefore: m.compactBefore }
-  const view: RoomView = { agents, summaries, plan, seen, tokens, now, chat, settings, hearth: (await readHearth($)) ?? null, handoff: (await readHandoff($)) ?? null }
+  const settings = (await readSettings($)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore }
+  const view: RoomView = { agents, summaries, plan, seen, tokens, now, chat, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
   const list = $.ui.resolve(e) as unknown as Words
   const rows = mobile ? [managerRow(list, chat, plan), ...agentRows(list, agents, summaries)] : null
   return (await roomView($, m, ui, frame, view, mobile, rows)) ?? words()

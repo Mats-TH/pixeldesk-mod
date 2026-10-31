@@ -1,4 +1,4 @@
-import type { Fire, Hearth, WarmStop } from '../types'
+import type { Fire, Hearth, RelaunchStop } from '../types'
 import { AFTER_MEDAL, BAR_H, BIG, BIG_LINE, CHIP_H, GAP, GOLD, INK, INNER, LEFT, MEDAL_H, MEDAL_W, PLATE_EDGE, BROWN, DEEP, PLATE_PAD, PURPLE, SCREW, SHADOW, SMALL, SMALL_LINE, STOP, TITLE, WIDE, box, cardBack, cardDocument, cardHeight, cardScrews, chipParts, fitted, medalBack, writer } from './card'
 import type { DrawnCard } from './card'
 import { plural, t } from './i18n'
@@ -10,7 +10,7 @@ import { railPaths } from './room'
 const CARD_STEP_MS = 5000
 
 /** All the card reads. `now`: the moment it is drawn, which is all the second it knows of. */
-export type HearthCardView = { hearth: Hearth; warm: boolean; now: number }
+export type HearthCardView = { hearth: Hearth; fire: boolean; now: number }
 
 const CELLS = 5
 const PARAGRAPH = 8
@@ -38,7 +38,7 @@ const ICONS = {
 const ICON_FLOOR = 20
 const ICON_OF: Record<Fire, keyof typeof ICONS> = { full: 'high', medium: 'high', low: 'low', embers: 'low', out: 'cold' }
 
-const STOPPED: Record<Exclude<WarmStop, 'failed'>, TextKey> = { cap: 'warm.stoppedCap', cold: 'warm.stoppedCold', nothing: 'warm.stoppedNothing', handoff: 'warm.stoppedHandoff' }
+const STOPPED: Record<Exclude<RelaunchStop, 'failed'>, TextKey> = { cap: 'fire.stoppedCap', cold: 'fire.stoppedCold', nothing: 'fire.stoppedNothing', briefing: 'fire.stoppedBriefing' }
 
 function fireIcon(fire: Fire) {
   const rows = ICONS[ICON_OF[fire]]
@@ -57,19 +57,19 @@ const clock = (ms: number) => {
 function timeOf({ hearth: h, now }: HearthCardView) {
   const left = h.coolsAt === null ? 0 : Math.max(0, h.coolsAt - now)
   const known = h.lengthMs > 0
-  const shown = h.coolsAt === null ? t('hearth.card.cold') : !known ? t('warm.lengthUnknown') : left ? clock(left) : t('hearth.card.cold')
+  const shown = h.coolsAt === null ? t('hearth.card.cold') : !known ? t('fire.lengthUnknown') : left ? clock(left) : t('hearth.card.cold')
   return { left, hot: left > 0, known, shown }
 }
 
-function stopWords(h: Hearth, stop: WarmStop) {
-  return stop === 'failed' ? t('warm.stoppedFailed', { error: h.warmError }) : t(STOPPED[stop])
+function stopWords(h: Hearth, stop: RelaunchStop) {
+  return stop === 'failed' ? t('fire.stoppedFailed', { error: h.relaunchError }) : t(STOPPED[stop])
 }
 
 /** The line under the bar of time: why the relaunches stopped, or how many there were. */
 function keptLine(v: HearthCardView, hot: boolean, known: boolean) {
   const h = v.hearth
-  if (!v.warm) return hot ? t('hearth.card.warmOff') : ''
-  if (h.warmStop) return stopWords(h, h.warmStop)
+  if (!v.fire) return hot ? t('hearth.card.fireSettingf') : ''
+  if (h.relaunchStop) return stopWords(h, h.relaunchStop)
   if (!hot || !known) return ''
   const n = h.relaunches
   return h.relaunchCap === null ? plural('hearth.card.kept', n, { n }) : plural('hearth.card.keptCap', n, { n, cap: h.relaunchCap })
@@ -79,7 +79,7 @@ const compactionWords = ({ compactions: n, compactTarget: target }: Hearth) => (
 
 function timeCells(v: HearthCardView, left: number, known: boolean) {
   const full = known ? Math.min(CELLS, Math.ceil((CELLS * left) / v.hearth.lengthMs)) : 0
-  return Array.from({ length: CELLS }, (_, i) => (i < full ? (v.warm ? STOP : GOLD) : DEEP))
+  return Array.from({ length: CELLS }, (_, i) => (i < full ? (v.fire ? STOP : GOLD) : DEEP))
 }
 
 function layout(v: HearthCardView, withAsh: boolean) {
@@ -95,7 +95,7 @@ function layout(v: HearthCardView, withAsh: boolean) {
   const fillH = SMALL_LINE + 4 + BAR_H + 4 + SMALL_LINE
   const plate = PLATE_PAD + headH + GAP + 2 + GAP + textH + GAP + timeH + GAP + fillH + GAP + CHIP_H + PLATE_PAD
   const fill = t('hearth.card.fill', { percent: Math.round(v.hearth.contextPercent) })
-  const chip = time.hot ? { label: t('hearth.card.hot'), chip: CHIP_HOT, light: v.warm ? STOP : GOLD } : { label: t('hearth.card.coldChip'), chip: CHIP_COLD, light: LIGHT_COLD }
+  const chip = time.hot ? { label: t('hearth.card.hot'), chip: CHIP_HOT, light: v.fire ? STOP : GOLD } : { label: t('hearth.card.coldChip'), chip: CHIP_COLD, light: LIGHT_COLD }
   return { time, title, text, ash, said, kept, headH, fill, compactions: compactionWords(v.hearth), chip, plate, height: cardHeight(plate) }
 }
 

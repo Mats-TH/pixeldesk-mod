@@ -104,11 +104,11 @@ function stepZone(ui: Table, value: CompactBefore, chosen: boolean, panel: Panel
   return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.steps[COMPACT_STEPS.indexOf(value)]!), chosen ? null : stepSvg(value, place), gestureRow(name), panel)
 }
 
-/** The sections of the cache and the handoff: the cursor only where it applies. */
+/** The sections of the cache and the briefing: the cursor only where it applies. */
 function hearthZones(ui: Table, view: SettingsView, panel: PanelCells, place: SettingsPlace) {
-  const auto = view.handoffMode === 'auto'
+  const auto = view.briefingMode === 'auto'
   return [
-    hearthZone(ui, 'warm', view.warm ? 'hearth-warm-off' : 'hearth-warm-on', optionSvg('warm', place, view.warm), panel, place),
+    hearthZone(ui, 'fire', view.fire ? 'hearth-fire-off' : 'hearth-fire-on', optionSvg('fire', place, view.fire), panel, place),
     hearthZone(ui, 'auto', 'hearth-mode-auto', auto ? null : optionSvg('auto', place), panel, place),
     hearthZone(ui, 'manual', 'hearth-mode-manual', auto ? optionSvg('manual', place) : null, panel, place),
     ...(auto ? COMPACT_STEPS.map(value => stepZone(ui, value, value === view.compactBefore, panel, place)) : []),
@@ -117,7 +117,7 @@ function hearthZones(ui: Table, view: SettingsView, panel: PanelCells, place: Se
 
 /** What the open panel covers: the same cells its drawing lands on. A departure alone reads as the tall panel. */
 export function panelCells(choice: Departure | SettingsView, frame: Frame): PanelCells {
-  const mode = typeof choice === 'string' ? 'auto' : choice.handoffMode
+  const mode = typeof choice === 'string' ? 'auto' : choice.briefingMode
   const { left, top, cols, rows } = drawnCells(settingsPlace(frame.width, frame.height, mode).panel)
   return { left, top, cols, rows }
 }
@@ -127,7 +127,7 @@ export function settingsElements(ui: Table, view: SettingsView, frame: Frame) {
   const { Box, Svg } = ui
   const button = settingsButton(ui, view.open, frame)
   if (!view.open) return button
-  const place = settingsPlace(frame.width, frame.height, view.handoffMode)
+  const place = settingsPlace(frame.width, frame.height, view.briefingMode)
   const drawn = settingsSvg(view, place)
   const panel = (
     <Box key="settings-panel" position="absolute" left={drawn.left} top={drawn.top} width={drawn.cols} height={drawn.rows}>

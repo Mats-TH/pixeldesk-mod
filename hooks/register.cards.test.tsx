@@ -19,9 +19,9 @@ describe('the row above the band', () => {
     const t = hearthWorld(on, { files: MANUAL })
     await start($)
     const ui = await mountBand($)
-    expect(await ui.findAll({ key: 'handoff-row' })).toEqual([])
+    expect(await ui.findAll({ key: 'briefing-row' })).toEqual([])
     expect(await ui.findAll({ type: 'Button' })).toEqual([])
-    expect(t.w.state.handoff.phase).toBe('idle')
+    expect(t.w.state.briefing.phase).toBe('idle')
   })
 
   test('a plain image the width of the band, that says what it shows', async ($, on) => {
@@ -39,31 +39,31 @@ describe('the row above the band', () => {
     await offered($, on, 86)
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
     const buttons = await ui.findAll({ type: 'Button' })
-    const change = buttons.find((b: any) => b.props.key === 'handoff-change')
+    const change = buttons.find((b: any) => b.props.key === 'briefing-change')
     expect(change.props.plain).toBe(true)
     expect(change.props.label.trim()).toBe('')
-    expect(await altOf(ui, 'handoff-row')).toContain('Rafraîchir')
-    expect(buttons.find((b: any) => b.props.key === 'handoff-change-1'), 'the second row of its cells').toBeDefined()
+    expect(await altOf(ui, 'briefing-row')).toContain('Déménager')
+    expect(buttons.find((b: any) => b.props.key === 'briefing-change-1'), 'the second row of its cells').toBeDefined()
   })
 
   test('alone, the row eats the edge of the frame, and the band stays against it', async ($, on) => {
     const t = await offered($, on)
     t.w.beneath = 'engine'
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
-    expect((await ui.find({ key: 'handoff-row' })).props.marginTop).toBe(-1)
+    expect((await ui.find({ key: 'briefing-row' })).props.marginTop).toBe(-1)
     expect((await ui.find({ key: 'idle-band' })).props.marginTop).toBe(0)
   })
 
   test('under another mod, the row keeps clear of it', async ($, on) => {
     await offered($, on)
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
-    expect((await ui.find({ key: 'handoff-row' })).props.marginTop).toBe(1)
+    expect((await ui.find({ key: 'briefing-row' })).props.marginTop).toBe(1)
   })
 
   test('no drawing waits under the pointer: above the prompt it would float away, in a bubble', async ($, on) => {
     await offered($, on)
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
-    const zone = await ui.find({ key: 'handoff-change-zone' })
+    const zone = await ui.find({ key: 'briefing-change-zone' })
     expect(zone.props).toMatchObject({ overflow: 'hidden', height: 2 })
     expect(svgs(zone)).toEqual([])
     expect(kids(zone).some((el: any) => el.hover)).toBe(false)
@@ -74,7 +74,7 @@ describe('the row above the band', () => {
     const ui = await mountBand($, 'terminal')
     expect((await textsOf(ui)).join(' ')).toContain('Contexte à 81 %')
     expect(await ui.findAll({ type: 'Svg' })).toEqual([])
-    expect((await ui.findAll({ type: 'Button' })).map((b: any) => b.props.label)).toEqual(['Rafraîchir', 'Fermer'])
+    expect((await ui.findAll({ type: 'Button' })).map((b: any) => b.props.label)).toEqual(['Déménager', 'Fermer'])
   })
 
   test('so does a phone', async ($, on) => {
@@ -86,20 +86,20 @@ describe('the row above the band', () => {
   test('a press on the second row of a button is the same gesture', async ($, on) => {
     const t = await offered($, on)
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
-    await ui.press({ key: 'handoff-cancel-1' })
+    await ui.press({ key: 'briefing-cancel-1' })
     await t.w.clock.settle()
-    expect(t.w.state.handoff.phase).toBe('idle')
+    expect(t.w.state.briefing.phase).toBe('idle')
   })
 
   test('while it waits, the count is said to a reader, and the urgent button says so', async ($, on) => {
     const t = await offered($, on, 86)
     await spawn($, t.w, 'a1')
-    await ui_press($, 'handoff-change')
+    await ui_press($, 'briefing-change')
     await t.w.clock.settle()
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
-    expect((await ui.findAll({ type: 'Button' })).some((b: any) => b.props.key === 'handoff-now')).toBe(true)
-    expect(await altOf(ui, 'handoff-row')).toContain('Changer maintenant (1 en cours)')
-    expect(await altOf(ui, 'handoff-row')).toContain('Contexte presque plein : 1 agent continue ici')
+    expect((await ui.findAll({ type: 'Button' })).some((b: any) => b.props.key === 'briefing-now')).toBe(true)
+    expect(await altOf(ui, 'briefing-row')).toContain('Changer maintenant (1 en cours)')
+    expect(await altOf(ui, 'briefing-row')).toContain('Contexte presque plein : 1 agent continue ici')
     await endTurn($, { agentId: 'a1' })
   })
 })
@@ -130,10 +130,10 @@ describe('the settings', () => {
 
   test('the cache is one box: a press turns it off, the next turns it on', async ($, on) => {
     const { w, ui } = await opened($, on)
-    await ui.press({ key: 'hearth-warm-off' })
-    expect(w.json(SETTINGS_FILE).warm).toBe(false)
-    await ui.press({ key: 'hearth-warm-on-2' })
-    expect(w.json(SETTINGS_FILE).warm).toBe(true)
+    await ui.press({ key: 'hearth-fire-off' })
+    expect(w.json(SETTINGS_FILE).fire).toBe(false)
+    await ui.press({ key: 'hearth-fire-on-2' })
+    expect(w.json(SETTINGS_FILE).fire).toBe(true)
   })
 
   test('every step of the cursor answers, and the chosen one has no hover', async ($, on) => {

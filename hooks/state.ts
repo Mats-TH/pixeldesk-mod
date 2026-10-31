@@ -18,7 +18,7 @@ const FLOOR = { plugin: 'pixeldesk', key: 'floor' } as const
 const TOKENS = { plugin: 'pixeldesk', key: 'tokens' } as const
 const NEWS = { plugin: 'pixeldesk', key: 'news' } as const
 const HEARTH = { plugin: 'pixeldesk', key: 'hearth' } as const
-const HANDOFF = { plugin: 'pixeldesk', key: 'handoff' } as const
+const BRIEFING = { plugin: 'pixeldesk', key: 'briefing' } as const
 
 // What the host keeps for the session: it outlives a reload, and a read while drawing subscribes the drawing.
 export async function readAgents($: EngineInterface) {
@@ -141,10 +141,10 @@ export function writeHearth($: EngineInterface, value: Values['hearth']) {
   return $.state.set(HEARTH, value)
 }
 
-export async function readHandoff($: EngineInterface) {
-  return (await $.state.get(HANDOFF)).value
+export async function readBriefing($: EngineInterface) {
+  return (await $.state.get(BRIEFING)).value
 }
 
-export function writeHandoff($: EngineInterface, value: Values['handoff']) {
-  return $.state.set(HANDOFF, value)
+export function writeBriefing($: EngineInterface, value: Values['briefing']) {
+  return $.state.set(BRIEFING, value)
 }

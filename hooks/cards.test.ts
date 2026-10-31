@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import type { Fire, Handoff, Hearth } from '../types'
+import type { Fire, Briefing, Hearth } from '../types'
 import { cardAlt, cardSvg, optionSvg, settingsPlace, settingsSvg, stepSvg, zoneCells } from './card'
-import { handoffButtons, handoffCard, handoffRow } from './card-handoff'
+import { briefingButtons, briefingCard, briefingRow } from './card-briefing'
 import { hearthCard } from './card-hearth'
 import type { HearthCardView } from './card-hearth'
 import { dictionaries, setLanguage, t } from './i18n'
@@ -10,9 +10,9 @@ import { GLYPHS } from './pixel/font-data'
 import { textWidth, wrap } from './pixel/font'
 
 const NOW = 1_000_000
-const hearth = (over: Partial<Hearth> = {}): Hearth => ({ fire: 'full', ash: 'full', coolsAt: NOW + 222_000, relaunches: 4, relaunchCap: 30, active: false, contextPercent: 82, compactions: 1, compactTarget: 2, keeper: null, keeperRun: 0, warmStop: null, warmError: '', lengthMs: 300_000, warmSince: 0, failures: 0, ...over })
-const view = (over: Partial<Hearth> = {}, warm = true): HearthCardView => ({ hearth: hearth(over), warm, now: NOW })
-const handoff = (over: Partial<Handoff> = {}): Handoff => ({ phase: 'offered', waitingAgents: 0, waitingChats: 0, step: 0, file: null, urgent: false, words: 0, error: '', note: '', asked: false, ...over })
+const hearth = (over: Partial<Hearth> = {}): Hearth => ({ fire: 'full', ash: 'full', coolsAt: NOW + 222_000, relaunches: 4, relaunchCap: 30, active: false, contextPercent: 82, compactions: 1, compactTarget: 2, keeper: null, keeperRun: 0, relaunchStop: null, relaunchError: '', lengthMs: 300_000, relaunchSince: 0, failures: 0, ...over })
+const view = (over: Partial<Hearth> = {}, fire = true): HearthCardView => ({ hearth: hearth(over), fire, now: NOW })
+const briefing = (over: Partial<Briefing> = {}): Briefing => ({ phase: 'offered', waitingAgents: 0, waitingChats: 0, step: 0, file: null, urgent: false, words: 0, error: '', note: '', asked: false, ...over })
 const full = (c: { draw: (w: number, h: number) => { source: string; width: number; height: number } }) => c.draw(4096, 4096)
 const count = (s: string, what: RegExp) => (s.match(what) ?? []).length
 const inEnglish = (run: () => void) => {
@@ -25,7 +25,7 @@ const inEnglish = (run: () => void) => {
 }
 
 describe('the card of the hearth', () => {
-  test('warm, at the size of the design, with its time, its relaunches and its fill', () => {
+  test('fire, at the size of the design, with its time, its relaunches and its fill', () => {
     const card = hearthCard(view())
     const drawn = full(card)
     expect([drawn.width, drawn.height], '272 by 440 and the shadow').toEqual([276, 444])
@@ -62,17 +62,17 @@ describe('the card of the hearth', () => {
 
   test('an unknown length says so, and no time: `coolsAt` is a mere bound', () => {
     const card = hearthCard(view({ lengthMs: 0 }))
-    expect(cardAlt(card)).toContain(t('warm.lengthUnknown'))
+    expect(cardAlt(card)).toContain(t('fire.lengthUnknown'))
     expect(cardAlt(card)).not.toContain('Refroidit')
     expect(cardAlt(card)).not.toContain('Gardé au chaud')
-    expect(cardAlt(hearthCard(view({ lengthMs: 0, coolsAt: NOW - 1 })))).toContain(t('warm.lengthUnknown'))
+    expect(cardAlt(hearthCard(view({ lengthMs: 0, coolsAt: NOW - 1 })))).toContain(t('fire.lengthUnknown'))
   })
 
   test('what stopped the relaunches shows, with its error', () => {
-    expect(cardAlt(hearthCard(view({ warmStop: 'failed', warmError: 'overloaded' })))).toContain('Arrêtée après 3 échecs (overloaded)')
-    expect(cardAlt(hearthCard(view({ warmStop: 'failed', warmError: 'overloaded', coolsAt: NOW - 1, fire: 'out' }))), 'cold as well').toContain('overloaded')
-    expect(cardAlt(hearthCard(view({ warmStop: 'cap' })))).toContain(t('warm.stoppedCap'))
-    expect(full(hearthCard(view({ warmStop: 'handoff' }))).height, 'the card grows with the words').toBeGreaterThan(444)
+    expect(cardAlt(hearthCard(view({ relaunchStop: 'failed', relaunchError: 'overloaded' })))).toContain('Arrêtée après 3 échecs (overloaded)')
+    expect(cardAlt(hearthCard(view({ relaunchStop: 'failed', relaunchError: 'overloaded', coolsAt: NOW - 1, fire: 'out' }))), 'cold as well').toContain('overloaded')
+    expect(cardAlt(hearthCard(view({ relaunchStop: 'cap' })))).toContain(t('fire.stoppedCap'))
+    expect(full(hearthCard(view({ relaunchStop: 'briefing' }))).height, 'the card grows with the words').toBeGreaterThan(444)
   })
 
   test('an active session has no cap, and `always` no target', () => {
@@ -97,9 +97,9 @@ describe('the card of the hearth', () => {
   })
 })
 
-describe('the card of the handoff', () => {
+describe('the card of the briefing', () => {
   test('the heights of the design, state by state', () => {
-    const height = (over: Partial<Handoff>) => full(handoffCard(handoff(over))).height - 4
+    const height = (over: Partial<Briefing>) => full(briefingCard(briefing(over))).height - 4
     expect(height({})).toBe(245)
     expect(height({ phase: 'waiting', waitingAgents: 2, waitingChats: 1 })).toBe(329)
     expect(height({ phase: 'waiting', waitingAgents: 2, waitingChats: 1, urgent: true })).toBe(311)
@@ -108,7 +108,7 @@ describe('the card of the handoff', () => {
   })
 
   test('each state says its words', () => {
-    const alt = (over: Partial<Handoff>) => cardAlt(handoffCard(handoff(over)))
+    const alt = (over: Partial<Briefing>) => cardAlt(briefingCard(briefing(over)))
     expect(alt({})).toContain('Grosse conversation')
     expect(alt({})).toContain('Proposée')
     expect(alt({ phase: 'waiting', waitingAgents: 2, waitingChats: 1 })).toContain('Passation après 2 agents et 1 conversation')
@@ -123,7 +123,7 @@ describe('the card of the handoff', () => {
   })
 
   test('the steps go by: green behind, gold on the one at work, red where it fell', () => {
-    const source = (over: Partial<Handoff>) => full(handoffCard(handoff(over))).source
+    const source = (over: Partial<Briefing>) => full(briefingCard(briefing(over))).source
     expect(count(source({}), /#4E8F5A/g)).toBe(0)
     expect(count(source({ phase: 'writing', step: 2 }), /#4E8F5A/g)).toBe(2)
     expect(source({ phase: 'writing', step: 2 })).toContain('#FFDF8F')
@@ -132,10 +132,10 @@ describe('the card of the handoff', () => {
   })
 
   test('urgent: the button to press is gold, and its place is given', () => {
-    const card = handoffCard(handoff({ phase: 'waiting', waitingAgents: 2, waitingChats: 1, urgent: true }))
-    expect(card.buttons.map(b => [b.key, b.primary])).toEqual([['handoff-now', true], ['handoff-cancel', false]])
+    const card = briefingCard(briefing({ phase: 'waiting', waitingAgents: 2, waitingChats: 1, urgent: true }))
+    expect(card.buttons.map(b => [b.key, b.primary])).toEqual([['briefing-now', true], ['briefing-cancel', false]])
     expect(card.buttons[0]).toMatchObject({ x: 21, y: 234, w: 154 })
-    expect(handoffCard(handoff()).buttons).toEqual([])
+    expect(briefingCard(briefing()).buttons).toEqual([])
   })
 })
 
@@ -143,58 +143,58 @@ describe('the row', () => {
   const WIDE = 750
 
   test('34 tall, a plain drawing, the buttons of the design against the right edge', () => {
-    const row = handoffRow(handoff({ phase: 'ready', step: 4 }), WIDE)
+    const row = briefingRow(briefing({ phase: 'ready', step: 4 }), WIDE)
     expect(row.height).toBe(34)
-    expect(row.buttons.map(b => [b.key, b.x, b.w])).toEqual([['handoff-start', 355, 167], ['handoff-copy', 530, 63], ['handoff-open', 601, 62], ['handoff-close', 671, 69]])
+    expect(row.buttons.map(b => [b.key, b.x, b.w])).toEqual([['briefing-start', 355, 167], ['briefing-copy', 530, 63], ['briefing-open', 601, 62], ['briefing-close', 671, 69]])
     expect(row.alt.length > 0).toBe(true)
     expect(row.source).not.toMatch(/<animate|@keyframes|script/)
   })
 
   test('the keys of each phase, the urgent one primary', () => {
-    const keys = (over: Partial<Handoff>) => handoffButtons(handoff(over)).map(b => b.key)
-    expect(keys({})).toEqual(['handoff-change', 'handoff-cancel'])
-    expect(keys({ phase: 'waiting' })).toEqual(['handoff-now', 'handoff-cancel'])
-    expect(keys({ phase: 'writing' })).toEqual(['handoff-close'])
-    expect(keys({ phase: 'ready' })).toEqual(['handoff-start', 'handoff-copy', 'handoff-open', 'handoff-close'])
-    expect(keys({ phase: 'failed' })).toEqual(['handoff-retry', 'handoff-close'])
-    expect(keys({ phase: 'failed', file: '/a.md' })).toEqual(['handoff-retry', 'handoff-copy', 'handoff-open', 'handoff-close'])
-    expect(handoffButtons(handoff({ phase: 'waiting', urgent: true }))[0]!.primary).toBe(true)
-    expect(handoffButtons(handoff({ phase: 'waiting' }))[0]!.primary).toBe(false)
+    const keys = (over: Partial<Briefing>) => briefingButtons(briefing(over)).map(b => b.key)
+    expect(keys({})).toEqual(['briefing-change', 'briefing-cancel'])
+    expect(keys({ phase: 'waiting' })).toEqual(['briefing-now', 'briefing-cancel'])
+    expect(keys({ phase: 'writing' })).toEqual(['briefing-close'])
+    expect(keys({ phase: 'ready' })).toEqual(['briefing-start', 'briefing-copy', 'briefing-open', 'briefing-close'])
+    expect(keys({ phase: 'failed' })).toEqual(['briefing-retry', 'briefing-close'])
+    expect(keys({ phase: 'failed', file: '/a.md' })).toEqual(['briefing-retry', 'briefing-copy', 'briefing-open', 'briefing-close'])
+    expect(briefingButtons(briefing({ phase: 'waiting', urgent: true }))[0]!.primary).toBe(true)
+    expect(briefingButtons(briefing({ phase: 'waiting' }))[0]!.primary).toBe(false)
   })
 
   test('a button says its count to a reader, and draws the design\'s words', () => {
-    const now = handoffButtons(handoff({ phase: 'waiting', waitingAgents: 2, waitingChats: 1 }))[0]!
+    const now = briefingButtons(briefing({ phase: 'waiting', waitingAgents: 2, waitingChats: 1 }))[0]!
     expect([now.label, now.drawn]).toEqual(['Changer maintenant (3 en cours)', 'Changer maintenant'])
   })
 
-  test('a word of the mod replaces the line of a ready handoff', () => {
-    expect(handoffRow(handoff({ phase: 'ready', note: 'Copié.' }), WIDE).alt).toContain('Copié.')
+  test('a word of the mod replaces the line of a ready briefing', () => {
+    expect(briefingRow(briefing({ phase: 'ready', note: 'Copié.' }), WIDE).alt).toContain('Copié.')
   })
 
   test('the gauge shows only while it writes', () => {
-    expect(handoffRow(handoff({ phase: 'writing', step: 3 }), WIDE).source).toContain('#5FC9B8')
-    expect(handoffRow(handoff(), WIDE).source).not.toContain('#5FC9B8')
+    expect(briefingRow(briefing({ phase: 'writing', step: 3 }), WIDE).source).toContain('#5FC9B8')
+    expect(briefingRow(briefing(), WIDE).source).not.toContain('#5FC9B8')
   })
 
   test('at the narrowest band the buttons stay whole, and the words give way', () => {
-    const row = handoffRow(handoff({ phase: 'ready', step: 4 }), 420)
+    const row = briefingRow(briefing({ phase: 'ready', step: 4 }), 420)
     expect(row.buttons[0]!.x > 0).toBe(true)
     expect(row.alt).toContain('Passation prête')
     expect(row.source).not.toContain('#1B1730"/><path')
   })
 
   test('narrowed by the app, the row still fills the height kept for it', () => {
-    expect(handoffRow(handoff(), WIDE).source).toContain('preserveAspectRatio="none"')
+    expect(briefingRow(briefing(), WIDE).source).toContain('preserveAspectRatio="none"')
   })
 })
 
 describe('the panel', () => {
   const place = settingsPlace(780, 760)
-  const choices = { departure: 'plan', warm: true, handoffMode: 'auto', compactBefore: 2 } as const
+  const choices = { departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2 } as const
 
   test('296 by 542 with the cursor, 470 without', () => {
     expect(settingsSvg(choices, place).width >= 300).toBe(true)
-    const manual = settingsSvg({ ...choices, handoffMode: 'manual' }, settingsPlace(780, 760, 'manual'))
+    const manual = settingsSvg({ ...choices, briefingMode: 'manual' }, settingsPlace(780, 760, 'manual'))
     expect(manual.alt).toContain('Manuel, choisi')
     expect(manual.alt).not.toContain('Compacte')
     expect(manual.rows < settingsSvg(choices, place).rows).toBe(true)
@@ -220,7 +220,7 @@ describe('the panel', () => {
 
   test('a step lit, and an option kept ticked under the pointer', () => {
     expect(stepSvg(1, place).source).toContain('#FFDF8F')
-    expect(optionSvg('warm', place, true).source).toContain('#FFC857')
+    expect(optionSvg('fire', place, true).source).toContain('#FFC857')
     expect(optionSvg('manual', place).source).toContain('#FFF2C4')
   })
 })
@@ -232,7 +232,7 @@ describe('the words', () => {
   }
 
   test('every visible text has its letters in the font', () => {
-    const prefixes = /^(handoff\.(row|card|chip|jobs|after|carryOn|step|button)|hearth\.|warm\.(stopped|lengthUnknown))/
+    const prefixes = /^(briefing\.(row|card|chip|jobs|after|carryOn|step|button)|hearth\.|fire\.(stopped|lengthUnknown))/
     for (const dictionary of Object.values(dictionaries)) {
       for (const [key, text] of Object.entries(dictionary)) {
         if (!prefixes.test(key)) continue
@@ -246,10 +246,10 @@ describe('the words', () => {
       const lines = (key: Parameters<typeof t>[0]) => wrap(t(key), 16, 222, 9).length
       expect(lines('settings.plan.line')).toBe(2)
       expect(lines('settings.each.line')).toBe(1)
-      expect(lines('hearth.warm.line')).toBe(2)
+      expect(lines('hearth.fire.line')).toBe(2)
       expect(lines('hearth.auto.line')).toBe(1)
       expect(lines('hearth.manual.line')).toBe(1)
-      for (const key of ['hearth.warm.name', 'hearth.auto.name', 'hearth.manual.name'] as const) expect(textWidth(t(key), 18) <= 222, t(key)).toBe(true)
+      for (const key of ['hearth.fire.name', 'hearth.auto.name', 'hearth.manual.name'] as const) expect(textWidth(t(key), 18) <= 222, t(key)).toBe(true)
       for (const key of ['hearth.cursor', 'hearth.cursor.0', 'hearth.cursor.1', 'hearth.cursor.2', 'hearth.cursor.3', 'hearth.cursor.always'] as const) expect(textWidth(t(key), 16) <= 262, t(key)).toBe(true)
       expect(textWidth(t('hearth.always'), 16) <= 86).toBe(true)
     })
@@ -257,9 +257,9 @@ describe('the words', () => {
 
   test('the heads of the cards hold on their lines', () => {
     both(() => {
-      for (const key of ['handoff.card.offered', 'handoff.card.waiting', 'handoff.card.waitingTurn', 'handoff.card.urgent', 'handoff.card.ready', 'handoff.card.failed'] as const) expect(textWidth(t(key), 20) <= 176, t(key)).toBe(true)
+      for (const key of ['briefing.card.offered', 'briefing.card.waiting', 'briefing.card.waitingTurn', 'briefing.card.urgent', 'briefing.card.ready', 'briefing.card.failed'] as const) expect(textWidth(t(key), 20) <= 176, t(key)).toBe(true)
       expect(wrap(t('hearth.card.title'), 30, 176, 9).length <= 2).toBe(true)
-      for (const key of ['hearth.card.warmOff', 'hearth.card.cold'] as const) expect(wrap(t(key), 16, 230, 9).length <= 2, t(key)).toBe(true)
+      for (const key of ['hearth.card.fireSettingf', 'hearth.card.cold'] as const) expect(wrap(t(key), 16, 230, 9).length <= 2, t(key)).toBe(true)
     })
   })
 

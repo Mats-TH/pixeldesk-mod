@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import { FIVE, HELD_HEARTH, HOUR, TOO_BIG, TRANSCRIPT, hearthWorld, lengthLine } from './test-hearth'
 import { HOME, LOG_FILE, NOON, SETTINGS_FILE, command, endTurn, spawn, start, startTurn, usage } from './test-kit'
 
-const PING = 'Reply with the single word: ok'
+const PING = 'Answer only: ok'
 
 describe('the length of the cache', () => {
   const unknown = (on: any, more: object = {}) => {
@@ -66,8 +66,8 @@ describe('the length of the cache', () => {
     await start($)
     await reply($)
     await w.clock.advance(FIVE)
-    expect(w.state.hearth).toMatchObject({ lengthMs: 0, coolsAt: NOON + HOUR, fire: 'full', warmStop: null })
-    expect((await command($, 'warm')).text).toContain('La durée du cache n’est pas encore connue')
+    expect(w.state.hearth).toMatchObject({ lengthMs: 0, coolsAt: NOON + HOUR, fire: 'full', relaunchStop: null })
+    expect((await command($, 'fire')).text).toContain('La durée du cache n’est pas encore connue')
     await w.clock.advance(HOUR)
     expect(forks).toEqual([])
     expect(w.state.hearth.fire).toBe('out')
@@ -150,53 +150,53 @@ describe('the length of the cache', () => {
   })
 })
 
-describe('/pixeldesk warm', () => {
+describe('/pixeldesk fire', () => {
   test('says where it stands, in the words of the state', async ($, on) => {
     const { w, reply } = hearthWorld(on)
     await start($)
-    expect((await command($, 'warm')).text).toBe('La relance du cache est en marche. Le cache est froid : rien à relancer avant ta prochaine réponse. 0 relance depuis la dernière réponse.')
+    expect((await command($, 'fire')).text).toBe('La relance du cache est en marche. Le cache est froid : rien à relancer avant ta prochaine réponse. 0 relance depuis la dernière réponse.')
     await reply($)
     await w.clock.advance(30_000)
-    expect((await command($, 'warm')).text).toContain('Temps restant : 4:30.')
+    expect((await command($, 'fire')).text).toContain('Temps restant : 4:30.')
   })
 
   test('off and on save the setting and keep the other keys', async ($, on) => {
     const { w } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ theme: 'night' }) } })
     await start($)
-    expect((await command($, 'warm off')).text).toBe('Relance du cache coupée dans toutes les conversations. Le feu suivra la durée du cache.')
-    expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'night', warm: false })
-    expect((await command($, 'warm')).text).toBe('La relance du cache est coupée. Remets-la avec /pixeldesk warm on.')
-    await command($, 'WARM ON')
-    expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'night', warm: true })
+    expect((await command($, 'fire off')).text).toBe('Relance du cache coupée dans toutes les conversations. Le feu suivra la durée du cache.')
+    expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'night', fire: false })
+    expect((await command($, 'fire')).text).toBe('La relance du cache est coupée. Remets-la avec /pixeldesk fire on.')
+    await command($, 'FIRE ON')
+    expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'night', fire: true })
   })
 
   test('a broken file reads as no change, and a write replaces it', async ($, on) => {
     const { w } = hearthWorld(on, { files: { [SETTINGS_FILE]: '{ not json' } })
     await start($)
-    expect(w.state.settings.warm).toBe(true)
-    await command($, 'warm off')
-    expect(w.json(SETTINGS_FILE)).toEqual({ warm: false })
+    expect(w.state.settings.fire).toBe(true)
+    await command($, 'fire off')
+    expect(w.json(SETTINGS_FILE)).toEqual({ fire: false })
   })
 
   test('a word it does not know changes nothing', async ($, on) => {
     const { w } = hearthWorld(on)
     await start($)
-    expect((await command($, 'warm maybe')).text).toBe('Valeur inconnue. Utilise /pixeldesk warm, /pixeldesk warm on ou /pixeldesk warm off.')
+    expect((await command($, 'fire maybe')).text).toBe('Valeur inconnue. Utilise /pixeldesk fire, /pixeldesk fire on ou /pixeldesk fire off.')
     expect(w.file(SETTINGS_FILE)).toBeUndefined()
   })
 
   test('a setting changed elsewhere is followed within 3 s', async ($, on) => {
     const { w } = hearthWorld(on, { env: { USERPROFILE: HOME, LANG: 'fr_FR' } })
     await start($)
-    w.files.set(SETTINGS_FILE, JSON.stringify({ warm: false, handoffMode: 'manual', compactBefore: 'always' }))
+    w.files.set(SETTINGS_FILE, JSON.stringify({ fire: false, briefingMode: 'manual', compactBefore: 'always' }))
     await w.clock.advance(3000)
-    expect(w.state.settings).toMatchObject({ warm: false, handoffMode: 'manual', compactBefore: 'always' })
+    expect(w.state.settings).toMatchObject({ fire: false, briefingMode: 'manual', compactBefore: 'always' })
     expect(w.state.hearth.compactTarget).toBe('always')
   })
 })
 
 describe('after a reload', () => {
-  const held = { lengthMs: FIVE, coolsAt: NOON + 100_000, relaunches: 3, warmSince: NOON - 1000, failures: 1, warmStop: null, warmError: 'overloaded', keeperRun: 3, contextPercent: 40, compactions: 2 }
+  const held = { lengthMs: FIVE, coolsAt: NOON + 100_000, relaunches: 3, relaunchSince: NOON - 1000, failures: 1, relaunchStop: null, relaunchError: 'overloaded', keeperRun: 3, contextPercent: 40, compactions: 2 }
 
   test('the clock and the counts go on, and no relaunch is left half sent', async ($, on) => {
     const { w, forks } = hearthWorld(on, { held: { hearth: held } })

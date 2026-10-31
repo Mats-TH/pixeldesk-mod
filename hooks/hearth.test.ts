@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { lengthIn } from './cachelength'
 import { compactNow } from './compaction'
-import { gather, scrubbed, slugOf, stampOf, tilde, unwrapped } from './handoff-gather'
+import { gather, scrubbed, slugOf, stampOf, tilde, unwrapped } from './briefing-gather'
 import { ashOf, fireOf, lengthProven } from './heat'
 import { en, fr } from './i18n'
 import { createMemory } from './memory'
@@ -122,10 +122,10 @@ describe('secrets', () => {
 
 describe('names', () => {
   test('the slug comes from the title, without accents, 48 characters at most', () => {
-    expect(slugOf('# Passation : Construire le mod Rafraîchir\n')).toBe('construire-le-mod-rafraichir')
-    expect(slugOf('# Handoff: Build it!\n')).toBe('build-it')
+    expect(slugOf('# Passation : Construire le mod Déménager\n')).toBe('construire-le-mod-demenager')
+    expect(slugOf('# Briefing: Build it!\n')).toBe('build-it')
     expect(slugOf('no title')).toBe('session')
-    expect(slugOf(`# Handoff: ${'a'.repeat(60)}`)).toHaveLength(48)
+    expect(slugOf(`# Briefing: ${'a'.repeat(60)}`)).toHaveLength(48)
   })
 
   test('the stamp is local time', () => {
@@ -133,7 +133,7 @@ describe('names', () => {
   })
 
   test('a code block around the whole reply goes', () => {
-    expect(unwrapped('```markdown\n# Handoff: x\n```')).toBe('# Handoff: x')
+    expect(unwrapped('```markdown\n# Briefing: x\n```')).toBe('# Briefing: x')
     expect(unwrapped('  plain  ')).toBe('plain')
   })
 
@@ -145,16 +145,16 @@ describe('names', () => {
 
 describe('the texts of the two features', () => {
   test('the prompts name their sections and keep the same holes', () => {
-    expect(fr['handoff.prompt']).toContain('# Passation : ')
-    expect(en['handoff.prompt']).toContain('# Handoff: ')
+    expect(fr['briefing.prompt']).toContain('# Passation : ')
+    expect(en['briefing.prompt']).toContain('# Briefing: ')
     for (const hole of ['{cwd}', '{files}', '{skills}', '{links}', '{notes}']) {
-      expect(fr['handoff.prompt']).toContain(hole)
-      expect(en['handoff.prompt']).toContain(hole)
+      expect(fr['briefing.prompt']).toContain(hole)
+      expect(en['briefing.prompt']).toContain(hole)
     }
   })
 
   test('no toast is long enough to be cut', () => {
-    const toasts = ['handoff.readyToast', 'handoff.failedToast', 'handoff.compactedToast', 'handoff.compactFailed', 'handoff.started', 'handoff.pressEnter', 'handoff.startFailed', 'handoff.noFolder'] as const
+    const toasts = ['briefing.readyToast', 'briefing.failedToast', 'briefing.compactedToast', 'briefing.compactFailed', 'briefing.started', 'briefing.pressEnter', 'briefing.startFailed', 'briefing.noFolder'] as const
     for (const key of toasts) for (const dictionary of [fr, en]) expect(dictionary[key].length).toBeLessThanOrEqual(140)
   })
 })

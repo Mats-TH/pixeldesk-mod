@@ -1,16 +1,16 @@
 import { SESSION, SETTINGS_FILE, endTurn, mountBand, startTurn, steps, usage, world } from './test-kit'
 import type { WorldOptions } from './test-kit'
 
-/** The engine's calls only the cache and the handoff make, on top of the kit's world. Nothing here reaches a real process. */
+/** The engine's calls only the cache and the briefing make, on top of the kit's world. Nothing here reaches a real process. */
 
 type Loose = any
 
 export const FIVE = 300_000
 export const HOUR = 3_600_000
-export const HANDOFFS = '/Users/test/.claude/pixeldesk/handoffs'
+export const BRIEFINGS = '/Users/test/.claude/pixeldesk/briefings'
 export const READ = { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 90_000, cache_creation_input_tokens: 0 }
 export const REWRITE = { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 90_000 }
-export const HANDOFF_TEXT = '# Passation : finir le mod\n\nReprends dans ~/app.\n\n## Prochaines étapes\n\n1. Tester.'
+export const BRIEFING_TEXT = '# Passation : finir le mod\n\nReprends dans ~/app.\n\n## Prochaines étapes\n\n1. Tester.'
 
 export const TRANSCRIPT = `/Users/test/.claude/projects/app/${SESSION}.jsonl`
 export const lengthLine = (field: string) => JSON.stringify({ type: 'assistant', message: { usage: { cache_creation: { [field]: 500 } } } })
@@ -18,10 +18,10 @@ export const lengthLine = (field: string) => JSON.stringify({ type: 'assistant',
 export const TOO_BIG = { [TRANSCRIPT]: 'past 4 MiB' }
 
 export const STATE_FILE = `/Users/test/.claude/pixeldesk/state/hearth-${SESSION}.json`
-export const NOTES = `${HANDOFFS}/notes-${SESSION}.md`
-export const DRAFT = `${HANDOFFS}/draft-${SESSION}.md`
-export const MANUAL = { [SETTINGS_FILE]: JSON.stringify({ handoffMode: 'manual' }) }
-export const HELD_HEARTH = (at: number) => ({ lengthMs: FIVE, coolsAt: at + FIVE, relaunches: 0, warmSince: at, failures: 0, warmStop: null, warmError: '', keeperRun: 0, contextPercent: 10, compactions: 0 })
+export const NOTES = `${BRIEFINGS}/notes-${SESSION}.md`
+export const DRAFT = `${BRIEFINGS}/draft-${SESSION}.md`
+export const MANUAL = { [SETTINGS_FILE]: JSON.stringify({ briefingMode: 'manual' }) }
+export const HELD_HEARTH = (at: number) => ({ lengthMs: FIVE, coolsAt: at + FIVE, relaunches: 0, relaunchSince: at, failures: 0, relaunchStop: null, relaunchError: '', keeperRun: 0, contextPercent: 10, compactions: 0 })
 
 export const claudeRun = (w: Loose) => w.runs.find((r: Loose) => r.argv[0] === 'claude')
 export const linksOpened = (w: Loose) => w.runs.filter((r: Loose) => r.argv[0] !== 'claude').map((r: Loose) => r.argv.at(-1))
@@ -48,7 +48,7 @@ export function hearthWorld(on: Loose, options: WorldOptions = {}) {
     compacts: [] as Loose[],
     copies: [] as string[],
     /** What the model answers a fork, by its prompt. */
-    fork: (prompt: string): Loose => (prompt.includes('Reply with the single word') ? answered() : answered(HANDOFF_TEXT)),
+    fork: (prompt: string): Loose => (prompt.includes('Answer only') ? answered() : answered(BRIEFING_TEXT)),
     messages: [] as Loose[],
     model: 'opus',
     cwd: 'C:\\work\\app\\.claude\\worktrees\\feature',

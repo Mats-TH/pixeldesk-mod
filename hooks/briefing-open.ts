@@ -4,7 +4,7 @@ import { log, reason } from './disk'
 import { t } from './i18n'
 import type { Memory } from './memory'
 
-// How far a link may carry the sentence. The handoff itself never rides in an address.
+// How far a link may carry the sentence. The briefing itself never rides in an address.
 const LINK_TEXT_MAX = 14_336
 const FIRST_READ_MS = 180_000
 
@@ -55,7 +55,7 @@ async function startedHeadless($: EngineInterface, m: Memory, id: string, messag
   }
 }
 
-/** A new conversation in the session's exact folder, with the handoff read; else one that waits for Enter. */
+/** A new conversation in the session's exact folder, with the briefing read; else one that waits for Enter. */
 export async function openConversation($: EngineInterface, m: Memory, file: string): Promise<Opening> {
   const system = systemOf(m.home)
   const folder = await sessionFolder($, m, system)
@@ -63,9 +63,9 @@ export async function openConversation($: EngineInterface, m: Memory, file: stri
   const path = native(file, system)
   if (system !== 'linux') {
     const id = crypto.randomUUID()
-    if ((await startedHeadless($, m, id, t('handoff.message', { file: path }), folder)) && (await opened($, m, system, `claude://resume?session=${id}`))) return 'resumed'
+    if ((await startedHeadless($, m, id, t('briefing.message', { file: path }), folder)) && (await opened($, m, system, `claude://resume?session=${id}`))) return 'resumed'
   }
-  const sentence = t('handoff.pasted', { file: path }).slice(0, LINK_TEXT_MAX)
+  const sentence = t('briefing.pasted', { file: path }).slice(0, LINK_TEXT_MAX)
   const link = `claude://code/new?q=${encodeURIComponent(sentence)}&folder=${encodeURIComponent(folder)}`
   return (await opened($, m, system, link)) ? 'pasted' : 'failed'
 }

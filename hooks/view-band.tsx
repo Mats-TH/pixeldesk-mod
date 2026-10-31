@@ -52,11 +52,11 @@ function bar({ Text }: TerminalTable, width: number, done: number, total: number
   const full = total ? Math.round((width * done) / total) : 0
   const edge = live && total ? Math.round((width * (done + 1)) / total) : full
   const hot = Array.from({ length: full }, (_, i) => <Text color={mix(VIOLET_LIGHT, VIOLET_DARK, full > 1 ? i / (full - 1) : 0)}>█</Text>)
-  const warm = Array.from({ length: edge - full }, (_, i) => <Text color={(shimmer + i) % 2 ? VIOLET_LIGHT : VIOLET}>▓</Text>)
+  const fire = Array.from({ length: edge - full }, (_, i) => <Text color={(shimmer + i) % 2 ? VIOLET_LIGHT : VIOLET}>▓</Text>)
   return (
     <Text>
       {hot}
-      {warm}
+      {fire}
       <Text dimColor>{'░'.repeat(Math.max(0, width - edge))}</Text>
     </Text>
   )

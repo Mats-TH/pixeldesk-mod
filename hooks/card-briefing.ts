@@ -1,4 +1,4 @@
-import type { Handoff, HandoffPhase, PlanStatus } from '../types'
+import type { Briefing, BriefingPhase, PlanStatus } from '../types'
 import { AFTER_MEDAL, BIG, BIG_LINE, BROWN, CHIP_H, DEEP, GAP, GOLD, INK, INNER, LEFT, MEDAL_H, MEDAL_W, PLATE, PLATE_PAD, SCREW, SHADOW, SMALL, SMALL_LINE, TITLE, WIDE, WON, WOOD, WOOD_DARK, box, cardBack, cardDocument, cardHeight, cardScrews, chipParts, fitted, medalBack, textTop, writer } from './card'
 import type { DrawnCard } from './card'
 import { plural, t } from './i18n'
@@ -10,15 +10,15 @@ import { envelope } from './pixel/hearth'
 import type { EnvelopeState } from './pixel/hearth'
 import { letterDefs, line, railPaths } from './room'
 
-type Phase = Exclude<HandoffPhase, 'idle'>
+type Phase = Exclude<BriefingPhase, 'idle'>
 
 /** A button of the row or the card. `label`: what it says to a reader, as much as there is. `drawn`: the words of its image. */
-export type HandoffButton = { key: string; label: string; drawn: string; primary: boolean }
+export type BriefingButton = { key: string; label: string; drawn: string; primary: boolean }
 /** A button once placed, on one line from the left of its drawing. */
-export type PlacedButton = HandoffButton & { x: number; w: number }
-export type HandoffRow = { source: string; alt: string; width: number; height: number; buttons: PlacedButton[] }
-/** The card of the handoff. `buttons`: where the card draws its own, in the pixels of its full size. */
-export type HandoffCard = DrawnCard & { buttons: (PlacedButton & { y: number })[] }
+export type PlacedButton = BriefingButton & { x: number; w: number }
+export type BriefingRow = { source: string; alt: string; width: number; height: number; buttons: PlacedButton[] }
+/** The card of the briefing. `buttons`: where the card draws its own, in the pixels of its full size. */
+export type BriefingCard = DrawnCard & { buttons: (PlacedButton & { y: number })[] }
 
 const CHIP_DARK = '#2A2036'
 const CHIP_SOFT = '#544B70'
@@ -31,7 +31,7 @@ const STEP_INK = '#3A2E33'
 const STEP_DONE_INK = '#7A6A5E'
 const RAIL_DONE = '#5FC9B8'
 
-const STEP_KEYS: readonly TextKey[] = ['handoff.step1', 'handoff.step2', 'handoff.step3', 'handoff.step4', 'handoff.step5']
+const STEP_KEYS: readonly TextKey[] = ['briefing.step1', 'briefing.step2', 'briefing.step3', 'briefing.step4', 'briefing.step5']
 const STEP_H = 17
 const STEP_GAP = 2
 const STEP_LABEL_X = 18
@@ -64,61 +64,61 @@ const GAUGE_H = 8
 const GAUGE_Y = 13
 
 const CHIPS: Record<Phase, { label: TextKey; chip: string; light: string }> = {
-  offered: { label: 'handoff.chip.offered', chip: CHIP_SOFT, light: GOLD },
-  waiting: { label: 'handoff.chip.waiting', chip: CHIP_SOFT, light: LIGHT_COLD },
-  writing: { label: 'handoff.chip.writing', chip: CHIP_DARK, light: LIGHT_TEAL },
-  ready: { label: 'handoff.chip.ready', chip: '#3E7A4C', light: LIGHT_TEAL },
-  failed: { label: 'handoff.chip.failed', chip: RED, light: CREAM },
+  offered: { label: 'briefing.chip.offered', chip: CHIP_SOFT, light: GOLD },
+  waiting: { label: 'briefing.chip.waiting', chip: CHIP_SOFT, light: LIGHT_COLD },
+  writing: { label: 'briefing.chip.writing', chip: CHIP_DARK, light: LIGHT_TEAL },
+  ready: { label: 'briefing.chip.ready', chip: '#3E7A4C', light: LIGHT_TEAL },
+  failed: { label: 'briefing.chip.failed', chip: RED, light: CREAM },
 }
 
 const ENVELOPES: Record<Phase, EnvelopeState> = { offered: 'discreet', waiting: 'waiting', writing: 'discreet', ready: 'bright', failed: 'discreet' }
 
-const phaseOf = (view: Handoff): Phase => (view.phase === 'idle' ? 'offered' : view.phase)
-const countOf = (view: Handoff) => view.waitingAgents + view.waitingChats
+const phaseOf = (view: Briefing): Phase => (view.phase === 'idle' ? 'offered' : view.phase)
+const countOf = (view: Briefing) => view.waitingAgents + view.waitingChats
 
-/** The work a handoff waits for, in words: "2 agents et 1 conversation". */
-function jobs({ waitingAgents: agents, waitingChats: chats }: Handoff) {
-  const said = [agents ? plural('handoff.jobs.agents', agents, { n: agents }) : '', chats ? plural('handoff.jobs.chats', chats, { n: chats }) : '']
-  return said[0] && said[1] ? t('handoff.jobs.both', { agents: said[0], chats: said[1] }) : said[0] || said[1] || ''
+/** The work a briefing waits for, in words: "2 agents et 1 conversation". */
+function jobs({ waitingAgents: agents, waitingChats: chats }: Briefing) {
+  const said = [agents ? plural('briefing.jobs.agents', agents, { n: agents }) : '', chats ? plural('briefing.jobs.chats', chats, { n: chats }) : '']
+  return said[0] && said[1] ? t('briefing.jobs.both', { agents: said[0], chats: said[1] }) : said[0] || said[1] || ''
 }
 
-const carryOn = (view: Handoff) => plural('handoff.carryOn', countOf(view), { jobs: jobs(view) })
+const carryOn = (view: Briefing) => plural('briefing.carryOn', countOf(view), { jobs: jobs(view) })
 
-const stepWord = (view: Handoff) => t(STEP_KEYS[view.step] ?? 'handoff.step1')
+const stepWord = (view: Briefing) => t(STEP_KEYS[view.step] ?? 'briefing.step1')
 
 /** The one line of what goes on, in the row and under the steps of the card. Empty: the card says nothing more. */
-function lineOf(view: Handoff, inRow: boolean) {
+function lineOf(view: Briefing, inRow: boolean) {
   if (view.phase === 'waiting') {
-    if (!countOf(view)) return t('handoff.waitingTurn')
-    if (view.urgent) return inRow ? t('handoff.row.urgent', { carryOn: carryOn(view) }) : carryOn(view)
-    return t('handoff.after', { jobs: jobs(view) })
+    if (!countOf(view)) return t('briefing.waitingTurn')
+    if (view.urgent) return inRow ? t('briefing.row.urgent', { carryOn: carryOn(view) }) : carryOn(view)
+    return t('briefing.after', { jobs: jobs(view) })
   }
-  if (view.phase === 'ready') return view.note || t('handoff.row.ready')
-  if (view.phase === 'failed') return [t('handoff.titleFailed', { error: view.error }), view.note].filter(Boolean).join(' ')
+  if (view.phase === 'ready') return view.note || t('briefing.row.ready')
+  if (view.phase === 'failed') return [t('briefing.titleFailed', { error: view.error }), view.note].filter(Boolean).join(' ')
   if (!inRow) return ''
-  return view.phase === 'writing' ? t('handoff.row.writing', { step: stepWord(view) }) : t('handoff.row.offer')
+  return view.phase === 'writing' ? t('briefing.row.writing', { step: stepWord(view) }) : t('briefing.row.offer')
 }
 
-const said = (key: string, text: TextKey, primary = false): HandoffButton => ({ key, label: t(text), drawn: t(text), primary })
+const said = (key: string, text: TextKey, primary = false): BriefingButton => ({ key, label: t(text), drawn: t(text), primary })
 
-function nowButton(view: Handoff): HandoffButton {
+function nowButton(view: Briefing): BriefingButton {
   const n = countOf(view)
-  return { key: 'handoff-now', label: plural('handoff.button.now', n, { n }), drawn: t('handoff.button.nowShort'), primary: view.urgent }
+  return { key: 'briefing-now', label: plural('briefing.button.now', n, { n }), drawn: t('briefing.button.nowShort'), primary: view.urgent }
 }
 
 /** The buttons of a phase, on every surface. The keys are the gestures: a press goes by its key. */
-export function handoffButtons(view: Handoff): HandoffButton[] {
+export function briefingButtons(view: Briefing): BriefingButton[] {
   if (view.opening) return []
-  const [copy, open, close] = [said('handoff-copy', 'handoff.button.copy'), said('handoff-open', 'handoff.button.open'), said('handoff-close', 'handoff.button.close')]
-  if (view.phase === 'offered') return [said('handoff-change', 'handoff.button.refresh', true), said('handoff-cancel', 'handoff.button.close')]
-  if (view.phase === 'waiting') return [nowButton(view), said('handoff-cancel', 'handoff.button.cancel')]
+  const [copy, open, close] = [said('briefing-copy', 'briefing.button.copy'), said('briefing-open', 'briefing.button.open'), said('briefing-close', 'briefing.button.close')]
+  if (view.phase === 'offered') return [said('briefing-change', 'briefing.button.move', true), said('briefing-cancel', 'briefing.button.close')]
+  if (view.phase === 'waiting') return [nowButton(view), said('briefing-cancel', 'briefing.button.cancel')]
   if (view.phase === 'writing') return [close]
-  if (view.phase === 'ready') return [said('handoff-start', 'handoff.button.start', true), copy, open, close]
-  if (view.phase === 'failed') return [said('handoff-retry', 'handoff.button.retry', true), ...(view.file ? [copy, open] : []), close]
+  if (view.phase === 'ready') return [said('briefing-start', 'briefing.button.start', true), copy, open, close]
+  if (view.phase === 'failed') return [said('briefing-retry', 'briefing.button.retry', true), ...(view.file ? [copy, open] : []), close]
   return []
 }
 
-const buttonW = (b: HandoffButton) => Math.ceil(textWidth(b.drawn, SHARP)) + 1 + BUTTON_PAD * 2
+const buttonW = (b: BriefingButton) => Math.ceil(textWidth(b.drawn, SHARP)) + 1 + BUTTON_PAD * 2
 
 /** A button from its top left corner: gold and dark when it is the one to press. */
 function buttonBody(b: PlacedButton) {
@@ -136,7 +136,7 @@ const letter = (phase: Phase, x: number, y: number) => at(x, y, envelope(ENVELOP
 type Row = { text: string; status: PlanStatus | 'failed' }
 
 /** The five steps, as far as the phase went. */
-function stepsOf(view: Handoff): Row[] {
+function stepsOf(view: Briefing): Row[] {
   const reached = view.phase === 'ready' ? STEP_KEYS.length : view.phase === 'writing' || view.phase === 'failed' ? view.step : 0
   const live = view.phase === 'writing' ? 'in_progress' : view.phase === 'failed' ? 'failed' : 'pending'
   return STEP_KEYS.map((key, i) => ({ text: t(key), status: i < reached ? 'completed' : i === reached ? live : 'pending' }))
@@ -152,35 +152,35 @@ function stepBox(status: Row['status']) {
 
 const STEP_WORDS: Record<Row['status'], string> = { completed: STEP_DONE_INK, in_progress: INK, pending: STEP_INK, failed: INK }
 
-function taskOf(view: Handoff) {
-  if (view.phase === 'waiting' && view.urgent) return t('handoff.card.urgent')
-  if (view.phase === 'waiting') return t(countOf(view) ? 'handoff.card.waiting' : 'handoff.card.waitingTurn')
-  if (view.phase === 'writing') return t('handoff.card.writing', { n: view.step + 1 })
-  return t(view.phase === 'ready' ? 'handoff.card.ready' : view.phase === 'failed' ? 'handoff.card.failed' : 'handoff.card.offered')
+function taskOf(view: Briefing) {
+  if (view.phase === 'waiting' && view.urgent) return t('briefing.card.urgent')
+  if (view.phase === 'waiting') return t(countOf(view) ? 'briefing.card.waiting' : 'briefing.card.waitingTurn')
+  if (view.phase === 'writing') return t('briefing.card.writing', { n: view.step + 1 })
+  return t(view.phase === 'ready' ? 'briefing.card.ready' : view.phase === 'failed' ? 'briefing.card.failed' : 'briefing.card.offered')
 }
 
-function dividerOf(view: Handoff) {
+function dividerOf(view: Briefing) {
   if (view.phase === 'ready') return WON
   return view.phase === 'failed' || (view.phase === 'waiting' && view.urgent) ? RED : SCREW
 }
 
-function chipOf(view: Handoff) {
+function chipOf(view: Briefing) {
   const look = CHIPS[phaseOf(view)]
   const urgent = view.phase === 'waiting' && view.urgent
   return { label: t(look.label), chip: urgent ? RED : look.chip, light: urgent ? CREAM : look.light }
 }
 
-function cardButtons(view: Handoff) {
+function cardButtons(view: Briefing) {
   if (view.phase !== 'waiting') return []
   let x = LEFT
-  return handoffButtons(view).map(b => {
+  return briefingButtons(view).map(b => {
     const placedOne = { ...b, x, w: buttonW(b) }
     x += placedOne.w + CARD_BUTTON_GAP
     return placedOne
   })
 }
 
-function layout(view: Handoff) {
+function layout(view: Briefing) {
   const textW = INNER - MEDAL_W - AFTER_MEDAL
   const task = fit(taskOf(view), BIG, textW)
   const rows = stepsOf(view)
@@ -193,12 +193,12 @@ function layout(view: Handoff) {
   return { task, rows, words, buttons, stepsH, plate, height: cardHeight(plate) }
 }
 
-function draw(view: Handoff, l: ReturnType<typeof layout>, width: number, height: number) {
+function draw(view: Briefing, l: ReturnType<typeof layout>, width: number, height: number) {
   const parts = cardBack(l.plate)
   const words: string[] = []
   const write = writer(words)
   const textX = LEFT + MEDAL_W + AFTER_MEDAL
-  const title = t('handoff.card.title')
+  const title = t('briefing.card.title')
   let y = LEFT
   parts.push(...medalBack(y), letter(phaseOf(view), LEFT + ENVELOPE_X, y + ENVELOPE_Y))
   write(title, textX, y, TITLE, TITLE, INK)
@@ -224,11 +224,11 @@ function draw(view: Handoff, l: ReturnType<typeof layout>, width: number, height
   return cardDocument(WIDE + SHADOW, l.height + SHADOW, width, height, shown, parts, [...words, ...inside])
 }
 
-/** The card of a handoff: where it stands, and its five steps. */
-export function handoffCard(view: Handoff): HandoffCard {
+/** The card of a briefing: where it stands, and its five steps. */
+export function briefingCard(view: Briefing): BriefingCard {
   const l = layout(view)
   const lineWords = lineOf(view, false)
-  const alt = [t('handoff.card.title'), l.task, ...l.rows.map(r => r.text), lineWords, chipOf(view).label].filter(Boolean).join('. ').replace(/\.\./g, '.')
+  const alt = [t('briefing.card.title'), l.task, ...l.rows.map(r => r.text), lineWords, chipOf(view).label].filter(Boolean).join('. ').replace(/\.\./g, '.')
   const top = LEFT + MEDAL_H + GAP + 2 + GAP + l.stepsH + GAP + (l.words.length ? l.words.length * SMALL_LINE + GAP : 0)
   return {
     alt,
@@ -242,15 +242,15 @@ export function handoffCard(view: Handoff): HandoffCard {
 
 // ---------- The row above the band ----------
 
-function gauge(view: Handoff, x: number) {
+function gauge(view: Briefing, x: number) {
   const cells = STEP_KEYS.map((_, i) => (i < view.step ? RAIL_DONE : i === view.step ? GOLD : DEEP))
   return `${box(x, GAUGE_Y, GAUGE_W, GAUGE_H, INK)}${railPaths(cells, x + 2, GAUGE_Y + 2, GAUGE_W - 4, GAUGE_H - 4)}`
 }
 
 /** The buttons against the right edge, and where what stands left of them ends. */
-function rowRight(view: Handoff, width: number) {
+function rowRight(view: Briefing, width: number) {
   let right = width - ROW_RIGHT
-  const buttons = [...handoffButtons(view)].reverse().map(b => {
+  const buttons = [...briefingButtons(view)].reverse().map(b => {
     const w = buttonW(b)
     right -= w
     const one = { ...b, x: right, w }
@@ -261,7 +261,7 @@ function rowRight(view: Handoff, width: number) {
 }
 
 /** The row as one plain drawing. Its presses are `Button`s laid over it, at the places given back. */
-export function handoffRow(view: Handoff, width: number): HandoffRow {
+export function briefingRow(view: Briefing, width: number): BriefingRow {
   const phase = phaseOf(view)
   const { buttons, right } = rowRight(view, width)
   const [gaugeX, textEnd] = view.phase === 'writing' ? [right - GAUGE_W, right - GAUGE_W - ROW_GAP] : [0, right]

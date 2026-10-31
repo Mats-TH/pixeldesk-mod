@@ -98,7 +98,7 @@ describe('servers with a readable name', () => {
     ['apify', 'Apify'], ['attio', 'Attio'], ['claude_browser', 'Browser'], ['calendly', 'Calendly'], ['chat-relay', 'Chat Relay'],
     ['claude-in-chrome', 'Chrome'], ['circle', 'Circle'], ['circle-community', 'Circle'], ['composio', 'Composio'], ['figma', 'Figma'],
     ['firecrawl', 'Firecrawl'], ['fireflies', 'Fireflies'], ['github', 'GitHub'], ['gmail', 'Gmail'], ['google-calendar', 'Google Calendar'],
-    ['google-drive', 'Google Drive'], ['google-workspace', 'Google Workspace'], ['handoff', 'Handoff'], ['higgsfield', 'Higgsfield'], ['hubspot', 'HubSpot'],
+    ['google-drive', 'Google Drive'], ['google-workspace', 'Google Workspace'], ['briefing', 'Briefing'], ['higgsfield', 'Higgsfield'], ['hubspot', 'HubSpot'],
     ['kit', 'Kit'], ['linear', 'Linear'], ['make', 'Make'], ['notion', 'Notion'], ['pandadoc', 'PandaDoc'], ['pipedrive', 'Pipedrive'], ['posthog', 'PostHog'],
     ['reddit', 'Reddit'], ['shopify', 'Shopify'], ['slack', 'Slack'], ['stripe', 'Stripe'], ['supabase', 'Supabase'], ['vercel', 'Vercel'], ['vidiq', 'vidIQ'], ['youtube', 'YouTube'],
   ]

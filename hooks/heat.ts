@@ -25,7 +25,7 @@ const FIRE_SHARES: readonly [share: number, fire: Fire][] = [[0.6, 'full'], [0.3
 const ASH_LEVELS: readonly [percent: number, ash: Ash][] = [[80, 'full'], [50, 'large'], [25, 'medium'], [1, 'small']]
 
 /** What a relaunch asks. It is never translated: it must cost the same everywhere. */
-export const PING = 'Reply with the single word: ok'
+export const PING = 'Answer only: ok'
 
 export const lengthOf = (length: CacheLength) => (length === '1h' ? ONE_HOUR : FIVE_MINUTES)
 
@@ -43,7 +43,7 @@ export function settleLength(h: Heat, length: CacheLength) {
 /**
  * What a normal request says of the length, for free, `gap` after the one before it. Read from the cache past five
  * minutes, it lasts the hour. Written again within the hour, it lasted five minutes. Past the hour both lengths are
- * cold, and within five minutes both are warm: neither says anything.
+ * cold, and within five minutes both are lit: neither says anything.
  */
 export function lengthProven(gap: number, usage: ModelUsage): CacheLength | null {
   if (gap <= FIVE_MINUTES) return null
@@ -76,7 +76,7 @@ export async function workNow($: EngineInterface, m: Memory) {
 /** The conversation's last sign of life: a turn, which holds its tools, or an agent. 0 when nothing happened in this run. */
 const lastActivity = (m: Memory) => Math.max(m.chatTurn.since, m.chatTurn.ended, m.heat.endedAt, ...m.agents.map(a => a.endedAt || a.startedAt))
 
-/** A step in progress is only work for a while: a plan forgotten halfway must not keep a session warm without end. */
+/** A step in progress is only work for a while: a plan forgotten halfway must not keep a session lit without end. */
 const planAlive = (m: Memory, now: number) => (m.plan?.steps.some(st => st.status === 'in_progress') ?? false) && now - lastActivity(m) < PLAN_ALIVE_MS
 
 /** A session stays active while a turn, an agent or a conversation of the floor works, or a plan was moving not long ago. */
@@ -143,7 +143,7 @@ export function isForkTurn(m: Memory, text: string, turnId: string) {
 }
 
 /** The moment the mod itself reached the cache, for a fork that read it. */
-export async function warmedBy($: EngineInterface, m: Memory, at: number) {
+export async function stokedBy($: EngineInterface, m: Memory, at: number) {
   await reached($, m, at)
 }
 
@@ -162,14 +162,14 @@ function followCaps(h: Heat, active: boolean, now: number) {
   if (h.relaunches >= REST_RELAUNCHES || (h.since && now - h.since >= REST_MS)) h.stop = 'cap'
 }
 
-/** While a handoff is being written or waits to be closed, this conversation is on its way out. */
+/** While a briefing is being written or waits to be closed, this conversation is on its way out. */
 const leaving = (m: Memory) => ['writing', 'ready', 'failed'].includes(m.change.phase)
 
 /** Whether a relaunch may go out. Each line is a cost refused: a cold cache above all, and a length nobody has proven. */
 function isDue(m: Memory, now: number) {
   const h = m.heat
   const cools = coolsAtOf(h)
-  if (cools === null || !h.known || !m.warm || h.blind || h.stop || h.sending || h.compacting || h.requests > 0 || leaving(m)) return false
+  if (cools === null || !h.known || !m.fire || h.blind || h.stop || h.sending || h.compacting || h.requests > 0 || leaving(m)) return false
   return cools > now && cools - now <= LEAD_MS && now >= h.retryAt
 }
 
@@ -181,7 +181,7 @@ function failed($: EngineInterface, m: Memory, text: string, now: number) {
   h.retryAt = now + RETRY_MS
   if (h.failures < MAX_FAILURES) return
   h.stop = 'failed'
-  if (!h.toldFailure) toast($, m, t('warm.stopFailed', { error: text }))
+  if (!h.toldFailure) toast($, m, t('fire.stopFailed', { error: text }))
   h.toldFailure = true
 }
 
@@ -215,7 +215,7 @@ async function relaunch($: EngineInterface, m: Memory, sentAt: number) {
   try {
     await landed($, m, sentAt, await $.model.fork({ prompt: PING }))
   } catch (err) {
-    failed($, m, t('warm.error'), await $.clock.now())
+    failed($, m, t('fire.error'), await $.clock.now())
     await log($, m, `relaunch threw: ${String(err)}`)
   }
   h.forks.delete(PING)
@@ -257,10 +257,10 @@ export async function publishHearth($: EngineInterface, m: Memory) {
     compactTarget: m.compactBefore,
     keeper: h.keeper,
     keeperRun: h.keeperRun,
-    warmStop: h.stop,
-    warmError: h.error,
+    relaunchStop: h.stop,
+    relaunchError: h.error,
     lengthMs: h.known ? h.lengthMs : 0,
-    warmSince: h.since,
+    relaunchSince: h.since,
     failures: h.failures,
   }
   const text = JSON.stringify(value)
@@ -281,7 +281,7 @@ export async function restoreHeat($: EngineInterface, m: Memory) {
   const h = m.heat
   if (held.lengthMs === ONE_HOUR) settleLength(h, '1h')
   if (held.lengthMs === FIVE_MINUTES) settleLength(h, '5m')
-  Object.assign(h, { since: held.warmSince, relaunches: held.relaunches, failures: held.failures, stop: held.warmStop, error: held.warmError, keeperRun: held.keeperRun, percent: held.contextPercent, compactions: held.compactions })
+  Object.assign(h, { since: held.relaunchSince, relaunches: held.relaunches, failures: held.failures, stop: held.relaunchStop, error: held.relaunchError, keeperRun: held.keeperRun, percent: held.contextPercent, compactions: held.compactions })
   if (held.coolsAt !== null) h.at = held.coolsAt - spanOf(h)
   h.model = await $.session.model().catch(() => '')
   return true

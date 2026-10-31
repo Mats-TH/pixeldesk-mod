@@ -1,6 +1,6 @@
 import type { Timer } from 'claude-code'
 
-import type { AgentRecord, Ash, ChatTurn, CompactBefore, Departure, Fire, HandoffMode, HandoffPhase, Keeper, News, PlanStep, Seen, WarmStop } from '../types'
+import type { AgentRecord, Ash, ChatTurn, CompactBefore, Departure, Fire, BriefingMode, BriefingPhase, Keeper, News, PlanStep, Seen, RelaunchStop } from '../types'
 import type { ChatState, SessionLink } from './desks'
 import type { Language } from './i18n'
 import type { SummaryMark } from './plain'
@@ -11,7 +11,7 @@ import type { Layer } from './room-layers'
 /** The pane's id and the full name of the tool, as the notes to the model spell it. */
 export const PANE = 'pixeldesk'
 export const PLAN_TOOL = 'mcp__pixeldesk__plan'
-export const REFRESH_TOOL = 'mcp__pixeldesk__refresh'
+export const MOVE_TOOL = 'mcp__pixeldesk__move'
 
 /** The plan of the main conversation, as the mod keeps it. */
 export type Plan = { title: string; steps: PlanStep[]; updatedAt: string }
@@ -44,7 +44,7 @@ export type Heat = {
   since: number
   failures: number
   retryAt: number
-  stop: WarmStop | null
+  stop: RelaunchStop | null
   error: string
   toldFailure: boolean
   wasActive: boolean
@@ -75,7 +75,7 @@ export type Visit = HearthShown & { run: number; tool: Keeper; layer: Layer | nu
 
 /** A change of conversation as the mod runs it. `wanted`: someone asked, and the writing waits for its conditions. */
 export type Change = {
-  phase: HandoffPhase
+  phase: BriefingPhase
   wanted: boolean
   // It runs to the end with no gesture; it does not wait for the agents.
   auto: boolean
@@ -91,7 +91,7 @@ export type Change = {
   note: string
   opening: boolean
   shown: string
-  // Cuts the writing under way: nothing of a handoff someone closed may come back.
+  // Cuts the writing under way: nothing of a briefing someone closed may come back.
   stop: AbortController | null
 }
 
@@ -104,8 +104,8 @@ export type Memory = {
   cwd: string
   hidden: boolean
   departure: Departure
-  warm: boolean
-  handoffMode: HandoffMode
+  fire: boolean
+  briefingMode: BriefingMode
   compactBefore: CompactBefore
   heat: Heat
   change: Change
@@ -194,8 +194,8 @@ export const createMemory = (forced: Language | null): Memory => ({
   cwd: '',
   hidden: false,
   departure: 'plan',
-  warm: true,
-  handoffMode: 'auto',
+  fire: true,
+  briefingMode: 'auto',
   compactBefore: 2,
   heat: coldHeat(),
   change: noChange(),

@@ -1,4 +1,4 @@
-import type { CompactBefore, Departure, HandoffMode, PlanLine, SettingsView } from '../types'
+import type { CompactBefore, Departure, BriefingMode, PlanLine, SettingsView } from '../types'
 import { plain } from './desks'
 import type { FloorRoom } from './desks'
 import { decides, getLanguage, plural, t } from './i18n'
@@ -26,7 +26,7 @@ export type Card = {
 export type CardManager = { working: boolean; title: string; text: string; meta: string; plan: readonly PlanLine[] }
 export type CardAgent = { role: string; task: string; text: string; meta: string; state: DeskState; hue: number; plan: readonly PlanLine[] }
 export type CardDrawing = { source: string; width: number; height: number }
-/** A card that draws itself: the hearth's and the handoff's. `cardSvg` and `cardAlt` take it as any other. */
+/** A card that draws itself: the hearth's and the briefing's. `cardSvg` and `cardAlt` take it as any other. */
 export type DrawnCard = { alt: string; draw: (maxW: number, maxH: number) => CardDrawing }
 /** An agent of the room, as a step can name it. */
 export type StepAgent = { role: string; hue: number; state: DeskState }
@@ -367,26 +367,26 @@ const GEAR: Area = { x: 10, y: 10, w: 32, h: 32 }
 const PANEL_X = 8
 const PANEL_Y = 46
 const PANEL_W = 296
-const PANEL_H: Record<HandoffMode, number> = { auto: 542, manual: 470 }
+const PANEL_H: Record<BriefingMode, number> = { auto: 542, manual: 470 }
 const OPTION_X = 17
 const OPTION_W = 262
 // How wide the sentence of an option may run: what stands right of its tick box.
 export const OPTION_TEXT = 222
-export type OptionId = Departure | 'warm' | 'auto' | 'manual'
+export type OptionId = Departure | 'fire' | 'auto' | 'manual'
 const OPTION_SHORT = 54
 const OPTION_TALL = 72
 const OPTIONS: Record<OptionId, { name: TextKey; line: TextKey; y: number; h: number }> = {
   plan: { name: 'settings.plan.name', line: 'settings.plan.line', y: 75, h: OPTION_TALL },
   each: { name: 'settings.each.name', line: 'settings.each.line', y: 153, h: OPTION_SHORT },
-  warm: { name: 'hearth.warm.name', line: 'hearth.warm.line', y: 237, h: OPTION_TALL },
+  fire: { name: 'hearth.fire.name', line: 'hearth.fire.line', y: 237, h: OPTION_TALL },
   auto: { name: 'hearth.auto.name', line: 'hearth.auto.line', y: 339, h: OPTION_SHORT },
   manual: { name: 'hearth.manual.name', line: 'hearth.manual.line', y: 471, h: OPTION_SHORT },
 }
 const OPTION_IDS = Object.keys(OPTIONS) as OptionId[]
 // Without the cursor, `Manuel` takes its place.
-const MANUAL_Y: Record<HandoffMode, number> = { auto: 471, manual: 399 }
+const MANUAL_Y: Record<BriefingMode, number> = { auto: 471, manual: 399 }
 const CACHE_Y = 213
-const HANDOFF_Y = 315
+const BRIEFING_Y = 315
 const CURSOR_Y = 399
 const STEP_Y = CURSOR_Y + 22
 const STEP_H = 22
@@ -429,7 +429,7 @@ export function gearSvg(look: GearLook, dx: number, dy: number, width: number, h
 }
 
 /** Where the button and the panel fall in a pane. The panel only shrinks to stay whole; `k` is its scale. */
-export function settingsPlace(width: number, height: number, mode: HandoffMode = 'auto') {
+export function settingsPlace(width: number, height: number, mode: BriefingMode = 'auto') {
   // The scale is the tall panel's in both modes: a press on `Manuel` moves nothing above it.
   const k = Math.floor(Math.min(1, (width - PANEL_X) / (PANEL_W + SHADOW), (height - PANEL_Y) / (PANEL_H.auto + SHADOW)) * 1000) / 1000
   const area = (x: number, y: number, w: number, h: number): Area => ({ x: PANEL_X + x * k, y: PANEL_Y + y * k, w: w * k, h: h * k })
@@ -488,14 +488,14 @@ function stepParts(value: CompactBefore, look: keyof typeof STEP_LOOKS) {
 }
 
 /** What the panel shows, its choices all read at once. */
-export type PanelChoices = Pick<SettingsView, 'departure' | 'warm' | 'handoffMode' | 'compactBefore'>
+export type PanelChoices = Pick<SettingsView, 'departure' | 'fire' | 'briefingMode' | 'compactBefore'>
 
 /** The panel in words, for a reader that cannot see it. */
 function panelAlt(c: PanelChoices) {
   const said = (id: OptionId, chosen: boolean) => (chosen ? t('settings.chosen', { name: t(OPTIONS[id].name) }) : t(OPTIONS[id].name))
   const departure = t('settings.alt', { title: t('settings.title'), departure: t('settings.departure'), plan: said('plan', c.departure === 'plan'), each: said('each', c.departure === 'each') })
-  const hearth = t('hearth.alt', { cache: t('hearth.section.cache'), warm: said('warm', c.warm), handoff: t('hearth.section.handoff'), auto: said('auto', c.handoffMode === 'auto'), manual: said('manual', c.handoffMode === 'manual') })
-  return c.handoffMode === 'auto' ? `${departure} ${hearth} ${stepPhrase(c.compactBefore)}` : `${departure} ${hearth}`
+  const hearth = t('hearth.alt', { cache: t('hearth.section.cache'), fire: said('fire', c.fire), briefing: t('hearth.section.briefing'), auto: said('auto', c.briefingMode === 'auto'), manual: said('manual', c.briefingMode === 'manual') })
+  return c.briefingMode === 'auto' ? `${departure} ${hearth} ${stepPhrase(c.compactBefore)}` : `${departure} ${hearth}`
 }
 
 /** The panel, with each chosen option in gold and its box ticked. */
@@ -506,11 +506,11 @@ export function settingsSvg(c: PanelChoices, place: SettingsPlace) {
   const options = [
     { made: made('plan', c.departure === 'plan'), y: OPTIONS.plan.y },
     { made: made('each', c.departure === 'each'), y: OPTIONS.each.y },
-    { made: made('warm', c.warm), y: OPTIONS.warm.y },
+    { made: made('fire', c.fire), y: OPTIONS.fire.y },
     { made: made('auto', auto), y: OPTIONS.auto.y },
     { made: made('manual', !auto), y: MANUAL_Y[place.mode] },
   ]
-  const [title, sub, cache, handoff] = [t('settings.title'), t('settings.departure'), t('hearth.section.cache'), t('hearth.section.handoff')]
+  const [title, sub, cache, briefing] = [t('settings.title'), t('settings.departure'), t('hearth.section.cache'), t('hearth.section.briefing')]
   const frame = [
     box(SHADOW, SHADOW, PANEL_W, height, '#0F0A1A', 4).replace('/>', ' fill-opacity=".38"/>'),
     box(0, 0, PANEL_W, height, WOOD_DARK, 4),
@@ -520,12 +520,12 @@ export function settingsSvg(c: PanelChoices, place: SettingsPlace) {
     box(OPTION_X, 43, OPTION_W, 2, SCREW),
   ]
   const small = (s: string, y: number, fill: string) => line(s, OPTION_X, textTop(y, SMALL, SMALL_LINE), SMALL, fill)
-  const words = [line(title, OPTION_X, textTop(15, BIG, BIG_LINE), BIG, INK), small(sub, 51, PLATE_EDGE), small(cache, CACHE_Y, PLATE_EDGE), small(handoff, HANDOFF_Y, PLATE_EDGE)]
+  const words = [line(title, OPTION_X, textTop(15, BIG, BIG_LINE), BIG, INK), small(sub, 51, PLATE_EDGE), small(cache, CACHE_Y, PLATE_EDGE), small(briefing, BRIEFING_Y, PLATE_EDGE)]
   const [heading, phrase] = [t('hearth.cursor'), stepPhrase(c.compactBefore)]
   if (auto) words.push(small(heading, CURSOR_Y, PLATE_EDGE), small(fit(phrase, SMALL, OPTION_W), PHRASE_Y, PURPLE))
   const steps = auto ? COMPACT_STEPS.map((value, i) => `<g transform="translate(${stepX(i)} ${STEP_Y})">${stepParts(value, value === c.compactBefore ? 'chosen' : 'normal').body}</g>`) : []
   const body = `${frame.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g>${options.map(o => optionGroup(o.made, OPTION_X, o.y)).join('')}${steps.join('')}`
-  const shown = `${title}${sub}${cache}${handoff}${options.map(o => o.made.shown).join('')}${auto ? `${heading}${phrase}${COMPACT_STEPS.map(stepLabel).join('')}` : ''}`
+  const shown = `${title}${sub}${cache}${briefing}${options.map(o => o.made.shown).join('')}${auto ? `${heading}${phrase}${COMPACT_STEPS.map(stepLabel).join('')}` : ''}`
   return { ...placed(place.panel, place.k, letterDefs(shown), body), alt: panelAlt(c) }
 }
 

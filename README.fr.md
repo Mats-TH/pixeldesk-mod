@@ -6,7 +6,9 @@
 
 Pensé pour l'application de bureau Claude. C'est là que tu profites de la barre pixel, de la pièce en direct et du plan d'étage.
 
-![PixelDesk au travail : la pièce, le gardien qui nourrit le feu, et la barre au-dessus de la saisie](assets/bar.gif)
+![PixelDesk dans l'application de bureau : une conversation avec la barre juste au-dessus de la saisie, et la pièce à côté, où le gardien nourrit le feu](assets/bar.gif)
+
+La barre vit dans ta conversation, juste au-dessus de la saisie. La pièce s'ouvre à côté.
 
 ## Installer dans l'application de bureau
 
@@ -32,7 +34,7 @@ Ton plan, tes limites d'usage et chaque sous-agent restent à l'écran, en direc
 
 Il garde aussi ton cache au chaud, et te passe sur une conversation neuve avant que l'ancienne soit pleine.
 
-À savoir : la relance du cache est automatique et active par défaut. Elle consomme des tokens. `/pixeldesk warm off` la coupe.
+À savoir : la relance du cache est automatique et active par défaut. Elle consomme des tokens. `/pixeldesk fire off` la coupe.
 
 ## Fonctionnalités
 
@@ -57,7 +59,7 @@ Claude garde ta conversation dans un cache, pendant 5 minutes ou 1 heure. Une fo
 
 PixelDesk surveille cette horloge. 45 secondes avant que le cache refroidisse, il envoie une relance, et l'horloge repart.
 
-Une relance, c'est une ligne fixe, `Reply with the single word: ok`, en plus du contexte en cache. Rien d'autre.
+Une relance, c'est une ligne fixe, `Answer only: ok`, en plus du contexte en cache. Rien d'autre.
 
 Le feu baisse avec le temps restant : plein, moyen, faible, braises, éteint. Après chaque relance, le gardien apporte une bûche et le feu repart à plein.
 
@@ -95,9 +97,9 @@ Tu préfères décider ? Passe en mode **Manuel** dans le panneau des réglages.
 
 PixelDesk tourne aussi dans une session terminal, en version texte plus simple : une barre en caractères et la liste des agents. Le pixel art reste dans l'application de bureau.
 
-Les relances du cache y tournent aussi, sans la cheminée. `/pixeldesk warm off` y marche pareil.
+Les relances du cache y tournent aussi, sans la cheminée. `/pixeldesk fire off` y marche pareil.
 
-Pas de mur à cliquer dans le terminal. Pour passer en Manuel, mets `"handoffMode": "manual"` dans `~/.claude/pixeldesk/settings.json`.
+Pas de mur à cliquer dans le terminal. Pour passer en Manuel, mets `"briefingMode": "manual"` dans `~/.claude/pixeldesk/settings.json`.
 
 Pour l'installer depuis une session terminal ouverte :
 
@@ -121,10 +123,10 @@ La barre est toujours là. Le panneau s'ouvre avec la session dans l'application
 | `/pixeldesk departure` | Te dit quand partent les bureaux finis. |
 | `/pixeldesk departure plan` | Les bureaux finis restent jusqu'à la fin du plan, puis partent ensemble. C'est le réglage par défaut. |
 | `/pixeldesk departure each` | Chaque bureau part 30 secondes après la fin de son agent. |
-| `/pixeldesk warm` | Te dit où en sont les relances : en marche ou coupées, temps restant, combien, et pourquoi elles se sont arrêtées. |
-| `/pixeldesk warm on` | Met les relances en marche dans toutes les conversations. C'est le réglage par défaut. |
-| `/pixeldesk warm off` | Coupe les relances dans toutes les conversations, et rien d'autre. Le feu suit alors simplement le cache. |
-| `/pixeldesk refresh` | Écrit une passation tout de suite, ou dès que les travaux en cours sont finis. Clique sur `Nouvelle conversation` quand elle est prête. |
+| `/pixeldesk fire` | Te dit où en sont les relances : en marche ou coupées, temps restant, combien, et pourquoi elles se sont arrêtées. |
+| `/pixeldesk fire on` | Met les relances en marche dans toutes les conversations. C'est le réglage par défaut. |
+| `/pixeldesk fire off` | Coupe les relances dans toutes les conversations, et rien d'autre. Le feu suit alors simplement le cache. |
+| `/pixeldesk move` | Écrit une passation tout de suite, ou dès que les travaux en cours sont finis. Clique sur `Nouvelle conversation` quand elle est prête. |
 | `/pixeldesk compact` | Compacte tout de suite, comme le mode Automatique, une fois le tour fini. Il compte dans le curseur. |
 
 Pour retirer aussi la barre, désactive le plugin avec `/plugin`.
@@ -151,7 +153,7 @@ claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod --config lan
 
 ### La relance automatique est active par défaut
 
-**Chaque relance envoie une ligne, `Reply with the single word: ok`, en plus de ton contexte en cache. Ça consomme des tokens, et ça compte dans tes limites.**
+**Chaque relance envoie une ligne, `Answer only: ok`, en plus de ton contexte en cache. Ça consomme des tokens, et ça compte dans tes limites.**
 
 Plus la conversation est grosse, plus il y a à relire. Chaque relance est notée dans `~/.claude/pixeldesk/logs/pixeldesk.log`, avec les tokens lus et écrits.
 
@@ -161,7 +163,7 @@ Plus la conversation est grosse, plus il y a à relire. Chaque relance est noté
 - **Plusieurs conversations.** Chacune compte de son côté. Il n'y a pas de plafond commun, donc elles s'additionnent.
 - **Durée du cache inconnue.** Aucune relance. Tes tours normaux prouvent la durée, gratuitement. Une très grosse conversation peut attendre un moment cette preuve.
 
-**Pour arrêter les relances, tape `/pixeldesk warm off`.** Ça vaut pour toutes les conversations, et ça n'arrête que les relances.
+**Pour arrêter les relances, tape `/pixeldesk fire off`.** Ça vaut pour toutes les conversations, et ça n'arrête que les relances.
 
 **Pour arrêter le compactage et le changement automatiques, choisis Manuel.** C'est un réglage à part, dans le panneau des réglages.
 
@@ -169,7 +171,7 @@ Plus la conversation est grosse, plus il y a à relire. Chaque relance est noté
 
 ### Les passations
 
-- **En clair.** Les passations sont écrites en clair dans `~/.claude/pixeldesk/handoffs/`, un fichier par passation, avec les notes de compactage. Les 20 plus récents de chaque sorte sont gardés. Les formats de secrets connus sont retirés, mais relis un fichier avant de le partager.
+- **En clair.** Les passations sont écrites en clair dans `~/.claude/pixeldesk/briefings/`, un fichier par passation, avec les notes de compactage. Les 20 plus récents de chaque sorte sont gardés. Les formats de secrets connus sont retirés, mais relis un fichier avant de le partager.
 - **Des tokens aussi.** Rédiger une passation, compacter et démarrer la nouvelle conversation comptent dans tes limites.
 - **Cache froid.** Si le cache est déjà froid quand la cendre est pleine, PixelDesk te demande d'abord, avec le bouton `Changer`.
 

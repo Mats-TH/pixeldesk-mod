@@ -235,8 +235,8 @@ describe('the band in the terminal', () => {
     const drawn = allText(bar)
     expect(drawn).toHaveLength(width)
     const full = Math.round(width / 4)
-    const warm = Math.round(width / 2) - full
-    expect(drawn).toBe(`${'█'.repeat(full)}${'▓'.repeat(warm)}${'░'.repeat(width - full - warm)}`)
+    const fire = Math.round(width / 2) - full
+    expect(drawn).toBe(`${'█'.repeat(full)}${'▓'.repeat(fire)}${'░'.repeat(width - full - fire)}`)
     expect(flatten(bar).find(node => node.children?.[0]?.startsWith?.('░'))?.props.dimColor).toBe(true)
   })
 
