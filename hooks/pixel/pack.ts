@@ -114,6 +114,8 @@ export function once(draw: Art): Art {
 }
 
 export const PX = 2
+/** The Zs of a nap, over a desk of the room's size. */
+export const ZZ = 'M82 4h8v2h-8zM86 6h2v2h-2zM84 8h2v2h-2zM82 10h8v2h-8zM92 0h6v2h-6zM94 2h2v2h-2zM92 4h6v2h-6z'
 
 /** `c` under `paint`, a colour with its opacity. What is already see-through stays as it is, and the drawing weighs the same. */
 export function veiled(c: Canvas, paint: string) {

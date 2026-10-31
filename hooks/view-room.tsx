@@ -12,7 +12,7 @@ import { managerOf } from './desks'
 import { log } from './disk'
 import { plural, t } from './i18n'
 import type { Memory } from './memory'
-import { COLD_HEARTH, boardLines, deskBoxes, hearthBox, letterBox, lineSvg, managerBox, roomBackSvg, roomCountSvg, roomSvg, viewOf, zoomPair } from './room'
+import { COLD_HEARTH, boardLines, deskBoxes, hearthBox, letterBox, lineSvg, managerBox, roomBackSvg, roomCountSvg, roomSvg, settled, viewOf, zoomPair } from './room'
 import type { HearthLook, HearthPanel, RoomDesk, RoomInput } from './room'
 import { buttonLit, crabLayer, decorLayers, deskLayers, fireLayer, keeperLayer, labelsSvg } from './room-layers'
 import type { Layer } from './room-layers'
@@ -143,7 +143,7 @@ function drawings(m: Memory, input: RoomInput, previous: number, image: (p: Room
   const n = input.desks.length
   const at = (zoom: boolean) => ({ ...input, previous: zoom ? previous : n })
   const pair = zoomPair(m.roomPair, previous !== n, zoom => image(at(zoom)), zoom => roomCountSvg(at(zoom)))
-  m.roomPair = still && previous === n ? { ...pair, image: { ...pair.image, sent: pair.image.plain } } : pair
+  m.roomPair = still && previous === n ? settled(pair) : pair
   return m.roomPair
 }
 

@@ -3,7 +3,7 @@ import { canvas, mix, noise } from '../canvas'
 import type { Canvas } from '../canvas'
 import { caseEtape, compteur, enveloppe } from '../decor'
 import { fit, textWidth } from '../font'
-import { once, pick } from '../pack'
+import { ZZ, once, pick } from '../pack'
 import type { Art, MapPack, MapRoom, MapView } from '../pack'
 import { TENUES, WOOD, chair, desk, person } from '../sprites'
 import { def, line, use } from '../text'
@@ -957,8 +957,9 @@ function chiefHouse(room: MapRoom, v: MapView, need: (id: string) => void) {
   })
   const [dx, dy] = [GM.bureau[0] * 2, GM.bureau[1] * 2]
   at('chs', dx, dy)
-  if (managed) at('p0', dx + 44, dy - 4)
+  at('p0', dx + 44, dy - 4)
   at(managed ? 'bt' : 'br', dx, dy)
+  if (!managed) parts.push(`<path transform="translate(${dx} ${dy})" fill="${CR}" d="${ZZ}"/>`)
   const board = noticeBoard(v, need)
   // A short board leaves its wall bare: the plant of the parlour stands there.
   if (board.h < 100 && v.detail < 4) at('plante', 30, 204)

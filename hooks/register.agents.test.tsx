@@ -277,7 +277,7 @@ describe('an agent ends', () => {
     await w.clock.advance(5000)
     const ui = await mountPane($)
     expect(await hasKey(ui, 'desk-a1')).toBe(false)
-    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 1 agent. 1 au travail. Manager au repos.')
+    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 1 agent. 1 au travail. Patron au repos.')
     const file = w.json(DESK_FILE)
     expect(file.desks).toHaveLength(1)
     expect(file.tokens).toBe(100)

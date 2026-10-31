@@ -128,13 +128,13 @@ export function roomCard(r: FloorRoom, minutes: number): Card {
 /**
  * What the bubble of a step says. `who` is read against the posts on the desks, the latest agent at work first: a post
  * nobody holds yet reads as not attributed. The state shown is the agent's, whatever became of the step.
- * The Manager is the main chat, as a plan written before that post became its own may say.
+ * The boss is the main chat, as a plan written before that post became its own may say, under his old name or this one.
  */
 export function stepCard(st: { text: string; detail?: string; who?: string }, agents: readonly StepAgent[]): StepCard {
   const said = plain(st.who ?? '')
   const holders = agents.filter(a => plain(a.role) === said)
   const agent = holders.filter(a => a.state === 'working').pop() ?? holders[holders.length - 1] ?? null
-  return { title: st.text, detail: st.detail ?? '', who: said === 'claude' || said === 'manager' ? 'claude' : agent }
+  return { title: st.text, detail: st.detail ?? '', who: ['claude', 'manager', 'patron', 'boss'].includes(said) ? 'claude' : agent }
 }
 
 const isStep = (c: Card | StepCard): c is StepCard => 'who' in c

@@ -18,7 +18,7 @@ describe('the room, on the desktop', () => {
     await callTool($, 'Read', { file_path: 'x/a.ts' }, 'a1')
     w.refuse.add('model.complete')
     const ui = await mountPane($)
-    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 2 agents. 2 au travail. Manager au repos.')
+    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 2 agents. 2 au travail. Patron au repos.')
     const card = cardIn(await ui.find({ key: 'desk-a2' }))
     expect(card.svg.props.alt).toContain('Second')
     expect(card.svg.props.alt).toContain('Démarrage')
@@ -90,14 +90,14 @@ describe('the room, on the desktop', () => {
     await endTurn($, { agentId: 'c', reason: 'error' })
     await endTurn($, { agentId: 'd', reason: 'error' })
     const ui = await mountPane($)
-    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 6 agents. 2 au travail · 2 finis · 2 arrêtés. Manager au repos.')
+    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 6 agents. 2 au travail · 2 finis · 2 arrêtés. Patron au repos.')
   })
 
   test('no agents at all', async ($, on) => {
     world(on)
     await start($)
     const ui = await mountPane($)
-    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 0 agent. Aucun agent. Manager au repos.')
+    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 0 agent. Aucun agent. Patron au repos.')
   })
 
   test('one agent in the singular', async ($, on) => {
@@ -106,7 +106,7 @@ describe('the room, on the desktop', () => {
     await spawn($, w, 'a1')
     await endTurn($, { agentId: 'a1' })
     const ui = await mountPane($)
-    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 1 agent. 1 fini. Manager au repos.')
+    expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Pièce avec 1 agent. 1 fini. Patron au repos.')
   })
 
   test('the sentence: the summary, else the last action, else starting', async ($, on) => {
@@ -180,7 +180,7 @@ describe('the pane in words', () => {
     expect(title).toMatchObject({ children: ['Bureau'], props: { bold: true } })
     expect(summary).toMatchObject({ children: ['1 au travail'], props: { color: '#eab308' } })
     expect(boss.props.key).toBe('row-manager')
-    expect(kids(boss)[0].children).toEqual(['○ Manager : Au repos'])
+    expect(kids(boss)[0].children).toEqual(['○ Patron : Au repos'])
     expect(row.children).toEqual(['● First : Démarrage'])
   })
 
@@ -206,7 +206,7 @@ describe('the pane in words', () => {
     await w.clock.advance(5000)
     const ui = await mountPane($, 'terminal')
     const rows = (await textsOf(ui)).slice(2)
-    expect(rows[0]).toBe('○ Manager : Au repos')
+    expect(rows[0]).toBe('○ Patron : Au repos')
     expect(rows[1]).toBe('● First : Démarrage')
     expect(rows[2]).toMatch(/^[●○] .* : /)
     expect(rows).toHaveLength(4)
@@ -216,7 +216,7 @@ describe('the pane in words', () => {
     world(on)
     await start($, 'terminal')
     const ui = await mountPane($, 'terminal')
-    expect((await textsOf(ui)).slice(2)).toEqual(['○ Manager : Au repos'])
+    expect((await textsOf(ui)).slice(2)).toEqual(['○ Patron : Au repos'])
     expect(await textsOf(ui)).toContain('Aucun agent')
   })
 

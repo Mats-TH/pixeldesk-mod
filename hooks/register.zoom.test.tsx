@@ -44,6 +44,14 @@ describe('the zoom of an arrival', () => {
     expect(await zoomed(ui)).toBe(false)
   })
 
+  test('once settled the count holds no zoom either: a redraw would play it again', async ($, on) => {
+    const { ui } = await arrived($, on)
+    expect(await countZoomed(ui)).toBe(true)
+    await endTurn($, { agentId: 'a1' })
+    await ui.redraw()
+    expect(await countZoomed(ui)).toBe(false)
+  })
+
   test('so does a change read in the list', async ($, on) => {
     const { w, ui } = await arrived($, on)
     w.agents = [{ id: 'a1', description: 'x', type: 't', status: 'completed' }]

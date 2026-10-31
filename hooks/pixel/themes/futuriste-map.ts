@@ -324,7 +324,8 @@ function dessinTete(r: MapRoom, v: MapView, n: number, need: (id: string, draw: 
   const meta = fit(r.meta, 12, 160)
   const label = t('room.tokens')
   const [tw, mw] = [textWidth(title, 14) + 16, textWidth(meta, 12) + 16]
-  const gens: Gens[] = r.people.length ? r.people.map(p => ({ hue: p.hue, state: p.state })) : [{ hue: null, state: 'rest' }]
+  // The boss has his desk at work and at rest.
+  const gens: Gens[] = r.people[0]?.hue === 0 ? r.people : [{ hue: 0, state: 'rest' }, ...r.people]
   const panel = tableauDe(v.list, need)
   const shown = String(v.news.shown)
   const cw = textWidth(shown, 14) + 15

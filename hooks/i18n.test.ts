@@ -132,3 +132,10 @@ describe('plurals', () => {
     for (const key of keys.filter(k => k.endsWith('.other'))) expect(keys.includes(key.replace(/\.other$/, '.one'))).toBe(true)
   })
 })
+
+test('the conversation that leads is the boss, in every language', async () => {
+  expect([fr['role.manager'], en['role.manager']]).toEqual(['Patron', 'Boss'])
+  expect([fr['manager.working'], fr['manager.resting']]).toEqual(['Patron au travail', 'Patron au repos'])
+  expect([en['manager.working'], en['manager.resting']]).toEqual(['Boss working', 'Boss at rest'])
+  for (const words of [fr, en]) expect(Object.values(words).filter(text => /manager/i.test(text.replace('{manager}', '')))).toEqual([])
+})

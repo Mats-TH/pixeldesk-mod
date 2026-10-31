@@ -167,7 +167,7 @@ describe('the Manager in the room', () => {
     expect(zone.props.position).toBe('absolute')
     expect(cardIn(zone).box).toMatchObject({ props: { display: 'none' }, hover: { display: 'flex' } })
     const alt = await managerAlt(ui)
-    for (const part of ['Manager', 'The job', 'Writes the second part.', '1 étape sur 2', 'En cours : Two', '4 min · 1 action', 'Au travail']) expect(alt).toContain(part)
+    for (const part of ['Patron', 'The job', 'Writes the second part.', '1 étape sur 2', 'En cours : Two', '4 min · 1 action', 'Au travail']) expect(alt).toContain(part)
   })
 
   test('with no detail the card takes the tool, else the plain word', async ($, on) => {
@@ -186,7 +186,7 @@ describe('the Manager in the room', () => {
     await start($)
     await sendPlan($, [step('One', 'in_progress')], 'The job')
     const ui = await mountPane($)
-    expect(await managerAlt(ui)).toBe('Manager. Aucune tâche en cours. Attend ta prochaine demande.. Au repos')
+    expect(await managerAlt(ui)).toBe('Patron. Aucune tâche en cours. Attend ta prochaine demande.. Au repos')
     await startTurn($)
     await endTurn($)
     await w.clock.advance(12 * 60_000)
@@ -213,20 +213,20 @@ describe('the Manager in the room', () => {
     await spawn($, w, 'a2')
     await endTurn($, { agentId: 'a2' })
     const ui = await mountPane($)
-    expect(await altOf(ui)).toBe('Pièce avec 2 agents. 1 au travail · 1 fini. Manager au repos.')
+    expect(await altOf(ui)).toBe('Pièce avec 2 agents. 1 au travail · 1 fini. Patron au repos.')
     await startTurn($)
-    expect(await altOf(ui)).toBe('Pièce avec 2 agents. 1 au travail · 1 fini. Manager au travail.')
+    expect(await altOf(ui)).toBe('Pièce avec 2 agents. 1 au travail · 1 fini. Patron au travail.')
   })
 
   test('the list of the terminal names him, right after the header', async ($, on) => {
     world(on)
     await start($, 'terminal')
     const ui = await mountPane($, 'terminal')
-    expect((await textsOf(ui))[2]).toBe('○ Manager : Au repos')
+    expect((await textsOf(ui))[2]).toBe('○ Patron : Au repos')
     await startTurn($)
-    expect((await textsOf(ui))[2]).toBe('● Manager : Réfléchit à la suite')
+    expect((await textsOf(ui))[2]).toBe('● Patron : Réfléchit à la suite')
     await callTool($, 'Read', { file_path: 'a.ts' })
-    expect((await textsOf(ui))[2]).toBe('● Manager : Lecture de a.ts')
+    expect((await textsOf(ui))[2]).toBe('● Patron : Lecture de a.ts')
     expect(kids(await ui.find({ key: 'row-manager' }))[0].props.wrap).toBe('truncate-end')
   })
 
@@ -235,16 +235,16 @@ describe('the Manager in the room', () => {
     await start($, 'mobile')
     await spawn($, w, 'a1', { description: 'First' })
     const ui = await mountPane($, 'mobile')
-    expect((await textsOf(ui)).slice(0, 2)).toEqual(['○ Manager : Au repos', '● First : Démarrage'])
+    expect((await textsOf(ui)).slice(0, 2)).toEqual(['○ Patron : Au repos', '● First : Démarrage'])
     expect(kids(await ui.find({ key: 'desk-manager' }))).toEqual([])
     expect(await ui.findAll({ type: 'Svg' })).toHaveLength(2)
   })
 
-  test('no room holds a sentence, and the plate says Manager in both languages', async ($, on) => {
+  test('no room holds a sentence, and the plate says Boss in both languages', async ($, on) => {
     world(on, { env: ENGLISH })
     await start($)
     const ui = await mountPane($)
-    expect(await sourceOf(ui, 'room-labels')).toContain('href="#M"')
+    expect(await sourceOf(ui, 'room-labels')).toContain('href="#B"')
     expect(await sourceOf(ui)).not.toContain('waiting')
     expect(await sourceOf(ui, 'room-labels')).not.toContain('waiting')
   })

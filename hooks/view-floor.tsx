@@ -5,7 +5,7 @@ import { floorBoxes, floorCountSvg, floorSvg, shownRooms } from './floor'
 import type { FloorInput } from './floor'
 import { t } from './i18n'
 import type { Memory } from './memory'
-import { zoomPair } from './room'
+import { settled, zoomPair } from './room'
 import { floorCrabLayer } from './room-layers'
 import { CELL_H, CELL_W, hoverZone, liveBox } from './view-shared'
 import type { Frame, Table } from './view-shared'
@@ -29,7 +29,9 @@ export function floorView(m: Memory, ui: Table, frame: Frame, rooms: FloorRoom[]
   const n = rooms.length
   const previous = Math.min(m.floorBefore ?? n, n)
   const at = (zoom: boolean): FloorInput => ({ rooms, previous: zoom ? previous : n, theme, width: frame.width, height: frame.height, news: { shown: news.shown, flying: news.shown < news.count } })
-  m.floorPair = zoomPair(m.floorPair, previous !== n, zoom => floorSvg(at(zoom)), zoom => floorCountSvg(at(zoom)))
+  const pair = zoomPair(m.floorPair, previous !== n, zoom => floorSvg(at(zoom)), zoom => floorCountSvg(at(zoom)))
+  // A phone's web view holds its image: only the desktop's comes back at every redraw.
+  m.floorPair = !mobile && previous === n ? settled(pair) : pair
   const image = <Svg source={m.floorPair.image.sent} alt={t('floor.alt', { n })} width={frame.width} height={frame.height} />
   const count = (
     <Box key="floor-count" position="absolute" left={0} top={0} width="100%" height="100%" flexDirection="column">

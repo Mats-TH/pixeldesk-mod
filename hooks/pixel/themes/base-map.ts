@@ -495,13 +495,15 @@ function pen(): Pen & { sprites: Set<string>; words: () => string } {
   }
 }
 
-/** A bench and whoever works at it. `state` absent: a bench nobody sits at. */
-function bench({ u }: Pen, x: number, y: number, hue?: number, state?: DeskState) {
-  return `${hue === undefined ? '' : u(`buste-${tenue(hue)}`, x + 28, y - 18)}${u(`poste-${state ?? 'rest'}`, x, y)}`
+type Seated = { hue: number; state: DeskState | 'rest' }
+
+/** A bench and whoever works at it. `hue` absent: a bench nobody sits at. */
+function bench({ u }: Pen, x: number, y: number, hue?: number, state?: Seated['state']) {
+  return `${hue === undefined ? '' : u(`buste-${tenue(hue)}`, x + 28, y - 6)}${u(`poste-${state ?? 'rest'}`, x, y)}`
 }
 
 /** Past what the benches hold, busts alone, as many as it takes in the room there is. */
-function crowd({ u }: Pen, people: MapRoom['people'], x: number, y: number, w: number, h: number) {
+function crowd({ u }: Pen, people: readonly Seated[], x: number, y: number, w: number, h: number) {
   const cols = Math.max(1, Math.floor(w / 24))
   const rows = Math.ceil(people.length / cols)
   const pitch = Math.min(24, h / rows)
@@ -514,8 +516,9 @@ function team(p: Pen, people: MapRoom['people']) {
   return people.map((who, i) => bench(p, 16 + (i % 3) * 62, 54 + Math.floor(i / 3) * 52, who.hue, who.state)).join('')
 }
 
-function chiefTeam(p: Pen, people: MapRoom['people']) {
-  if (people.length === 0) return bench(p, 180, 108)
+/** The boss has his bench at work and at rest. */
+function chiefTeam(p: Pen, team: MapRoom['people']) {
+  const people: Seated[] = team[0]?.hue === 0 ? team : [{ hue: 0, state: 'rest' }, ...team]
   if (people.length === 1) return bench(p, 180, 108, people[0]!.hue, people[0]!.state)
   if (people.length > 3) return crowd(p, people, 176, 74, 124, 62)
   const spots = [[180, 92], [242, 92], [180, 142]] as const

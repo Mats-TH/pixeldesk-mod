@@ -1,6 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Ash, Fire, RoomTheme } from '../../../types'
+import { floorSvg } from '../../floor'
+import type { FloorRoom } from '../../desks'
 import { deskBoxes, managerBox, roomBackSvg, roomCountSvg, roomSvg } from '../../room'
 import type { RoomInput } from '../../room'
 import { deskLayers, fireLayer, labelsSvg, decorLayers } from '../../room-layers'
@@ -78,5 +80,20 @@ for (const theme of THEMES) {
   test(`${theme}: the small drawings of a room stay small`, async () => {
     for (const l of deskLayers(room(theme, 3), ['a', 'b', 'c'])) expect(l.source.length, l.key).toBeLessThan(40_000)
     for (const l of decorLayers(room(theme, 3))) expect(l.source.length, l.key).toBeLessThan(60_000)
+  })
+}
+
+// The boss's look, as Corail wears it: no decor has this hair on this shirt.
+const BOSS = ['#E4633A', '#3B2A20']
+const conversation = (id: string, over: Partial<FloorRoom> = {}): FloorRoom => ({ id, title: id, agents: 0, working: 0, summary: '', desks: [], steps: [], tokens: 0, ...over })
+const floorOf = (theme: RoomTheme, working: boolean, desks: FloorRoom['desks'] = []) => floorSvg({ rooms: [conversation('chef', { manager: { working }, desks, agents: desks.length, working: desks.length }), conversation('kid')], previous: 2, width: 780, height: 760, theme })
+
+for (const theme of THEMES) {
+  test(`${theme}: the boss stays at his desk on a floor, at work and at rest`, async () => {
+    for (const color of BOSS) {
+      expect(floorOf(theme, true), 'at work').toContain(color)
+      expect(floorOf(theme, false), 'at rest').toContain(color)
+      expect(floorOf(theme, false, [{ title: 'Testeur', state: 'working', hue: 1 }]), 'at rest, an agent at work').toContain(color)
+    }
   })
 }

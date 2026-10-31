@@ -7,6 +7,7 @@ import type { Point } from '../hearth'
 import { WORLD, pattern, pick } from '../pack'
 import type { MapPack, MapRoom, MapView } from '../pack'
 import { TENUES, person } from '../sprites'
+import type { DeskState } from '../sprites'
 import { def, line, use } from '../text'
 import { japonais } from './japonais'
 
@@ -694,6 +695,7 @@ const DESSINS: Record<string, () => string> = {
   'bureau-working': () => vrai('bureau-working', japonais.seat.desk('working')),
   'bureau-done': () => vrai('bureau-done', japonais.seat.desk('done')),
   'bureau-failed': () => vrai('bureau-failed', japonais.seat.desk('failed')),
+  'bureau-rest': () => vrai('bureau-rest', japonais.seat.desk('rest')),
   messager: () => vrai('messager', messager()),
   lettre: () => vrai('lettre', lettre()),
   'case-completed': () => def('case-completed', caseEtape('completed')),
@@ -735,7 +737,7 @@ function atelier() {
   }
 }
 type Atelier = ReturnType<typeof atelier>
-type Personne = MapRoom['people'][number]
+type Personne = { hue: number; state: DeskState | 'rest' }
 
 const voile = (w: number, y: number, h: number, ink: string, alpha: string) => `<rect y="${y}" width="${w}" height="${h}" fill="${ink}" fill-opacity="${alpha}"/>`
 const PLAQUE_H = 26
@@ -775,9 +777,11 @@ function salon(a: Atelier, v: MapView, r: MapRoom, m: Maison) {
   const compte = v.news.shown ? a.dit(String(v.news.shown)) : ''
   const cw = Math.ceil(textWidth(compte, 16)) + 14
   const badge = compte ? `<rect x="${557 - cw}" y="56" width="${cw}" height="22" fill="${LAQUE[0]}"/><rect x="${559 - cw}" y="58" width="${cw - 4}" height="18" fill="${LAQUE[2]}"/>${line(compte, 564 - cw, 58, 16, '#FFF6DE')}` : ''
-  const seats = r.people.slice(0, SIEGES).map((p, i) => siege(a, p, 17 + i * 66, 126)).join('')
+  // The boss has his seat at work and at rest.
+  const gens: Personne[] = r.people[0]?.hue === 0 ? r.people : [{ hue: 0, state: 'rest' }, ...r.people]
+  const seats = gens.slice(0, SIEGES).map((p, i) => siege(a, p, 17 + i * 66, 126)).join('')
   const nom = plaque(titre, 12, 20, largeurPlaque(titre), PLAQUE)
-  return `<g transform="translate(${SALON.x} ${m.salonY})">${fond}${orne}${tele}${registreDe(a, v)}${a.sprite('casier', 443, 56)}${badge}${seats}${surplus(a, r.people.length - SIEGES, 215, 146)}${nom}</g>${line(etat, 93, m.salonY + SALON.h + 8, 16, ETAT)}`
+  return `<g transform="translate(${SALON.x} ${m.salonY})">${fond}${orne}${tele}${registreDe(a, v)}${a.sprite('casier', 443, 56)}${badge}${seats}${surplus(a, gens.length - SIEGES, 215, 146)}${nom}</g>${line(etat, 93, m.salonY + SALON.h + 8, 16, ETAT)}`
 }
 
 function chambreRepos(a: Atelier, v: MapView, r: MapRoom, s: Salle, titre: string, tv: number) {

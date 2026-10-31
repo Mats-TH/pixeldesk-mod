@@ -2,7 +2,7 @@ import { t } from '../../i18n'
 import { canvas, mix, noise, paths } from '../canvas'
 import type { Canvas } from '../canvas'
 import { fit, textWidth } from '../font'
-import { WORLD, once, pattern, pick } from '../pack'
+import { WORLD, ZZ, once, pattern, pick } from '../pack'
 import type { MapPack, MapRoom } from '../pack'
 import { TENUES, person } from '../sprites'
 import type { DeskState } from '../sprites'
@@ -517,7 +517,6 @@ function pointilles(c: C, a: Spot, b: Spot, col: string, libre: (x: number, y: n
 const MENTIONS = { work: '#FFC857', rest: '#C9BEDB', failed: '#FF7060' }
 const BOARD_INKS = { in_progress: [JAU[3], CR], completed: ['#4E8F5A', '#A8A4C4'], pending: ['#2A2438', '#8A84A8'], failed: [ROU[2], ROU[3]] } as const
 const RAIL = { completed: '#5FC9B8', in_progress: '#FFC857', pending: '#3A3355' } as const
-const ZZ = 'M82 4h8v2h-8zM86 6h2v2h-2zM84 8h2v2h-2zM82 10h8v2h-8zM92 0h6v2h-6zM94 2h2v2h-2zM92 4h6v2h-6z'
 
 // Ten worlds at most. The lower arc takes the larger half; both keep the same pitch and tuck their ends in by the boss.
 const HAUT: Record<number, readonly (readonly [number, number])[]> = {

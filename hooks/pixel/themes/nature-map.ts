@@ -3,7 +3,7 @@ import { canvas, noise } from '../canvas'
 import type { Canvas } from '../canvas'
 import { fit, textWidth } from '../font'
 import type { Point } from '../hearth'
-import { WORLD, once, pattern, pick, scaled } from '../pack'
+import { WORLD, ZZ, once, pattern, pick, scaled } from '../pack'
 import type { Art, MapPack, MapRoom, MapView } from '../pack'
 import { TENUES, person } from '../sprites'
 import type { DeskState, Tenue } from '../sprites'
@@ -514,7 +514,8 @@ function bigCamp(s: Sheet, v: MapView, plan: Plan) {
   })
   const [dx, dy] = [ox + 128, oy + 96]
   const label = t('role.manager')
-  const post = `${s.put('toile', dx - 4, dy - 44)}${manager ? s.put('chef', dx + 44, dy - 4) : ''}${s.put(manager ? 'etabli' : 'etabliR', dx, dy)}${progress(v.list, dx + 8, dy + 52)}${s.write(label, dx + 60 - textWidth(label, 16) / 2, dy + 60, 16, NIGHT)}`
+  const nap = manager ? '' : `<path transform="translate(${dx} ${dy})" fill="${CR}" d="${ZZ}"/>`
+  const post = `${s.put('toile', dx - 4, dy - 44)}${s.put('chef', dx + 44, dy - 4)}${s.put(manager ? 'etabli' : 'etabliR', dx, dy)}${nap}${progress(v.list, dx + 8, dy + 52)}${s.write(label, dx + 60 - textWidth(label, 16) / 2, dy + 60, 16, NIGHT)}`
   const fire = `${s.put('foyer', ox + 240, oy + 80)}${use('brasier', ox + 240, oy + 80)}`
   const dove = `${s.put('pigeonnier', ox + 16, oy + 68)}${tray(s, v.news.shown, ox + 16, oy + 68)}`
   const list = board(s, v.list, ox + 356, Math.max(oy, 0), plan.small)

@@ -42,7 +42,7 @@ describe('end of plan, the default', () => {
     expect(w.stateWrites.filter((key: string) => key === 'agents'), 'one publication').toHaveLength(1)
     expect(w.state.seen).toEqual({ shown: 0, previous: 0 })
     expect(await sourceOf(ui)).not.toContain(ZOOM)
-    expect(await sourceOf(ui, 'room-labels'), 'the Manager stays').toContain('href="#M"')
+    expect(await sourceOf(ui, 'room-labels'), 'the Manager stays').toContain('href="#P"')
     const [lists, writes] = [w.agentLists, w.stateWrites.length]
     await w.clock.advance(60_000)
     expect(w.agentLists, 'no list to read').toBe(lists)

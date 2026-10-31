@@ -80,7 +80,7 @@ export const fr = {
   'room.decimal': ',',
   // The posts of the desks.
   'role.researcher': 'Chercheur',
-  'role.manager': 'Manager',
+  'role.manager': 'Patron',
   'role.reviewer': 'Relecteur',
   'role.tester': 'Testeur',
   'role.designer': 'Designer',
@@ -117,8 +117,8 @@ export const fr = {
   'manager.waiting': 'Attend ta prochaine demande.',
   'manager.thinking': 'Réfléchit à la suite',
   'manager.lastWork': 'Dernier travail il y a {m} min',
-  'manager.working': 'Manager au travail',
-  'manager.resting': 'Manager au repos',
+  'manager.working': 'Patron au travail',
+  'manager.resting': 'Patron au repos',
   'desk.chatWorking': 'Travaille',
   // The settings panel.
   'floor.more': 'et {n} de plus',
@@ -268,7 +268,7 @@ export const en: Record<TextKey, string> = {
   'room.decimal': '.',
   // The posts of the desks.
   'role.researcher': 'Researcher',
-  'role.manager': 'Manager',
+  'role.manager': 'Boss',
   'role.reviewer': 'Reviewer',
   'role.tester': 'Tester',
   'role.designer': 'Designer',
@@ -305,8 +305,8 @@ export const en: Record<TextKey, string> = {
   'manager.waiting': 'Waiting for your next request.',
   'manager.thinking': 'Thinking about what comes next',
   'manager.lastWork': 'Last worked {m} min ago',
-  'manager.working': 'Manager working',
-  'manager.resting': 'Manager at rest',
+  'manager.working': 'Boss working',
+  'manager.resting': 'Boss at rest',
   'desk.chatWorking': 'Working',
   // The settings panel.
   'floor.more': 'and {n} more',

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { HOME, NOON, SESSION, altOf, callTool, cardIn, hasKey, kids, mountBand, mountPane, receive, sendPlan, sourceOf, spawn, start, step, textsOf, world } from './test-kit'
+import { HOME, NOON, SESSION, SETTINGS_FILE, altOf, callTool, cardIn, hasKey, kids, mountBand, mountPane, receive, sendPlan, sourceOf, spawn, start, step, textsOf, world } from './test-kit'
 import type { World, WorldOptions } from './test-kit'
 import { floorBoxes } from './floor'
 
@@ -8,6 +8,7 @@ const STATE = '/Users/test/.claude/pixeldesk/state'
 const DATA = '/Users/test/AppData/Local/Claude-Data/profile/claude-code-sessions'
 const LOCAL = 'C:\\Users\\test\\AppData\\Local'
 const ZOOM = 'attributeName="viewBox"'
+const FADE = 'attributeName="opacity"'
 
 const desk = (id: string, more: Record<string, unknown> = {}) => JSON.stringify({ sessionId: id, title: '', agents: 0, working: 0, summary: '', updatedAt: NOON, cwd: 'C:/work/app', desks: [], steps: [], tokens: 0, ...more })
 const deskFile = (id: string) => `${STATE}/desk-${id}.json`
@@ -301,6 +302,7 @@ describe('the floor in the pane', () => {
   test('on the floor new tokens leave the source alone, the image moves', async ($, on) => {
     const { w, ui } = await floorPane($, on)
     await beat(w)
+    await ui.redraw()
     const [source, count] = [await sourceOf(ui), await sourceOf(ui, 'floor-count')]
     w.files.set(deskFile('kid'), desk('kid', { tokens: 5000 }))
     await beat(w)
@@ -312,7 +314,7 @@ describe('the floor in the pane', () => {
     expect(image.props.alt).toBe('tokens')
   })
 
-  test('a new room zooms once, the next pass keeps it, a real change drops it', async ($, on) => {
+  test('a new room zooms once, and the next pass drops it: a redraw never plays it again', async ($, on) => {
     const { w, ui } = await floorPane($, on)
     await beat(w)
     expect(await sourceOf(ui)).not.toContain(ZOOM)
@@ -320,15 +322,38 @@ describe('the floor in the pane', () => {
     w.files.set(deskFile('two'), desk('two'))
     await w.clock.advance(60_000)
     expect(w.state.floor).toHaveLength(3)
-    const zoomed = await sourceOf(ui)
-    expect(zoomed).toContain(ZOOM)
+    expect(await sourceOf(ui)).toContain(ZOOM)
     await beat(w)
     await ui.redraw()
-    expect(await sourceOf(ui)).toBe(zoomed)
-    w.files.set(deskFile('two'), desk('two', { working: 1, agents: 1, desks: [{ title: 'Testeur', state: 'working', hue: 0 }] }))
-    await beat(w)
     expect(await sourceOf(ui)).not.toContain(ZOOM)
-    expect(await sourceOf(ui)).not.toBe(zoomed)
+    await ui.redraw()
+    expect(await sourceOf(ui)).not.toContain(ZOOM)
+  })
+
+  for (const theme of ['cosy', 'japonais', 'nature', 'futuriste', 'geek', 'base']) {
+    test(`${theme}: once the rooms have arrived no source holds their fade, for the client makes a new image at every redraw`, async ($, on) => {
+      const w = world(on, linked({ files: { [SETTINGS_FILE]: JSON.stringify({ theme }) } }))
+      await start($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(await sourceOf(ui), 'the first floor fades in').toContain(FADE)
+      await beat(w)
+      for (let i = 0; i < 3; i += 1) {
+        await ui.redraw()
+        expect(await sourceOf(ui)).not.toContain(FADE)
+        expect(await sourceOf(ui, 'floor-count')).not.toContain(FADE)
+      }
+    })
+  }
+
+  test('a phone keeps the source it has: its web view holds the image', async ($, on) => {
+    const w = world(on, linked())
+    await start($, 'mobile')
+    await beat(w)
+    const ui = await mountPane($, 'mobile')
+    const source = await sourceOf(ui)
+    await beat(w)
+    expect(await sourceOf(ui)).toBe(source)
   })
 
   test('a floor that did not change is no arrival', async ($, on) => {

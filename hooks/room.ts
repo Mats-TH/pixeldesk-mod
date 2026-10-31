@@ -8,7 +8,7 @@ import { fit, textWidth } from './pixel/font'
 import { UNIT } from './pixel/font-data'
 import { envelope, spriteBody } from './pixel/hearth'
 import type { AshLevel, EnvelopeState, FireLevel, Point } from './pixel/hearth'
-import { PX, scaled, veiled } from './pixel/pack'
+import { PX, ZZ, scaled, veiled } from './pixel/pack'
 import { def, fontScale, letterDefs, letterUses, line, use } from './pixel/text'
 import type { Moving, Pack } from './pixel/pack'
 import { crabLife, crabPose } from './pixel/crab'
@@ -44,7 +44,7 @@ export type Scene = { defs: Map<string, string>; letters: string; body: string; 
  */
 export type SceneOptions = { detail?: number; layer?: 'back'; crab?: 'pose' }
 
-export { PX, scaled }
+export { PX, ZZ, scaled }
 export const CELL_W = 8
 export const CELL_H = 21
 const BOARD_EDGE = 8
@@ -310,6 +310,12 @@ export function zoomPair(last: DrawnPair, arrival: boolean, image: (zoom: boolea
   return { image: next, count: zoomOnce({ ...last.count, played: false }, count(false), started ? () => count(true) : null) }
 }
 
+/**
+ * The arrival is over. The client makes a new image at every redraw of a pane: a zoom or a fade left in a source would
+ * play again each time. This drops them, at the cost of one reload of a plain image that looks the same.
+ */
+export const settled = (d: DrawnPair): DrawnPair => ({ image: { ...d.image, sent: d.image.plain }, count: { ...d.count, sent: d.count.plain } })
+
 /** An arrival, or the settled state: whatever comes next starts from a fresh mark, even with no drawing in between. */
 export const zoomAgain = (d: DrawnPair): DrawnPair => ({ ...d, image: { ...d.image, played: false } })
 
@@ -351,7 +357,6 @@ export function work(d: RoomDesk, i: number, lean: boolean) {
 }
 
 const RAIL_RECT = `<rect x="8" y="52" width="104" height="8" fill="${RAIL_BACK}"/>`
-export const ZZ = 'M82 4h8v2h-8zM86 6h2v2h-2zM84 8h2v2h-2zM82 10h8v2h-8zM92 0h6v2h-6zM94 2h2v2h-2zM92 4h6v2h-6z'
 
 /** The manager as a desk: at work he shows his plan, at rest his desk stays closed. */
 export const managerSeat = (m: ManagerDesk): RoomDesk =>

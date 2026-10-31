@@ -491,7 +491,7 @@ test('a Manager desk in every room, whatever the list of subagents', async () =>
   for (const n of [0, 1, 3, 6, 16]) {
     const svg = roomSvg(mock(n))
     expect(count(svg, /href="#desk-/g), `${n} subagents`).toBe(n + 1)
-    expect(svg, 'its plate').toContain('href="#M"')
+    expect(svg, 'its plate').toContain('href="#P"')
     expect(count(svg, /href="#person-0"/g), 'the Corail outfit, once').toBe(1)
   }
 })
@@ -606,7 +606,7 @@ test('no sentence left on the rug', async () => {
 
 test('the Manager’s card at work: the post, the plan title, the description and the progress', async () => {
   const card = managerCard({ working: true, title: 'Refonte du panneau', text: 'Écrit la spec du panneau avant de lancer le travail.', meta: '4 min · 9 actions', plan: [{ text: 'Lire', status: 'completed' }, { text: 'Écrire la spec', status: 'in_progress' }, { text: 'Valider', status: 'pending' }] })
-  expect([card.title, card.task, card.text]).toEqual(['Manager', 'Refonte du panneau', 'Écrit la spec du panneau avant de lancer le travail.'])
+  expect([card.title, card.task, card.text]).toEqual(['Patron', 'Refonte du panneau', 'Écrit la spec du panneau avant de lancer le travail.'])
   expect([card.label, card.step, card.meta, card.chip, card.hue]).toEqual(['1 étape sur 3', 'En cours : Écrire la spec', '4 min · 9 actions', 'working', 0])
   expect(cardSvg(card, 800, 800).source, 'the Corail medal').toContain('fill="#EB8A6B"')
   const none = managerCard({ working: true, title: '', text: 'Lecture de room.ts', meta: '1 min · 1 action', plan: [] })
@@ -615,7 +615,7 @@ test('the Manager’s card at work: the post, the plan title, the description an
 
 test('the Manager’s card at rest: no progress block, with its chip and its last work', async () => {
   const card = managerCard({ working: false, title: 'Refonte du panneau', text: 'x', meta: 'Dernier travail il y a 12 min', plan: [{ text: 'Lire', status: 'in_progress' }] })
-  expect([card.title, card.task, card.text, card.meta, card.chip, card.hue]).toEqual(['Manager', 'Aucune tâche en cours', 'Attend ta prochaine demande.', 'Dernier travail il y a 12 min', 'rest', 0])
+  expect([card.title, card.task, card.text, card.meta, card.chip, card.hue]).toEqual(['Patron', 'Aucune tâche en cours', 'Attend ta prochaine demande.', 'Dernier travail il y a 12 min', 'rest', 0])
   expect([card.label, card.cells, card.dots, card.step]).toEqual(['', [], null, ''])
   const drawn = cardSvg(card, 800, 800)
   expect([drawn.width, drawn.height], '174 high, plus the shadow').toEqual([276, 178])
@@ -624,7 +624,7 @@ test('the Manager’s card at rest: no progress block, with its chip and its las
 })
 
 test('the bubble reads an old plan that names the Manager as the main chat', async () => {
-  expect(stepCard(stepOf({ who: 'Manager' }), []).who).toBe('claude')
+  for (const who of ['Manager', 'Patron', 'Boss']) expect(stepCard(stepOf({ who }), []).who).toBe('claude')
 })
 
 test('at 0 and 1 agent, the board keeps 8 px on its right, the screen stays against it', async () => {
@@ -710,7 +710,7 @@ test('the cells of one option do not overlap the next', async () => {
 test('a room with no agent whose Manager works says so on its card', async () => {
   const quiet: FloorRoom = { id: 'k', title: 'Kid', agents: 0, working: 0, summary: '', desks: [], steps: [], tokens: 0 }
   const busy = roomCard({ ...quiet, manager: { working: true } }, 0)
-  expect([busy.text, busy.meta]).toEqual(['Au travail', 'Manager au travail'])
+  expect([busy.text, busy.meta]).toEqual(['Au travail', 'Patron au travail'])
   expect(roomCard({ ...quiet, summary: 'Écrit', manager: { working: true } }, 0).text).toBe('Écrit')
   const rest = roomCard(quiet, 0)
   expect([rest.text, rest.meta]).toEqual(['Au repos', 'Au repos'])
