@@ -14,9 +14,9 @@ import { plural, t } from './i18n'
 import type { Memory } from './memory'
 import { COLD_HEARTH, boardLines, deskBoxes, hearthBox, letterBox, lineSvg, managerBox, roomBackSvg, roomCountSvg, roomSvg, settled, viewOf, zoomPair } from './room'
 import type { HearthLook, HearthPanel, RoomDesk, RoomInput } from './room'
-import { buttonLit, crabLayer, decorLayers, deskLayers, fireLayer, keeperLayer, labelsSvg } from './room-layers'
+import { buttonLit, crabAsleep, crabLayer, decorLayers, deskLayers, fireLayer, keeperLayer, labelsSvg } from './room-layers'
 import type { Layer } from './room-layers'
-import { CELL_H, CELL_W, cellsOf, hoverZone, liveBox } from './view-shared'
+import { CELL_H, CELL_W, cellsOf, hoverZone, lightest, liveBox } from './view-shared'
 import { panelCells, pressRows, settingsElements } from './view-settings'
 import type { PanelCells } from './view-settings'
 import type { Frame, Table } from './view-shared'
@@ -40,7 +40,7 @@ export type RoomView = {
 }
 
 /** What the open settings panel leaves a zone: it only exists from its right or from below it. */
-const clearOf = (zone: CardZone, panel: PanelCells | null) => !panel || zone.left >= panel.left + panel.cols || zone.top >= panel.top + panel.rows
+export const clearOf = (zone: CardZone, panel: PanelCells | null) => !panel || zone.left >= panel.left + panel.cols || zone.top >= panel.top + panel.rows
 
 /** A desk's box in cells of the pane, on the rows a short pane keeps: it loses as much at the top as at the bottom. */
 function zoneOf(b: { x: number; y: number; w: number; h: number }, n: number, frame: Frame): CardZone {
@@ -291,24 +291,35 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
   const panel = view.settings.open ? panelCells(view.settings, frame) : null
   // Once the panel reaches the board's column the lines have no zone left.
   const lines = panel && panel.left + panel.cols > Math.floor(board.left / CELL_W) ? [] : visibleLines(board.lines, frame.height)
-  return (
+  const whole = (
+    <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
+      <Svg key="room-svg" source={roomSvg(input)} alt={alt} width={frame.width} height={frame.height} />
+      {count}
+      {settingsElements(ui, view.settings, frame)}
+    </Box>
+  )
+  // Too heavy for the client, a room gives up the crab's walk, then the bubbles of its plan, then its cards, then its layers.
+  const tree = (shed: number) => shed > 3 ? whole : (
     <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
       {image}
       {count}
       {decorLayers(input).map(l => liveBox(ui, l))}
-      {liveBox(ui, crabLayer(input))}
+      {liveBox(ui, shed ? crabAsleep(input) : crabLayer(input))}
       {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
       {liveBox(ui, fireLayer(input, look.fire))}
       {labels}
       {keeper ? liveBox(ui, keeper) : null}
-      {reveals(ui, view, input, lines, board, frame)}
-      {managerZone(ui, view, frame, panel, false)}
-      {deskZones(ui, view, frame, panel)}
-      {hearthZone(ui, view, frame, panel)}
+      {shed < 2 ? reveals(ui, view, input, lines, board, frame) : null}
+      {shed < 3 ? managerZone(ui, view, frame, panel, false) : null}
+      {shed < 3 ? deskZones(ui, view, frame, panel) : null}
+      {shed < 3 ? hearthZone(ui, view, frame, panel) : null}
       {briefingZone(ui, view, frame, panel)}
-      {lines.length ? lineColumn(ui, lines, frame) : null}
+      {lines.length && shed < 2 ? lineColumn(ui, lines, frame) : null}
       {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
       {settingsElements(ui, view.settings, frame)}
     </Box>
   )
+  const drawn = lightest(tree, 5)
+  if (!drawn) await log($, m, 'room tree too heavy: the list takes over')
+  return drawn
 }

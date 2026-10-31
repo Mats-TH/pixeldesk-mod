@@ -58,8 +58,9 @@ export type MapRoom = { id: string; seed: number; title: string; meta: string; r
 /**
  * What a world draws from. `list`: the conversations the one that leads lists on its board. `news`: what reached its
  * tray, and whether one is on its way, for `flightS` seconds. `detail` grows from 0 to 7 while the drawing weighs too much.
+ * `liveFire`: a frame of its own burns over the main camp, which leaves its flames out.
  */
-export type MapView = { rooms: MapRoom[]; list: { text: string; status: PlanStatus }[]; news: { shown: number; flying: boolean }; detail: number; flightS: number }
+export type MapView = { rooms: MapRoom[]; list: { text: string; status: PlanStatus }[]; news: { shown: number; flying: boolean }; detail: number; flightS: number; liveFire: boolean }
 /** A world, drawn. `rooms`: one group per conversation, in the order of the view. `words`: every letter it writes. */
 export type MapDrawing = { defs: string; back: string; rooms: string[]; front: string; words: string; style?: string }
 /** A floor as its theme shows it, on the `WORLD` grid, from 2 to 11 conversations. Nothing suggests an order among them. */
@@ -71,6 +72,8 @@ export type MapPack = {
   /** Where each count of tokens stands, centred on `x`: it lives on an image of its own. */
   counts: (n: number) => { x: number; y: number; size: number; ink: string }[]
   draw: (v: MapView) => MapDrawing
+  /** Where the hearth's fire stands in the main camp, with `n` conversations, when the world has one. */
+  fire?: (n: number) => Point
   /** The crab's rounds on this world, as a closed loop of points. */
   walk?: (n: number) => Point[]
 }

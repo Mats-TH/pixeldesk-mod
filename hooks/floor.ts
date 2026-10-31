@@ -11,8 +11,8 @@ import { packOf } from './pixel/themes'
 import { AT_REST, FLIGHT_MS, MAX_SVG, MOTION, SHADE, formatTokens, letterDefs, line } from './room'
 import type { RoomInput } from './room'
 
-/** `news`: what the conversation that leads shows; absent, an empty tray. */
-export type FloorInput = { rooms: FloorRoom[]; previous: number; width: number; height: number; news?: MapView['news']; theme?: RoomTheme }
+/** `news`: what the conversation that leads shows; absent, an empty tray. `liveFire`: the fire burns in a frame of its own. */
+export type FloorInput = { rooms: FloorRoom[]; previous: number; width: number; height: number; news?: MapView['news']; theme?: RoomTheme; liveFire?: boolean }
 
 // A world shows this many conversations: the one that leads, then those at work first.
 const MOST = 11
@@ -66,7 +66,7 @@ function mapRoom(r: FloorRoom, i: number): MapRoom {
 
 function viewOf(p: FloorInput, detail: number): MapView {
   const rooms = shownRooms(p.rooms)
-  return { rooms: rooms.map(mapRoom), list: rooms.slice(1).map(kid => ({ text: kid.title, status: LINES[kid.state ?? 'idle'] })), news: p.news ?? { shown: 0, flying: false }, detail, flightS: FLIGHT_MS / 1000 }
+  return { rooms: rooms.map(mapRoom), list: rooms.slice(1).map(kid => ({ text: kid.title, status: LINES[kid.state ?? 'idle'] })), news: p.news ?? { shown: 0, flying: false }, detail, flightS: FLIGHT_MS / 1000, liveFire: p.liveFire ?? false }
 }
 
 /** The count of the conversations a world has no place for, over its lower right corner. */

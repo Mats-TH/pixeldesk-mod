@@ -75,7 +75,7 @@ export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
   const mobile = e.surface === 'mobile'
   const now = await $.clock.now()
   const settings = (await readSettings($)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme }
-  if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile, settings.theme)
+  if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile, settings)
   const seen = (await readSeen($)) ?? { shown: agents.length, previous: agents.length }
   const view: RoomView = { agents, summaries, plan, seen, tokens, cost, now, chat, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
   const list = $.ui.resolve(e) as unknown as Words

@@ -230,7 +230,7 @@ describe('the panel', () => {
   test('a desk under the panel gets its zone back when it closes', async ($, on) => {
     const { w, ui } = await opened($, on, {}, { bodyColumns: 34, scroll: { offset: 0, bodyRows: 30 } })
     await sendPlan($, [step('One', 'in_progress')], 'Job')
-    for (const id of ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']) await spawn($, w, id)
+    for (const id of ['a1', 'a2', 'a3', 'a4']) await spawn($, w, id)
     await ui.redraw()
     expect(await hasKey(ui, 'desk-a1')).toBe(false)
     expect(await hasKey(ui, 'plan-lines'), 'the panel reaches the board').toBe(false)
@@ -258,13 +258,13 @@ describe('where the button lives', () => {
     for (const key of SETTINGS_KEYS) expect(await hasKey(ui, key)).toBe(false)
   })
 
-  test('nor on the floor', async ($, on) => {
+  test('and on the floor, as in a room', async ($, on) => {
     const w = world(on, FLOOR)
     await start($)
     await w.clock.advance(5000)
     const ui = await mountPane($)
     expect(await hasKey(ui, 'floor')).toBe(true)
-    for (const key of SETTINGS_KEYS) expect(await hasKey(ui, key)).toBe(false)
+    expect(await hasKey(ui, 'settings-button')).toBe(true)
   })
 
   test('the room asks to keep its corner clear on the desktop only', async ($, on) => {

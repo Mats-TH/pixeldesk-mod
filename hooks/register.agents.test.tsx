@@ -323,8 +323,8 @@ describe('an agent ends', () => {
     await w.clock.advance(5000)
     expect(w.json(DESK_FILE).desks).toHaveLength(14)
     const ui = await mountPane($)
-    for (let i = 0; i < 3; i += 1) expect(await hasKey(ui, `desk-a${i}`)).toBe(false)
-    expect(await hasKey(ui, 'desk-a16')).toBe(true)
+    for (let i = 0; i < 3; i += 1) expect(await hasKey(ui, `live-a${i}`)).toBe(false)
+    expect(await hasKey(ui, 'live-a16')).toBe(true)
     expect(await everyText(ui)).not.toMatch(/\+\d+/)
   })
 
@@ -334,7 +334,7 @@ describe('an agent ends', () => {
     for (let i = 0; i < 16; i += 1) await spawn($, w, `a${i}`)
     await endTurn($, { agentId: 'a0' })
     const ui = await mountPane($)
-    expect(await hasKey(ui, 'desk-a0')).toBe(true)
+    expect(await hasKey(ui, 'live-a0')).toBe(true)
   })
 })
 

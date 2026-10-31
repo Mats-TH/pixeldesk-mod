@@ -6,7 +6,7 @@ import { bulle } from './pixel/decor'
 import { fit, textWidth } from './pixel/font'
 import { keeper, spriteBody } from './pixel/hearth'
 import type { AshLevel, FireLevel, KeeperPose } from './pixel/hearth'
-import { crabArt, crabLife, roundsScript } from './pixel/crab'
+import { crabArt, crabLife, crabPose, roundsScript } from './pixel/crab'
 import { WORLD } from './pixel/pack'
 import { TENUES, agentHue, person } from './pixel/sprites'
 import { packOf } from './pixel/themes'
@@ -153,6 +153,17 @@ export function crabLayer(p: RoomInput): Layer {
   })
 }
 
+/** The crab asleep in his basket, the lightest he gets: a room too heavy for the client gives up his walk first. */
+export function crabAsleep(p: RoomInput): Layer {
+  return kept(`crab-asleep ${getLanguage()} ${roomKey(p)}`, () => {
+    const g = paneOf(p)
+    const { ground } = roomScene(stillRoom(p), { layer: 'back' }).life
+    const art = crabPose(ground)
+    const c = cut(g, { x: 0, y: 0 }, { x: 0, y: ground.top, w: g.v.w, h: ground.bottom - ground.top })
+    return layerOf('live-crab', c, t('pane.crab'), art.style, art.defs, art.body)
+  })
+}
+
 /** The crab's rounds on a floor, over the whole world, on `n` conversations. Null: this world has no walk. It is the world's shape alone: anything else would start him over. */
 export function floorCrabLayer(n: number, width: number, height: number, theme?: RoomTheme): Layer | null {
   return kept(`floor-crab ${getLanguage()} ${theme ?? 'cosy'} ${n} ${width} ${height}`, () => {
@@ -163,6 +174,20 @@ export function floorCrabLayer(n: number, width: number, height: number, theme?:
     // The world stands in the middle of the pane: what its frame leaves above it is a crop that goes the other way.
     const c = cut({ k: f.k, crop: -f.y }, { x: f.x / f.k, y: 0 }, { x: 0, y: 0, ...WORLD })
     return layerOf('floor-crab', c, t('pane.crab'), art.style, art.defs, art.body)
+  })
+}
+
+/** The fire of the world's main camp, alone in its drawing. Null: this world has none. It is the world's shape alone, and an image would start it over at every redraw. */
+export function floorFireLayer(n: number, width: number, height: number, theme?: RoomTheme): Layer | null {
+  return kept(`floor-fire ${getLanguage()} ${theme ?? 'cosy'} ${n} ${width} ${height}`, () => {
+    const pack = packOf(theme)
+    const at = pack.map.fire?.(n)
+    if (!at) return null
+    const f = fitted(width, height)
+    const lit = flames('full', pack)
+    // On the fire's own grid, as in a room, in the world that stands in the middle of the pane.
+    const c = cut({ k: f.k * PX, crop: -f.y }, { x: (f.x / f.k + at.x) / PX, y: at.y / PX }, pack.hearth.fireArea)
+    return layerOf('floor-fire', c, t('hearth.fireAlt'), lit.style, '', `${lit.body}${pack.hearth.front?.() ?? ''}`)
   })
 }
 

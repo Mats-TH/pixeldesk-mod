@@ -34,6 +34,29 @@ export function frameOf(e: Pane): Frame {
   return { width, height, fit: bodyRows || '100%', pane: { cols: Math.floor(width / CELL_W), rows: Math.floor(height / CELL_H) } }
 }
 
+// The client refuses a tree of 262 144 characters and more, in silence: the pane says its plugin has not drawn.
+export const TREE_ROOM = 256_000
+
+const strings = (o: object | undefined) => Object.entries(o ?? {}).reduce((n, [k, v]) => n + k.length + (typeof v === 'string' ? v.length : 0), 0)
+
+/** A tree as the client measures it: a drawing by its source and its words, anything else by the strings it holds. */
+export function treeChars(el: unknown): number {
+  if (typeof el === 'string') return el.length
+  if (typeof el !== 'object' || el === null) return 0
+  const { type, props, hover, children } = el as { type?: string; props?: { source?: string; alt?: string }; hover?: object; children?: unknown[] }
+  const own = type === 'Svg' ? (props?.source?.length ?? 0) + (props?.alt?.length ?? 0) : strings(props) + strings(hover)
+  return (children ?? []).reduce((n: number, kid) => n + treeChars(kid), own)
+}
+
+/** The first tree that fits, of `steps` that each give up more. Null: none does. */
+export function lightest<T>(tree: (shed: number) => T, steps: number): T | null {
+  for (let shed = 0; shed < steps; shed += 1) {
+    const drawn = tree(shed)
+    if (treeChars(drawn) < TREE_ROOM) return drawn
+  }
+  return null
+}
+
 /** The size of a card in whole cells. */
 export const cellsOf = (d: CardDrawing) => ({ cols: Math.ceil(d.width / CELL_W), rows: Math.ceil(d.height / CELL_H) })
 

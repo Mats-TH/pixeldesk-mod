@@ -209,7 +209,7 @@ describe('the floor in the pane', () => {
     const { ui } = await floorPane($, on)
     const root = await ui.find({ key: 'floor' })
     expect(root?.props).toMatchObject({ flexDirection: 'column', height: 22, overflow: 'hidden', backgroundColor: 'transparent', marginX: -1 })
-    expect(kids(root).map(el => el.props?.key ?? el.type)).toEqual(['Svg', 'floor-count', 'floor-crab', `room-${SESSION}`, 'room-kid'])
+    expect(kids(root).map(el => el.props?.key ?? el.type)).toEqual(['Svg', 'floor-count', 'floor-crab', `room-${SESSION}`, 'room-kid', 'settings-look', 'settings-button'])
     expect(kids(root)[0].props.isInteractive).toBeUndefined()
   })
 
@@ -235,11 +235,78 @@ describe('the floor in the pane', () => {
     expect((await ui.find({ key: 'floor' }))?.props.height).toBe('100%')
   })
 
-  test('the alternative, and no header or button', async ($, on) => {
+  test('the alternative, no header, and the one button of the settings', async ($, on) => {
     const { ui } = await floorPane($, on)
     expect(await altOf(ui)).toBe('Étage avec 2 conversations')
     expect(await textsOf(ui)).toEqual([])
-    expect(await ui.findAll({ type: 'Button' })).toEqual([])
+    for (const button of await ui.findAll({ type: 'Button' })) expect(button.props.key).toMatch(/^settings-button-\d$/)
+  })
+
+  test('the settings open on the floor as in a room, over the conversations', async ($, on) => {
+    const { w, ui } = await floorPane($, on)
+    expect(await hasKey(ui, 'settings-panel')).toBe(false)
+    await ui.press({ key: 'settings-button-0' })
+    expect(w.state.settings.open).toBe(true)
+    expect(await hasKey(ui, 'settings-panel')).toBe(true)
+    expect(kids(await ui.find({ key: 'floor' })).pop().props.key, 'last of all').toBe('settings-panel')
+    await ui.press({ key: 'settings-button-0' })
+    expect(await hasKey(ui, 'settings-panel')).toBe(false)
+  })
+
+  test('no settings on a phone, as in a room', async ($, on) => {
+    const w = world(on, linked())
+    await start($, 'mobile')
+    await beat(w)
+    const ui = await mountPane($, 'mobile')
+    expect(await hasKey(ui, 'settings-button')).toBe(false)
+  })
+
+  test('with two children the places hold still: same count, no zoom, pass after pass', async ($, on) => {
+    const w = world(on, linked({ files: { [`${DATA}/local_two.json`]: session('twol', 'two', 'Deux', 'me'), [deskFile('two')]: desk('two') } }))
+    await start($)
+    await beat(w)
+    const ui = await mountPane($)
+    await beat(w)
+    await ui.redraw()
+    for (let i = 0; i < 16; i += 1) {
+      await beat(w)
+      await ui.redraw()
+      expect(w.state.floor).toHaveLength(3)
+      expect(await sourceOf(ui)).not.toContain(ZOOM)
+      expect(await sourceOf(ui)).not.toContain(FADE)
+    }
+  })
+
+  test('nature: the fire of the main camp burns in a frame of its own, that nothing of a turn reloads', async ($, on) => {
+    const w = world(on, linked({ files: { [SETTINGS_FILE]: JSON.stringify({ theme: 'nature' }) } }))
+    await start($)
+    await beat(w)
+    const ui = await mountPane($)
+    const box = await ui.find({ key: 'floor-fire' })
+    expect(box?.props).toMatchObject({ position: 'absolute', flexDirection: 'column' })
+    const image = kids(box)[0]
+    expect(image.props.isInteractive).toBe(true)
+    const source = await sourceOf(ui, 'floor-fire')
+    expect(source).toContain('animation:fl')
+    expect(source, 'motion turned off keeps one image').toContain('prefers-reduced-motion')
+    expect(await sourceOf(ui), 'the plain image no longer holds still flames').not.toContain('id="brasier"')
+    w.files.set(deskFile('kid'), desk('kid', { tokens: 5000, working: 1, agents: 1, desks: [{ title: 'Testeur', state: 'working', hue: 1 }] }))
+    await beat(w)
+    expect(await sourceOf(ui, 'floor-fire')).toBe(source)
+  })
+
+  test('on a phone the fire stands in the image', async ($, on) => {
+    const w = world(on, linked({ files: { [SETTINGS_FILE]: JSON.stringify({ theme: 'nature' }) } }))
+    await start($, 'mobile')
+    await beat(w)
+    const phone = await mountPane($, 'mobile')
+    expect(await hasKey(phone, 'floor-fire')).toBe(false)
+    expect(await sourceOf(phone)).toContain('id="brasier"')
+  })
+
+  test('a world with no camp fire has no frame for it', async ($, on) => {
+    const { ui } = await floorPane($, on)
+    expect(await hasKey(ui, 'floor-fire')).toBe(false)
   })
 
   test('a room\'s zone is a desk\'s, with its card', async ($, on) => {

@@ -516,7 +516,7 @@ function bigCamp(s: Sheet, v: MapView, plan: Plan) {
   const label = t('role.manager')
   const nap = manager ? '' : `<path transform="translate(${dx} ${dy})" fill="${CR}" d="${ZZ}"/>`
   const post = `${s.put('toile', dx - 4, dy - 44)}${s.put('chef', dx + 44, dy - 4)}${s.put(manager ? 'etabli' : 'etabliR', dx, dy)}${nap}${progress(v.list, dx + 8, dy + 52)}${s.write(label, dx + 60 - textWidth(label, 16) / 2, dy + 60, 16, NIGHT)}`
-  const fire = `${s.put('foyer', ox + 240, oy + 80)}${use('brasier', ox + 240, oy + 80)}`
+  const fire = `${s.put('foyer', ox + 240, oy + 80)}${v.liveFire ? '' : use('brasier', ox + 240, oy + 80)}`
   const dove = `${s.put('pigeonnier', ox + 16, oy + 68)}${tray(s, v.news.shown, ox + 16, oy + 68)}`
   const list = board(s, v.list, ox + 356, Math.max(oy, 0), plan.small)
   return `<g>${clear}${dove}${fire}${post}${crew.join('')}${list}${sign(s, { ...r, rest: false }, ox + 20, oy + 8 + plan.off, 180)}</g>`
@@ -561,7 +561,12 @@ function draw(v: MapView) {
   const front = flight(s, v, plan)
   const sprites = [...s.used].map(id => def(id, ART[id]?.() ?? clearing(id, v.detail > 0))).join('')
   const back = `<rect width="${WORLD.w}" height="${WORLD.h}" fill="url(#canopee)"/>${relief(n)}${bridges}`
-  return { defs: `${canopy()}${brasier()}${sprites}`, back, rooms, front, words: s.words.join('') }
+  return { defs: `${canopy()}${v.liveFire ? '' : brasier()}${sprites}`, back, rooms, front, words: s.words.join('') }
+}
+
+function fire(n: number): Point {
+  const [ox, oy] = px(planOf(n).o)
+  return { x: ox + 240, y: oy + 80 }
 }
 
 /** Out along each trail and back to the big camp: the only roads there are. */
@@ -573,4 +578,4 @@ function walk(n: number): Point[] {
   })
 }
 
-export const natureMap: MapPack = { back: TOP[0], places, counts, draw, walk }
+export const natureMap: MapPack = { back: TOP[0], places, counts, draw, fire, walk }
