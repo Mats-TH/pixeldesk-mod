@@ -651,16 +651,17 @@ test('the settings button stays 32 px, on the design grid, in its three looks', 
 
 test('the settings panel says the words of the design, the chosen option gold and ticked', async () => {
   const place = settingsPlace(780, 760)
-  const on = settingsSvg('plan', place)
-  expect(on.alt).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau.")
+  const choices = { departure: 'plan', warm: true, handoffMode: 'auto', compactBefore: 2 } as const
+  const on = settingsSvg(choices, place)
+  expect(on.alt).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
   expect(on.source, 'the chosen option').toContain('fill="#FFDF8F"')
   expect(on.source, 'its gold border').toContain('fill="#C9A24A"')
   expect(on.source, 'the other option').toContain('fill="#FFF6DE"')
-  const other = settingsSvg('each', place)
-  expect(other.alt).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi.")
+  const other = settingsSvg({ ...choices, departure: 'each' }, place)
+  expect(other.alt).toContain("Fin du plan. Au fil de l'eau, choisi.")
   expect(on.source === other.source, 'the tick moves line').toBe(false)
-  expect(count(on.source, /fill="#FFC857"/g), 'one ticked box only').toBe(1)
-  expect(on.source.length < 20_000, String(on.source.length)).toBe(true)
+  expect(count(on.source, /fill="#FFC857"/g), 'a tick by section, and the step of the cursor').toBe(4)
+  expect(on.source.length < 40_000, String(on.source.length)).toBe(true)
 })
 
 test('an option hovered: #FFF2C4 back, gold border, on the line of the design', async () => {
@@ -675,8 +676,16 @@ test('the zones follow the design at 780, and stay in true pixels elsewhere', as
   const at = settingsPlace(780, 760)
   expect(at.k).toBe(1)
   expect(at.button).toEqual({ x: 10, y: 10, w: 32, h: 32 })
-  expect(at.options.plan).toEqual({ x: 25, y: 121, w: 222, h: 72 })
-  expect(at.options.each).toEqual({ x: 25, y: 199, w: 222, h: 72 })
+  expect(at.options.plan).toEqual({ x: 25, y: 121, w: 262, h: 72 })
+  expect(at.options.each).toEqual({ x: 25, y: 199, w: 262, h: 54 })
+  expect(at.options.warm).toEqual({ x: 25, y: 283, w: 262, h: 72 })
+  expect(at.options.auto).toEqual({ x: 25, y: 385, w: 262, h: 54 })
+  expect(at.options.manual).toEqual({ x: 25, y: 517, w: 262, h: 54 })
+  expect(at.steps[4]).toEqual({ value: 'always', x: 193, y: 467, w: 94, h: 22 })
+  expect(at.panel, '296 by 542, and its shadow').toEqual({ x: 8, y: 46, w: 300, h: 546 })
+  const manual = settingsPlace(780, 760, 'manual')
+  expect(manual.panel.h, '470 once the cursor is gone').toBe(474)
+  expect(manual.options.manual.y).toBe(445)
   expect(settingsPlace(1400, 900), 'the button and the panel do not grow').toEqual(at)
 })
 
@@ -691,8 +700,8 @@ test('in a low or narrow pane, the settings panel shrinks and is never cut', asy
 test('the cells of one option do not overlap the next', async () => {
   const at = settingsPlace(780, 760)
   const [one, two] = [zoneCells(at.options.plan), zoneCells(at.options.each)]
-  expect(one, 'rows of 21 and columns of 8').toEqual({ left: 3, top: 6, cols: 28, rows: 3 })
-  expect(two).toEqual({ left: 3, top: 9, cols: 28, rows: 4 })
+  expect(one, 'rows of 21 and columns of 8').toEqual({ left: 3, top: 6, cols: 33, rows: 3 })
+  expect(two).toEqual({ left: 3, top: 9, cols: 33, rows: 3 })
   expect(one.top + one.rows <= two.top, 'the second starts after').toBe(true)
   expect(zoneCells(at.button)).toEqual({ left: 1, top: 0, cols: 4, rows: 2 })
 })

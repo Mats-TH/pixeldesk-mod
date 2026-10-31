@@ -2,10 +2,13 @@ import type { EngineInterface, Register, ToolCallResult } from 'claude-code'
 
 import { act, arrive, endTurn, known, publish } from './agents'
 import { closeTurn, noteCall, openTurn } from './chat'
+import { onCompact } from './compaction'
 import { guard } from './disk'
+import { afterTurn, answerRefresh, clearHearth, pressGesture } from './hearth'
+import { isForkTurn, stepBack, stepLeaves } from './heat'
 import { setLanguage, t } from './i18n'
 import { forcedBy } from './language'
-import { PLAN_TOOL, createMemory } from './memory'
+import { PLAN_TOOL, REFRESH_TOOL, createMemory } from './memory'
 import type { Memory } from './memory'
 import { entered, received } from './news'
 import { pressSettings } from './preferences'
@@ -44,6 +47,24 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // The transcript's path, for the cache's length: the only place the engine names it.
+  on('classic.SessionStart', ($, e, next) => {
+    m.heat.transcript = e.transcript_path || m.heat.transcript
+    return next(e)
+  })
+
+  on('classic.Stop', ($, e, next) => {
+    m.heat.transcript = e.transcript_path || m.heat.transcript
+    return next(e)
+  })
+
+  on('session.compact', ($, e, next) => onCompact($, m, e, next))
+
+  on('session.end', async ($, e, next) => {
+    if (e.reason === 'clear') clearHearth(m)
+    return next(e)
+  })
+
   on('session.measure', async ($, e, next) => {
     await guard($, m, 'limits', () => writeLimits($, e.rateLimits))
     return next(e)
@@ -62,6 +83,7 @@ export const register: Register = (on, options) => {
     const tool = String(e.tool)
     const input = e as Record<string, unknown>
     if (tool === PLAN_TOOL) return answerPlan($, m, input, e.agentId)
+    if (tool === REFRESH_TOOL) return answerRefresh($, m, e.agentId)
     if (e.agentId === undefined && isMirror(tool)) m.turn = { ...m.turn, planSeen: true }
     if (e.agentId !== undefined) await guard($, m, 'agent action', () => act($, m, e.agentId!, tool, input))
     else await guard($, m, 'turn call', () => noteCall($, m, tool, input))
@@ -79,7 +101,7 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.start', async ($, e, next) => {
-    if (e.agentId === undefined) await guard($, m, 'turn start', () => openTurn($, m))
+    if (!isForkTurn(m, e.text, e.turnId) && e.agentId === undefined) await guard($, m, 'turn start', () => openTurn($, m))
     return next(e)
   })
 
@@ -96,7 +118,10 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.step', async function* ($, e, next) {
+    const main = e.agentId === undefined && !m.heat.forkTurns.has(e.turnId)
+    const sentAt = main ? await stepLeaves($, m) : 0
     const step = yield* next(e)
+    if (main) await guard($, m, 'cache', () => stepBack($, m, sentAt, step.usage))
     await guard($, m, 'turn step', async () => {
       const spent = step.usage ? sumOf(step.usage) : 0
       if (e.agentId === undefined) m.mainTokens += spent
@@ -112,9 +137,14 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.complete', async ($, e, next) => {
+    if (m.heat.forkTurns.delete(e.turnId)) return next(e)
     await guard($, m, 'turn end', async () => {
-      if (e.agentId !== undefined) return endTurn($, m, e.agentId, { isAborted: e.isAborted, reason: e.reason, spent: e.usage ? sumOf(e.usage) : null })
-      return closeTurn($, m, e.isAborted || e.reason === 'error' || e.reason === 'refusal')
+      if (e.agentId !== undefined) {
+        await endTurn($, m, e.agentId, { isAborted: e.isAborted, reason: e.reason, spent: e.usage ? sumOf(e.usage) : null })
+        return m.wake()
+      }
+      await closeTurn($, m, e.isAborted || e.reason === 'error' || e.reason === 'refusal')
+      return afterTurn($, m)
     })
     return next(e)
   })
@@ -126,7 +156,19 @@ export const register: Register = (on, options) => {
     }
   }
 
+  on('ui.press', { plugin: 'pixeldesk', element: /^(?:handoff|hearth)-/ }, ($, e) => pressGesture($, m, e))
+
   on('ui.render', { component: 'Pane', requestId: 'pixeldesk' }, ($, e) => drawPane($, m, e))
 
-  on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => drawBand($, m, e, () => next(e)))
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // A band that cannot be drawn hides the mod: nothing goes out to the model until it can.
+    try {
+      const drawn = await drawBand($, m, e, () => next(e))
+      m.heat.blind = false
+      return drawn
+    } catch (err) {
+      m.heat.blind = true
+      throw err
+    }
+  })
 }

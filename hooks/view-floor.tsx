@@ -28,7 +28,7 @@ export function floorView(m: Memory, ui: Table, frame: Frame, rooms: FloorRoom[]
   const previous = Math.min(m.floorBefore ?? n, n)
   const at = (zoom: boolean): FloorInput => ({ rooms, previous: zoom ? previous : n, width: frame.width, height: frame.height, news: { shown: news.shown, flying: news.shown < news.count } })
   m.floorPair = zoomPair(m.floorPair, previous !== n, zoom => floorSvg(at(zoom)), zoom => floorCountSvg(at(zoom)))
-  const image = <Svg source={m.floorPair.image.sent} alt={t('floor.alt', { n })} width={frame.width} height={frame.height} isInteractive />
+  const image = <Svg source={m.floorPair.image.sent} alt={t('floor.alt', { n })} width={frame.width} height={frame.height} />
   const count = (
     <Box key="floor-count" position="absolute" left={0} top={0} width="100%" height="100%" flexDirection="column">
       <Svg source={m.floorPair.count.sent} alt="tokens" width={frame.width} height={frame.height} />

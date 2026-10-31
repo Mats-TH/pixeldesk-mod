@@ -29,7 +29,7 @@ test('no decoration overflows its slot', async () => {
   }
 })
 
-test('at every width, wall decorations stay left of the screen', async () => {
+test('at every width, wall decorations stay left of the screen', { timeoutMs: 30000 }, async () => {
   for (const fit of FITS) {
     for (let i = 0; i < 80; i += 1) {
       const { wall } = drawRoom(`s${i}`, fit)

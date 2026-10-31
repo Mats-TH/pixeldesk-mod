@@ -4,6 +4,7 @@ import { cardPlace } from './card'
 import type { CardDrawing, CardZone } from './card'
 import { setLanguage } from './i18n'
 import type { Memory } from './memory'
+import { CELL_H, CELL_W } from './room'
 import { readLanguage } from './state'
 
 export type Pane = RenderInput<'Pane'>
@@ -12,11 +13,16 @@ export type Table = Pick<Elements['desktop'], 'Box' | 'Svg' | 'Button'>
 /** The drawing's size, in pixels and in cells. `fit` is the height the root takes. */
 export type Frame = { width: number; height: number; fit: number | string; pane: { cols: number; rows: number } }
 
-export const CELL_W = 8
-export const CELL_H = 21
+export { CELL_H, CELL_W }
 const MAX_PX = 4096
+const BAND_MIN = 420
+const BAND_MAX = 1600
+const DEFAULT_COLS = 100
 const MIN_COLS = 32
 const DEFAULT_ROWS = 22
+
+/** How wide the band draws, and what stands above it. */
+export const bandWidth = (columns: number) => Math.max(BAND_MIN, Math.min(BAND_MAX, (columns || DEFAULT_COLS) * CELL_W))
 
 /** A pane's cells. The drawing runs past both edges of the body, by a column each, and the site brings it back. */
 export function frameOf(e: Pane): Frame {

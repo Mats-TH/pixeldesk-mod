@@ -11,17 +11,14 @@ import type { Gauge } from './limits'
 import type { Memory } from './memory'
 import { mix } from './pixel/canvas'
 import { readFloorRooms, readLimits, readMinute, readNews, readPlan, readShimmer } from './state'
-import { followLanguage } from './view-shared'
+import { hearthRows } from './view-hearth'
+import { bandWidth, followLanguage } from './view-shared'
 
 type Band = RenderInput<'AbovePrompt'>
 type TerminalTable = Pick<Elements['terminal'], 'Box' | 'Text'>
 type Gauges = [Gauge, Gauge]
 
-const CELL_W = 8
-const DEFAULT_COLS = 100
 const TERMINAL_COLS = 30
-const MIN_PX = 420
-const MAX_PX = 1600
 const TITLE_MAX = 28
 const TITLE_MIN = 6
 const BAR_MARGIN = 10
@@ -153,7 +150,7 @@ async function terminalBand($: EngineInterface, e: Band, plan: DrawnPlan | null,
 
 /** The band as a drawing. The same source goes back as long as nothing moved: the walker walks on its own. */
 function drawnBand(e: Band, plan: DrawnPlan | null, open: boolean, view: OverviewInput | null, gauges: Gauges, night: boolean) {
-  const width = clamp((e.props.bodyColumns || DEFAULT_COLS) * CELL_W, MIN_PX, MAX_PX)
+  const width = bandWidth(e.props.bodyColumns)
   if (view && !open) {
     const input = { ...view, width, night }
     return { key: 'overview-band', source: overviewSvg(input), alt: overviewAlt(input), width }
@@ -211,17 +208,21 @@ export async function drawBand($: EngineInterface, m: Memory, e: Band, pass: () 
   const open = !!plan && plan.steps.some(st => st.status !== 'completed')
   const view = await overviewOf($, news?.count ?? 0, gauges)
   const under = await beneath(pass)
+  // What comes first eats the frame's edge, as long as nothing stands above it.
+  const top = under && shows(under) ? UNDER_MOD : -1
+  const rows = await hearthRows($, m, e, top)
   if (e.surface === 'terminal') {
     const { Box } = $.ui.resolve(e)
     const band = await terminalBand($, e, plan, open, view, gauges)
-    return under ? <Box flexDirection="column">{under}{band}</Box> : band
+    return under || rows ? <Box flexDirection="column">{under}{rows}{band}</Box> : band
   }
   const { Box, Svg } = $.ui.resolve(e)
   const drawn = drawnBand(e, plan, open, view, gauges, isNight(now))
   return (
     <Box flexDirection="column" backgroundColor="transparent">
       {under}
-      <Box key={drawn.key} marginX={-1} marginTop={under && shows(under) ? UNDER_MOD : -1} marginBottom={-1}>
+      {rows}
+      <Box key={drawn.key} marginX={-1} marginTop={rows ? 0 : top} marginBottom={-1}>
         <Svg source={drawn.source} alt={drawn.alt} width={drawn.width} height={BAND_H} isInteractive />
       </Box>
     </Box>

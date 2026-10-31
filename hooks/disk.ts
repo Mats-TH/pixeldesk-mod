@@ -1,10 +1,11 @@
 import type { EngineInterface } from 'claude-code'
 
-import { slashed } from './lines'
+import { cut, slashed } from './lines'
 import type { Memory } from './memory'
 
 // The log is rewritten whole on each line: the file stays well under what a read may take.
 const LOG_KEEP = 256 * 1024
+const TOAST_MAX = 140
 
 /** The home folder, with forward slashes and no slash at the end; empty when the environment does not say. */
 export async function readHome($: EngineInterface) {
@@ -22,6 +23,8 @@ export const settingsPath = (m: Memory) => `${root(m)}/settings.json`
 export const stateDir = (m: Memory) => `${root(m)}/state`
 export const planPath = (m: Memory) => `${stateDir(m)}/plan-${m.sessionId}.json`
 export const deskPath = (m: Memory, id: string) => `${stateDir(m)}/desk-${id}.json`
+export const hearthPath = (m: Memory) => `${stateDir(m)}/hearth-${m.sessionId}.json`
+export const handoffsDir = (m: Memory) => `${root(m)}/handoffs`
 const logPath = (m: Memory) => `${root(m)}/logs/pixeldesk.log`
 
 /** Without a home or a session id nothing goes near the disk: the mod carries on in memory. */
@@ -43,6 +46,15 @@ export function log($: EngineInterface, m: Memory, message: string) {
     }
   })
   return m.logs
+}
+
+/** A line on screen, held to what a toast shows; its failure goes to the log. */
+export function toast($: EngineInterface, m: Memory, text: string) {
+  try {
+    $.ui.toast(cut(text, TOAST_MAX))
+  } catch (err) {
+    void log($, m, `toast: ${reason(err)}`)
+  }
 }
 
 /** Runs what must not break the conversation: a failure becomes a line in the log. */

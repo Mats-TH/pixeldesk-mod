@@ -11,11 +11,14 @@ const PLAN = { plugin: 'pixeldesk', key: 'plan' } as const
 const SHIMMER = { plugin: 'pixeldesk', key: 'shimmer' } as const
 const LIMITS = { plugin: 'pixeldesk', key: 'limits' } as const
 const MINUTE = { plugin: 'pixeldesk', key: 'minute' } as const
+const CARD_CLOCK = { plugin: 'pixeldesk', key: 'cardClock' } as const
 const SUMMARIES = { plugin: 'pixeldesk', key: 'summaries' } as const
 const SEEN = { plugin: 'pixeldesk', key: 'seen' } as const
 const FLOOR = { plugin: 'pixeldesk', key: 'floor' } as const
 const TOKENS = { plugin: 'pixeldesk', key: 'tokens' } as const
 const NEWS = { plugin: 'pixeldesk', key: 'news' } as const
+const HEARTH = { plugin: 'pixeldesk', key: 'hearth' } as const
+const HANDOFF = { plugin: 'pixeldesk', key: 'handoff' } as const
 
 // What the host keeps for the session: it outlives a reload, and a read while drawing subscribes the drawing.
 export async function readAgents($: EngineInterface) {
@@ -78,6 +81,14 @@ export async function readMinute($: EngineInterface) {
   return (await $.state.get(MINUTE)).value
 }
 
+export async function readCardClock($: EngineInterface) {
+  return (await $.state.get(CARD_CLOCK)).value
+}
+
+export function writeCardClock($: EngineInterface, value: number) {
+  return $.state.set(CARD_CLOCK, value)
+}
+
 export function writeMinute($: EngineInterface, value: number) {
   return $.state.set(MINUTE, value)
 }
@@ -120,4 +131,20 @@ export async function readNews($: EngineInterface) {
 
 export function writeNews($: EngineInterface, value: Values['news']) {
   return $.state.set(NEWS, value)
+}
+
+export async function readHearth($: EngineInterface) {
+  return (await $.state.get(HEARTH)).value
+}
+
+export function writeHearth($: EngineInterface, value: Values['hearth']) {
+  return $.state.set(HEARTH, value)
+}
+
+export async function readHandoff($: EngineInterface) {
+  return (await $.state.get(HANDOFF)).value
+}
+
+export function writeHandoff($: EngineInterface, value: Values['handoff']) {
+  return $.state.set(HANDOFF, value)
 }

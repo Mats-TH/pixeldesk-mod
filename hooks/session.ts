@@ -6,6 +6,7 @@ import { restoreChat } from './chat'
 import { readFloor } from './floorfile'
 import { readOwnDesk, writeDesk } from './deskfile'
 import { guard, readHome } from './disk'
+import { pulse, runRefresh, runWarm, startHearth } from './hearth'
 import { closeSettings, followSettings, setDeparture, setHidden } from './preferences'
 import { t } from './i18n'
 import type { TextKey } from './i18n'
@@ -14,7 +15,7 @@ import { slashed } from './lines'
 import type { Memory } from './memory'
 import { restoreNews } from './news'
 import { restorePlan } from './planning'
-import { writeLimits, writeMinute } from './state'
+import { readHearth, writeCardClock, writeLimits, writeMinute } from './state'
 import { restoreTokens, showTokens } from './tokens'
 
 const TICK_MS = 5000
@@ -43,9 +44,13 @@ function planSpec() {
   return { name: 'plan', description: t('tool.description'), inputSchema, isDeferred: false }
 }
 
+/** The tool that starts a handoff: it takes nothing, and the model sees it from the start. */
+const refreshSpec = () => ({ name: 'refresh', description: t('handoff.toolDescription'), inputSchema: { type: 'object', properties: {} }, isDeferred: false })
+
 async function registerAll($: EngineInterface, m: Memory) {
-  await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each]', immediate: true }))
+  await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|warm on|off|refresh]', immediate: true }))
   await guard($, m, 'plan tool', () => $.tool.register(planSpec()))
+  await guard($, m, 'refresh tool', () => $.tool.register(refreshSpec()))
 }
 
 /** The five-second beat. One at a time: a slow disk does not stack passes up. */
@@ -55,7 +60,16 @@ async function tick($: EngineInterface, m: Memory) {
   await guard($, m, 'tokens', () => showTokens($, m))
   await guard($, m, 'desk file', () => writeDesk($, m))
   await guard($, m, 'floor', () => readFloor($, m))
+  await guard($, m, 'hearth', () => pulse($, m))
+  await guard($, m, 'card clock', () => tickCard($))
   m.ticking = false
+}
+
+/** A hover calls no hook: while the fire burns the pane redraws on a beat, so that an open card keeps its time. */
+async function tickCard($: EngineInterface) {
+  const hearth = await readHearth($)
+  const now = await $.clock.now()
+  if (hearth?.coolsAt && hearth.lengthMs && now < hearth.coolsAt) await writeCardClock($, Math.floor(now / TICK_MS))
 }
 
 function startTimers($: EngineInterface, m: Memory) {
@@ -99,6 +113,7 @@ export async function startSession($: EngineInterface, m: Memory, e: SessionStar
   await guard($, m, 'settings', () => closeSettings($, m))
   await guard($, m, 'status', () => $.ui.status(undefined))
   await restore($, m, first)
+  await guard($, m, 'hearth', () => startHearth($, m, first))
   if (!first) return
   // The terminal keeps its room for the prompt: there the pane opens on demand or for the first agent.
   if (e.surface !== 'terminal' && !m.hidden) await openPane($, m)
@@ -116,11 +131,13 @@ async function runDeparture($: EngineInterface, m: Memory, value: string | undef
   return { text: t('cmd.departure.set', { name: t(OPTION_NAMES[value]), value }) }
 }
 
-/** `/pixeldesk`, with `hide`, `show`, `departure` or nothing. */
+/** `/pixeldesk`, with `hide`, `show`, `departure`, `warm`, `refresh` or nothing. */
 export async function runCommand($: EngineInterface, m: Memory, args: string) {
   const word = args.trim().toLowerCase()
   const [head, value, extra] = word.split(/\s+/)
   if (head === 'departure' && extra === undefined) return runDeparture($, m, value)
+  if (head === 'warm' && extra === undefined) return runWarm($, m, value)
+  if (word === 'refresh') return runRefresh($, m)
   if (word === 'hide') {
     await setHidden($, m, true)
     return { text: t('cmd.hidden') }

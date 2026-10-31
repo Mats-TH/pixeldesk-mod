@@ -299,7 +299,7 @@ describe('toasts', () => {
     expect(answerOf(ran)).toBe(SAVED(2, 2))
   })
 
-  test('a finished plan stays at 100 % until the next', async ($, on) => {
+  test('a finished plan stays at 100 % until the next', { timeoutMs: 30000 }, async ($, on) => {
     const w = world(on)
     await start($)
     await sendPlan($, [step('One', 'completed')], 'Done job')

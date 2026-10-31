@@ -6,9 +6,11 @@ export type Placed<I> = Box & { id: I; slotW: number }
 export type DrawnRoom = { theme: keyof typeof THEMES; wall: Placed<WallDecor>[]; floor: Placed<FloorDecor>[]; window: boolean }
 /**
  * What a room holds before its decor is drawn, in cells: its size, the screen and the board on the wall, the rug on the
- * floor. `corner`: how far from the left the wall stays clear of decor, for the settings button.
+ * floor. `corner`: how far from the left the wall stays clear of decor, for the settings button. `wallEnd`: where the
+ * wall's decor stops whatever the plan, so the lights never move with a board that grows; what the screen then reaches
+ * steps down. `stove`: the floor it takes.
  */
-export type RoomFit = { w: number; h: number; tele: Box; board: Box; rug: Box; plate?: Box; tube?: Box; corner?: number }
+export type RoomFit = { w: number; h: number; tele: Box; board: Box; rug: Box; plate?: Box; tube?: Box; corner?: number; wallEnd?: number; stove?: Box }
 
 // A room of the base size, with a short plan.
 const BASE_FIT: RoomFit = {
@@ -85,7 +87,7 @@ const above = (o: Box, x: number, w: number) => x < o.x + o.w && o.x < x + w
 const wallLeft = (fit: RoomFit) => Math.max(WALL_LEFT, fit.corner ?? 0)
 
 function placeWall(roll: (n: number) => number, fit: RoomFit) {
-  const end = Math.floor(fit.tele.x) - 3
+  const end = Math.floor(fit.wallEnd ?? fit.tele.x) - 3
   const used = new Set<WallDecor>()
   const picked: { id: WallDecor; w: number; h: number }[] = []
   let room = end - wallLeft(fit)
@@ -122,7 +124,7 @@ function placeLights(roll: (n: number) => number, wall: Placed<WallDecor>[], fit
   const win = wall.find(it => it.id === 'fenetre')
   const x = win ? win.x + win.w + 2 : wallLeft(fit)
   const left = fit.plate ? Math.max(x, Math.ceil(fit.plate.x + fit.plate.w) + 2) : x
-  const w = Math.floor((Math.floor(fit.tele.x) - 2 - left) / SAG) * SAG
+  const w = Math.floor((Math.floor(fit.wallEnd ?? fit.tele.x) - 2 - left) / SAG) * SAG
   const clear = wall.every(it => it.id === 'suspendue' || !above(it, left, Math.min(w, 130)) || it.y >= 17)
   if (!lit || w < 2 * SAG || !clear) return null
   return { id: 'guirlande', x: left, y: WALL_Y.guirlande, w: Math.min(w, 130), h: 14, slotW: Math.min(w, 130) }
@@ -132,8 +134,9 @@ export function drawRoom(sessionId: string, fit: RoomFit = BASE_FIT): DrawnRoom 
   const roll = rng(seedOf(sessionId))
   const names = Object.keys(THEMES) as (keyof typeof THEMES)[]
   const theme = names[roll(names.length)]!
-  const hung = placeWall(roll, fit)
-  const lights = placeLights(roll, hung, fit)
+  const placed = placeWall(roll, fit)
+  const lights = placeLights(roll, placed, fit)
+  const hung = placed.filter(it => !crosses(it, fit.tele))
   const wall = lights ? [lights, ...hung] : hung
   const fixed = [fit.tele, fit.board, ...(fit.tube ? [fit.tube] : [])]
   // A piece never hides the wall decor, and never the screen or the board, not even a little.
@@ -155,7 +158,7 @@ export function drawRoom(sessionId: string, fit: RoomFit = BASE_FIT): DrawnRoom 
       const c = FLOOR_DECOR[id]()
       if (c.w > slot.w) continue
       const x = Math.round(baseX)
-      const clear = (b: Box) => !floor.some(o => crosses(o, b)) && !(fit.tube && crosses(fit.tube, b))
+      const clear = (b: Box) => !floor.some(o => crosses(o, b)) && !(fit.tube && crosses(fit.tube, b)) && !(fit.stove && crosses(fit.stove, b))
       if (slot.front) {
         const side = { x, y: fit.h - slot.up - c.h, w: c.w, h: c.h }
         if (!crosses(side, fit.rug) && clear(side)) {

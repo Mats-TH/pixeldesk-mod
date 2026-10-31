@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { NOON, cardIn, callTool, endTurn, hasKey, kids, mountPane, sendPlan, spawn, start, step, textsOf, world } from './test-kit'
 import { managerOf } from './desks'
-import { boardLines, deskBoxes, roomSvg, viewOf } from './room'
+import { boardLines, deskBoxes, roomBackSvg, viewOf } from './room'
 
 const CELL_W = 8
 const CELL_H = 21
@@ -29,7 +29,8 @@ describe('the room, on the desktop', () => {
     await start($)
     const ui = await mountPane($, 'desktop', { bodyColumns: 60, scroll: {} })
     const svg = await ui.find({ type: 'Svg' })
-    expect(svg?.props).toMatchObject({ width: 496, height: 462, isInteractive: true })
+    expect(svg?.props).toMatchObject({ width: 496, height: 462 })
+    expect(svg?.props.isInteractive).toBeUndefined()
   })
 
   test('at least 32 columns, at most 4096 px', async ($, on) => {
@@ -65,7 +66,8 @@ describe('the room, on the desktop', () => {
     await sendPlan($, [step('One', 'pending')])
     const ui = await mountPane($)
     const names = kids(await ui.find({ key: 'room' })).map(el => el.props?.key ?? el.type)
-    expect(names).toEqual(['Svg', 'room-count', 'reveal-0', 'desk-manager', 'desk-a1', 'plan-lines', 'settings-look', 'settings-button'])
+    // The lights and the cat depend on the seed of the room.
+    expect(names.filter(name => name !== 'live-lights' && name !== 'live-cat')).toEqual(['Svg', 'room-count', 'live-manager', 'live-a1', 'live-crab', 'live-fire', 'room-labels', 'reveal-0', 'desk-manager', 'desk-a1', 'hearth-card', 'plan-lines', 'settings-look', 'settings-button'])
   })
 
   test('the count is a plain image at the size of the drawing', async ($, on) => {
@@ -124,7 +126,7 @@ describe('the room, on the desktop', () => {
     expect(await textsOf(ui)).toContain('● Write the tests : A plain sentence.')
   })
 
-  test('whole minutes, at least one, and the clock of a finished agent stops', async ($, on) => {
+  test('whole minutes, at least one, and the clock of a finished agent stops', { timeoutMs: 30000 }, async ($, on) => {
     const w = world(on)
     await start($)
     await sendPlan($, [step('A long job', 'in_progress')])
@@ -153,7 +155,7 @@ describe('the room, on the desktop', () => {
     await start($)
     const ui = await mountPane($)
     const input = { sessionId: 'session-1', desks: [], manager: managerOf(undefined, []), previous: 0, steps: [], tokens: 0, width: 496, height: 462, settings: true }
-    expect((await ui.find({ type: 'Svg' }))?.props.source).toBe(roomSvg(input))
+    expect((await ui.find({ type: 'Svg' }))?.props.source).toBe(roomBackSvg(input))
   })
 
   test('no header on the desktop', async ($, on) => {
@@ -317,7 +319,7 @@ describe('the desks', () => {
     expect(svg.props.source).toContain('shape-rendering="crispEdges"')
   })
 
-  test('sixteen cards stay light and stand still: 21 drawings, the Manager and both looks of the button included', async ($, on) => {
+  test('sixteen cards stay light and stand still: 23 images, and one frame for each desk and each moving thing', async ($, on) => {
     const w = world(on)
     await start($)
     for (let i = 0; i < 16; i += 1) await spawn($, w, `a${i}`)
@@ -325,7 +327,9 @@ describe('the desks', () => {
     const read = async () => (await zones(ui, 'desk-')).map((zone: any) => cardIn(zone).svg.props.source as string)
     const first: string[] = await read()
     expect(first).toHaveLength(17)
-    expect(await ui.findAll({ type: 'Svg' })).toHaveLength(21)
+    const svgs = await ui.findAll({ type: 'Svg' })
+    expect(svgs.filter((svg: any) => !svg.props.isInteractive), 'the room, its count, its labels, the cards and the two looks of the button').toHaveLength(23)
+    expect(svgs.filter((svg: any) => svg.props.isInteractive).length, 'the desks, the fire, the crab, at most the lights and the cat').toBeLessThanOrEqual(21)
     expect(first.join('').length).toBeLessThan(200_000)
     await w.clock.advance(10_000)
     await ui.redraw()

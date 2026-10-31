@@ -74,7 +74,7 @@ async function readExports($: EngineInterface, m: Memory, links: readonly Sessio
 /** Reads the floor, unless the pane is closed and a plan holds the band: then nobody would see it. */
 export async function readFloor($: EngineInterface, m: Memory) {
   if (!onDisk(m)) return
-  if (isOpen(m.plan) && !(await paneOpen($))) return
+  if (isOpen(m.plan) && m.change.phase !== 'waiting' && !(await paneOpen($))) return
   const now = await $.clock.now()
   const links = await linksNow($, m, now)
   const rooms: FloorRoom[] = floorRooms(m.sessionId, links, await readExports($, m, links), now)

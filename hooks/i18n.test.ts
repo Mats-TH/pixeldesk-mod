@@ -21,7 +21,7 @@ const COMMAND_FR: [TextKey, string][] = [
   ['cmd.openedEmpty', 'PixelDesk ouvert. Les cartes apparaissent quand Claude lance un sous-agent.'],
   ['cmd.hidden', 'Panneau PixelDesk masqué. La barre reste visible et le suivi continue. Réaffiche-le avec /pixeldesk show.'],
   ['cmd.shown', 'Panneau PixelDesk de nouveau affiché.'],
-  ['cmd.usage', 'Option inconnue. Utilise /pixeldesk, /pixeldesk hide, /pixeldesk show ou /pixeldesk departure.'],
+  ['cmd.usage', 'Option inconnue. Utilise /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm ou /pixeldesk refresh.'],
 ]
 
 const COMMAND_EN: [TextKey, string][] = [
@@ -29,7 +29,7 @@ const COMMAND_EN: [TextKey, string][] = [
   ['cmd.openedEmpty', 'PixelDesk is open. Cards appear when Claude starts a subagent.'],
   ['cmd.hidden', 'PixelDesk panel hidden. The bar stays visible and tracking continues. Bring it back with /pixeldesk show.'],
   ['cmd.shown', 'PixelDesk panel is back on screen.'],
-  ['cmd.usage', 'Unknown option. Use /pixeldesk, /pixeldesk hide, /pixeldesk show or /pixeldesk departure.'],
+  ['cmd.usage', 'Unknown option. Use /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm or /pixeldesk refresh.'],
 ]
 
 describe('the two dictionaries', () => {
@@ -60,7 +60,8 @@ describe('the two dictionaries', () => {
   })
 
   test('no text speaks of the mod being off', () => {
-    for (const text of Object.values(fr)) expect(text).not.toMatch(/désactiv/i)
+    // The relaunches may be off: that is a setting of the mod, as the design says it.
+    for (const [key, text] of Object.entries(fr)) if (key !== 'hearth.card.warmOff') expect(text).not.toMatch(/désactiv/i)
     for (const text of Object.values(en)) expect(text).not.toMatch(/turned off|disabled/i)
   })
 

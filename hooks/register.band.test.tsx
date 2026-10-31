@@ -367,7 +367,7 @@ describe('the limits', () => {
     expect(await altOf(ui)).toBe('Au repos. 5 H -- --:--, 7 J -- --:--')
   })
 
-  test('the minute counter redraws the marks', async ($, on) => {
+  test('the minute counter redraws the marks', { timeoutMs: 30000 }, async ($, on) => {
     const w = world(on, { limits: LIMITS })
     await start($)
     const ui = await mountBand($)

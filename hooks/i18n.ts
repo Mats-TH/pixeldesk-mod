@@ -1,9 +1,12 @@
+import { hearthEn, hearthFr } from './i18n-hearth'
+
 /** The two languages of the mod. One per session, settled when it starts. */
 export type Language = 'fr' | 'en'
 
 const BRAND = 'PixelDesk'
 
 export const fr = {
+  ...hearthFr,
   brand: BRAND,
   // The command.
   'cmd.description': 'Affiche {brand} : la barre de progression des tâches et une carte en direct par sous-agent',
@@ -11,7 +14,7 @@ export const fr = {
   'cmd.openedEmpty': '{brand} ouvert. Les cartes apparaissent quand Claude lance un sous-agent.',
   'cmd.hidden': 'Panneau {brand} masqué. La barre reste visible et le suivi continue. Réaffiche-le avec /pixeldesk show.',
   'cmd.shown': 'Panneau {brand} de nouveau affiché.',
-  'cmd.usage': 'Option inconnue. Utilise /pixeldesk, /pixeldesk hide, /pixeldesk show ou /pixeldesk departure.',
+  'cmd.usage': 'Option inconnue. Utilise /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm ou /pixeldesk refresh.',
   'cmd.departure.current': 'Départ des bureaux : {name} ({value}). Change-le avec /pixeldesk departure plan ou /pixeldesk departure each.',
   'cmd.departure.set': 'Départ des bureaux réglé sur {name} ({value}).',
   'cmd.departure.usage': 'Valeur inconnue. Utilise /pixeldesk departure plan ou /pixeldesk departure each.',
@@ -48,6 +51,10 @@ export const fr = {
   'day.6': 'sam',
   // The pane.
   'pane.header': 'Bureau',
+  'pane.labels': 'Étiquettes des bureaux, cendre et enveloppe',
+  'pane.lights': 'Guirlande lumineuse',
+  'pane.cat': 'Le chat',
+  'pane.crab': 'Le crabe',
   'pane.working': '{n} au travail',
   'pane.done.one': '{n} fini',
   'pane.done.other': '{n} finis',
@@ -176,6 +183,7 @@ export const fr = {
 export type TextKey = keyof typeof fr
 
 export const en: Record<TextKey, string> = {
+  ...hearthEn,
   brand: BRAND,
   // The command.
   'cmd.description': 'Shows {brand}: a task progress bar and a live card for each subagent',
@@ -183,7 +191,7 @@ export const en: Record<TextKey, string> = {
   'cmd.openedEmpty': '{brand} is open. Cards appear when Claude starts a subagent.',
   'cmd.hidden': '{brand} panel hidden. The bar stays visible and tracking continues. Bring it back with /pixeldesk show.',
   'cmd.shown': '{brand} panel is back on screen.',
-  'cmd.usage': 'Unknown option. Use /pixeldesk, /pixeldesk hide, /pixeldesk show or /pixeldesk departure.',
+  'cmd.usage': 'Unknown option. Use /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm or /pixeldesk refresh.',
   'cmd.departure.current': 'When desks leave: {name} ({value}). Change it with /pixeldesk departure plan or /pixeldesk departure each.',
   'cmd.departure.set': 'When desks leave is now {name} ({value}).',
   'cmd.departure.usage': 'Unknown value. Use /pixeldesk departure plan or /pixeldesk departure each.',
@@ -220,6 +228,10 @@ export const en: Record<TextKey, string> = {
   'day.6': 'Sat',
   // The pane.
   'pane.header': 'Office',
+  'pane.labels': 'Desk labels, ash and envelope',
+  'pane.lights': 'String lights',
+  'pane.cat': 'The cat',
+  'pane.crab': 'The crab',
   'pane.working': '{n} working',
   'pane.done.one': '{n} done',
   'pane.done.other': '{n} done',

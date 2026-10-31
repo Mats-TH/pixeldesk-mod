@@ -2,15 +2,14 @@ import type { EngineInterface } from 'claude-code'
 
 import type { AgentRecord, PlanStep } from '../types'
 import { clearDesks, known, pacePoll, publish, settle } from './agents'
-import { guard, log, onDisk, planPath, readText, reason } from './disk'
+import { guard, log, onDisk, planPath, readText, reason, toast } from './disk'
 import { plural, t } from './i18n'
-import { cut, flat } from './lines'
+import { flat } from './lines'
 import { FRESH_TURN, PLAN_TOOL } from './memory'
 import type { Memory, Plan } from './memory'
 import { allDone, drawnPlan, isOpen, planFile, planFromFile, readSteps, reconcile, startsOver, taskAdded, taskChanged, todoSteps } from './plan'
 import { readPlan, writePlan, writeShimmer } from './state'
 
-const TOAST_MAX = 140
 const SHIMMER_MS = 350
 // How many calls of the main conversation a plan may sit through before the model hears about it.
 const STALE_CALLS = 8
@@ -47,14 +46,6 @@ async function showPlan($: EngineInterface, m: Memory) {
 
 async function savePlan($: EngineInterface, m: Memory) {
   if (m.plan && onDisk(m)) await guard($, m, 'plan file', () => $.fs.write(planPath(m), planFile(m.plan!)))
-}
-
-function toast($: EngineInterface, m: Memory, text: string) {
-  try {
-    $.ui.toast(cut(text, TOAST_MAX))
-  } catch (err) {
-    void log($, m, `toast: ${reason(err)}`)
-  }
 }
 
 /** A step just finished says so; the last one speaks for the whole list. */

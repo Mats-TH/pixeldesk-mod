@@ -8,6 +8,8 @@ import { FLOOR_DECOR, THEMES, WALL_DECOR, bulle, caseEtape, casier, compteur, en
 import type { Theme } from './pixel/decor'
 import { fit, textWidth } from './pixel/font'
 import { FONT_SIZE, GLYPHS, SPACE, UNIT } from './pixel/font-data'
+import { ASH_TOP, ash, envelope, fire, fireFrames, flue, spriteBody, stove } from './pixel/hearth'
+import type { AshLevel, EnvelopeState, FireLevel } from './pixel/hearth'
 import { TENUES, WOOD as W, agentHue, chair, crab, desk, person, skinOf } from './pixel/sprites'
 import type { DeskState } from './pixel/sprites'
 
@@ -20,19 +22,29 @@ export type { ManagerDesk }
 export const AT_REST: ManagerDesk = { working: false }
 /** The room of the conversation that leads others: the news that reached its tray, and whether one is on its way. */
 export type Chief = { shown: number; flying: boolean }
-/** `desks`: the agents, the manager apart: he is no arrival and his desk never leaves. `settings`: the button stands in the corner. */
-export type RoomInput = { sessionId: string; desks: RoomDesk[]; manager: ManagerDesk; previous: number; steps: PlanLine[]; tokens: number; width: number; height: number; chief?: Chief; settings?: boolean }
-/** A room ready to be placed: its body, the definitions it needs, by id, and the letters it writes. */
-export type Scene = { defs: Map<string, string>; letters: string; body: string; w: number; h: number }
+/** The plate over the stove: what it says, and the handover letter on it. `button`: the plate that takes a click. */
+export type HearthPanel = { title: string; sub: string; letter: EnvelopeState; button: boolean }
+/** What the room's hearth shows. `letter`: the envelope on the manager's desk. */
+export type HearthLook = { fire: FireLevel; ash: AshLevel; letter: EnvelopeState | null; panel: HearthPanel | null }
+export const COLD_HEARTH: HearthLook = { fire: 'out', ash: 'none', letter: null, panel: null }
+/** `desks`: the agents, the manager apart: he is no arrival and his desk never leaves. `settings`: the button stands in the corner. `hearth`: a room of its own has one; a cell of the floor has none. */
+export type RoomInput = { sessionId: string; desks: RoomDesk[]; manager: ManagerDesk; previous: number; steps: PlanLine[]; tokens: number; width: number; height: number; chief?: Chief; settings?: boolean; hearth?: HearthLook }
+/** What of a room moves on its own, for the layers: the lights on the wall as one path each, and the cat. */
+export type SceneLife = { lights: { odd: string; even: string; box: Box | null }; cat: (Box & { svg: string }) | null }
+/** A room ready to be placed: its body, the definitions it needs, by id, the letters it writes, and what its CSS adds. */
+export type Scene = { defs: Map<string, string>; letters: string; body: string; w: number; h: number; style: string; life: SceneLife }
 /**
+ * `layer` 'back': only what never moves, for the bottom image of a room in layers.
  * `base` is the width a floor cell shows, `plate` the name plate over its corner, in pixels of the room.
  * `detail` gives way under the size limit, step by step: the furniture, the small movements and the light, the end of
  * long labels, what hangs on the wall, more of the labels and the names of the desks, then all that moves at a desk,
  * and last the labels themselves. The screen and the box of every step of the plan always stay.
  */
-export type SceneOptions = { base?: number; plate?: { w: number; h: number }; detail?: number }
+export type SceneOptions = { base?: number; plate?: { w: number; h: number }; detail?: number; layer?: 'back' }
 
-const PX = 2
+export const PX = 2
+export const CELL_W = 8
+export const CELL_H = 21
 const BOARD_EDGE = 8
 // How far from the left of the pane, in true pixels, the wall stays clear for the settings button.
 const SETTINGS_CORNER = 52
@@ -46,10 +58,10 @@ const WALL = 75
 const DESK_W = 130
 const DESK_H = 106
 // What the sprite of a desk takes, inside the step between two desks.
-const SPRITE_W = 120
+export const SPRITE_W = 120
 const SPRITE_H = 90
-const TITLE = 16
-const INK = '#1B1730'
+export const TITLE = 16
+export const INK = '#1B1730'
 // From three rows on the room shows at about scale 1, in a pane about as high as it is wide.
 const OPEN_W = 780
 const OPEN_COL = 132
@@ -62,7 +74,7 @@ const CELL_COL = 114
 const PAIR_COL = 100
 
 /** `col` and `row`: the steps between desks. `s`: the scale of a desk in the room. `edge`: what the board leaves on its right. */
-type View = { w: number; h: number; cols: number; rows: number; extra: number; top: number; shift: number; col: number; row: number; s: number; edge: number }
+export type View = { w: number; h: number; cols: number; rows: number; extra: number; top: number; shift: number; col: number; row: number; s: number; edge: number }
 
 // Up to three agents stand on one row.
 const colsOf = (n: number) => (n > 3 ? Math.ceil(Math.sqrt(n)) : Math.max(1, n))
@@ -104,7 +116,7 @@ function cellOf(n: number, base: number, chief: boolean): View {
 }
 
 /** The same room stretched to a pane's shape: the floor grows and the desks stay centred on it. A floor cell also widens. */
-function sized(n: number, width: number, height: number, base?: number, chief = false): View {
+export function sized(n: number, width: number, height: number, base?: number, chief = false): View {
   const v = base === undefined ? viewOf(n) : cellOf(n, base, chief)
   const h = Math.max(v.h, Math.round((height * v.w) / width))
   const w = base === undefined ? v.w : Math.max(v.w, Math.round((width * h) / height))
@@ -123,16 +135,16 @@ function sized(n: number, width: number, height: number, base?: number, chief = 
 const seatX = (seats: number, v: View) => Math.round((v.w - seats * v.col) / 2) + Math.round((v.col - SPRITE_W * v.s) / 2) + v.shift
 
 /** The manager heads the room, on its axis, whatever stands below him. */
-const managerOrigin = (v: View) => ({ x: seatX(1, v), y: v.top + Math.round(v.extra / 2) })
+export const managerOrigin = (v: View) => ({ x: seatX(1, v), y: v.top + Math.round(v.extra / 2) })
 
 /** The last row, when it is not full, stays centred. */
-function deskOrigin(i: number, v: View, n: number) {
+export function deskOrigin(i: number, v: View, n: number) {
   const row = Math.floor(i / v.cols)
   const seats = row === Math.floor((n - 1) / v.cols) ? n - row * v.cols : v.cols
   return { x: seatX(seats, v) + (i % v.cols) * v.col, y: managerOrigin(v).y + (row + 1) * v.row }
 }
 
-const boxOf = (o: { x: number; y: number }, k: number) => ({ x: Math.round(o.x * k), y: Math.round(o.y * k), w: Math.round(SPRITE_W * k), h: Math.round(SPRITE_H * k) })
+const boxOf = (o: { x: number; y: number }, k: number, w = SPRITE_W, h = SPRITE_H) => ({ x: Math.round(o.x * k), y: Math.round(o.y * k), w: Math.round(w * k), h: Math.round(h * k) })
 
 /** Where each desk falls in a room of that size, for the hover zones. */
 export function deskBoxes(n: number, width: number, height: number) {
@@ -259,10 +271,10 @@ function floorTile() {
   return c
 }
 
-const scaled = (c: Canvas) => `<g transform="scale(${PX})">${paths(c)}</g>`
+export const scaled = (c: Canvas) => `<g transform="scale(${PX})">${paths(c)}</g>`
 const pattern = (id: string, c: Canvas) => `<pattern id="${id}" width="${c.w * PX}" height="${c.h * PX}" patternUnits="userSpaceOnUse">${scaled(c)}</pattern>`
-const def = (id: string, c: Canvas) => `<g id="${id}" transform="scale(${PX})">${paths(c)}</g>`
-const use = (id: string, x = 0, y = 0) => `<use href="#${id}"${x ? ` x="${x}"` : ''}${y ? ` y="${y}"` : ''}/>`
+export const def = (id: string, c: Canvas) => `<g id="${id}" transform="scale(${PX})">${paths(c)}</g>`
+export const use = (id: string, x = 0, y = 0) => `<use href="#${id}"${x ? ` x="${x}"` : ''}${y ? ` y="${y}"` : ''}/>`
 
 // Letters and digits take one character as an id: a floor writes thousands of them.
 const letterId = (ch: string) => (/[a-zA-Z]/.test(ch) ? ch : `g${ch.codePointAt(0)}`)
@@ -297,6 +309,8 @@ export function line(s: string, x: number, y: number, size: number, fill: string
 const CELL_BOARD_W = 120
 const CHIEF_BOARD_W = 164
 const ROOM_BOARD_W = 164
+// The wall's decor counts on a board this wide, so a plan does not move it.
+const STEADY_BOARD_W = 120
 const CELL_TELE = 1.25
 const STEP = 17
 const BOARD_TOP = 14
@@ -421,7 +435,7 @@ const phase = (i: number) => (i % 4 ? ` d${i % 4}` : '')
 const spot = (cls: string, d: string, fill?: string) => `<path class="${cls}"${fill ? ` fill="${fill}"` : ''} d="${d}"/>`
 
 /** The person at a desk: typing, shaking their head, or at rest. */
-function actor(d: RoomDesk, i: number, detail: number) {
+export function actor(d: RoomDesk, i: number, detail: number) {
   const hue = d.hue % TENUES.length
   if (detail >= 6) return use(`person-${hue}`, 44, -4)
   const skin = skinOf(TENUES[hue]!)
@@ -430,7 +444,7 @@ function actor(d: RoomDesk, i: number, detail: number) {
 }
 
 /** What shows the work: hands on the keys, a thought bubble, a pulsing screen and steam. */
-function work(d: RoomDesk, i: number, lean: boolean) {
+export function work(d: RoomDesk, i: number, lean: boolean) {
   const ph = phase(i)
   if (d.rest) return use('zz')
   if (d.state === 'failed') return `<g fill="#E4505F">${spot('al', 'M8 0h4v8h-4z')}${spot('al', 'M8 10h4v4h-4z')}</g>`
@@ -444,19 +458,19 @@ function work(d: RoomDesk, i: number, lean: boolean) {
 }
 
 const RAIL_RECT = `<rect x="8" y="52" width="104" height="8" fill="${RAIL_BACK}"/>`
-const ZZ = 'M82 4h8v2h-8zM86 6h2v2h-2zM84 8h2v2h-2zM82 10h8v2h-8zM92 0h6v2h-6zM94 2h2v2h-2zM92 4h6v2h-6z'
+export const ZZ = 'M82 4h8v2h-8zM86 6h2v2h-2zM84 8h2v2h-2zM82 10h8v2h-8zM92 0h6v2h-6zM94 2h2v2h-2zM92 4h6v2h-6z'
 
 /** The manager as a desk: at work he shows his plan, at rest his desk stays closed. */
-const managerSeat = (m: ManagerDesk): RoomDesk =>
+export const managerSeat = (m: ManagerDesk): RoomDesk =>
   m.working ? { title: t('role.manager'), state: 'working', hue: 0, done: m.done ?? 0, total: m.total ?? 0, live: m.live ?? false } : { title: t('role.manager'), state: 'done', hue: 0, rest: true }
-const deskId = (d: RoomDesk) => `desk-${d.rest ? 'rest' : d.state}`
+export const deskId = (d: RoomDesk) => `desk-${d.rest ? 'rest' : d.state}`
 
 /**
  * The rail of a desk, at most four shapes. A level is one definition per value, so a full floor
  * stays light; dots that take turns stay plain, as CSS moves nothing inside a <use>.
  * On the last step of the size limit a plan falls on one of eleven bands: the definitions stop growing.
  */
-function deskRail(d: RoomDesk, detail: number, need: (id: string, make: () => string) => void) {
+export function deskRail(d: RoomDesk, detail: number, need: (id: string, make: () => string) => void) {
   const total = d.total ?? 0
   const lean = detail >= 7 && total > 0
   const shown = lean ? { ...d, done: Math.round((Math.min(d.done ?? 0, total) * 10) / total) * 2, total: 20, live: false } : d
@@ -475,10 +489,11 @@ function deskRail(d: RoomDesk, detail: number, need: (id: string, make: () => st
   return use('rb') + railDots(d.state, 50, 54)
 }
 
-/** Small lights and stars that twinkle on the decor the room drew. */
-function sparkle(room: ReturnType<typeof drawRoom>) {
+/** Small lights and stars that twinkle on the decor the room drew, and the part of the wall they take. */
+function sparks(room: ReturnType<typeof drawRoom>): SceneLife['lights'] {
   const odd: string[] = []
   const even: string[] = []
+  const boxes: Box[] = []
   for (const it of room.wall) {
     if (it.id === 'guirlande') {
       for (let i = 6; i < it.w; i += 13) {
@@ -489,8 +504,125 @@ function sparkle(room: ReturnType<typeof drawRoom>) {
     if (it.id === 'fenetre') {
       for (const [x, y] of [[12, 8], [20, 11], [33, 7], [44, 15]] as const) (x % 2 ? odd : even).push(`M${(it.x + x) * PX} ${(it.y + y) * PX}h2v2h-2z`)
     }
+    if (it.id === 'guirlande' || it.id === 'fenetre') boxes.push({ x: it.x * PX, y: it.y * PX, w: it.w * PX, h: it.h * PX })
   }
-  return (odd.length ? spot('tw', odd.join(''), '#FFF6DE') : '') + (even.length ? spot('tw d2', even.join(''), '#FFF6DE') : '')
+  if (!boxes.length) return { odd: '', even: '', box: null }
+  const [x, y] = [Math.min(...boxes.map(b => b.x)), Math.min(...boxes.map(b => b.y))]
+  return { odd: odd.join(''), even: even.join(''), box: { x, y, w: Math.max(...boxes.map(b => b.x + b.w)) - x, h: Math.max(...boxes.map(b => b.y + b.h)) - y } }
+}
+
+/** The lights, as CSS moves them. */
+export const lightPaths = (l: SceneLife['lights']) => (l.odd ? spot('tw', l.odd, '#FFF6DE') : '') + (l.even ? spot('tw d2', l.even, '#FFF6DE') : '')
+
+// The stove stands by the left of the room, at this share of what the pane shows, as in the design.
+const STOVE_TOP = 326 / 760
+const STOVE_W = 96
+const STOVE_FEET = 122
+/** The widths the design sizes the stove for: it keeps the size of a room of those, whatever the room around it. */
+const STOVE_BASE = { alone: 540, room: 615 }
+// The design draws the plate on a pane 780 wide over a room of 615, at this scale of the stove.
+const PLATE_K = 615 / 780
+const PLATE = { x: 8, y: 270 - 326, w: 227, h: 42, tall: 58, button: 110, buttonH: 32 }
+// Where the letter lies on the manager's desk.
+const LETTER_DESK = { x: 54, y: 33 }
+const LETTER_W = 28
+const LETTER_H = 22
+const round = (n: number, places = 4) => Math.round(n * 10 ** places) / 10 ** places
+
+/** The room's scale on the pane, and what a short pane loses at the top and at the bottom, in pixels of the pane. */
+export function paneOf(p: Pick<RoomInput, 'desks' | 'width' | 'height'>) {
+  const v = sized(p.desks.length, p.width, p.height)
+  const k = p.width / v.w
+  return { v, k, crop: Math.max(0, v.h * k - p.height) / 2 }
+}
+
+export type StoveSpot = { x: number; y: number; s: number }
+
+/** Where the stove's grid starts, in pixels of the room, and how much larger than a room's pixels it is drawn. */
+export function stoveSpot(p: Pick<RoomInput, 'desks' | 'width' | 'height'>): StoveSpot {
+  const { v, k, crop } = paneOf(p)
+  const n = p.desks.length
+  const rug = rugOf(v, n, undefined, false)
+  const s = Math.min(v.w / (n < 2 ? STOVE_BASE.alone : STOVE_BASE.room), Math.max(1, rug.x / STOVE_W))
+  return { x: 0, y: (crop + STOVE_TOP * p.height) / k, s }
+}
+
+/** The floor the stove takes, for what stands on it and for its hover zone, in pixels of the pane. */
+export function hearthBox(n: number, width: number, height: number) {
+  const place = { desks: Array.from({ length: n }, () => ({})) as RoomDesk[], width, height }
+  const at = stoveSpot(place)
+  return boxOf(at, paneOf(place).k, STOVE_W * at.s, STOVE_FEET * at.s)
+}
+
+/** Where the letter lies on the manager's desk, for its hover zone, in pixels of the pane. */
+export function letterBox(n: number, width: number, height: number) {
+  const { v, k } = paneOf({ desks: Array.from({ length: n }, () => ({})) as RoomDesk[], width, height })
+  const at = managerOrigin(v)
+  return boxOf({ x: at.x + LETTER_DESK.x, y: at.y + LETTER_DESK.y }, k, LETTER_W, LETTER_H)
+}
+
+/** A drawing on the stove's grid, 2 pixels of the room to a cell. */
+export const onStove = (at: StoveSpot, body: string) => `<g transform="translate(${round(at.x)} ${round(at.y)}) scale(${round(PX * at.s)})">${body}</g>`
+
+// How long a fire holds each of its images.
+const FLAME_S = 0.24
+const SLOW_FLAME_S = 0.5
+
+/** Its images in turn, by CSS alone: a new level is the only reason to touch it. */
+export function flames(level: FireLevel) {
+  const n = fireFrames(level)
+  const beat = n > 2 ? FLAME_S : SLOW_FLAME_S
+  const images = Array.from({ length: n }, (_, i) => `<g class="f" style="animation-delay:${round((i - n) * beat)}s">${spriteBody(fire(level, i))}</g>`)
+  return { body: images.join(''), style: `.f{animation:fl ${round(n * beat)}s steps(1) infinite}@keyframes fl{0%{opacity:1}${round(100 / n)}%,100%{opacity:0}}@media (prefers-reduced-motion: reduce){.f{animation:none;opacity:0}.f:first-child{opacity:1}}` }
+}
+
+const PLATE_EDGES = ['#3B2318', '#8A5A3A', '#4A2C2A'] as const
+const PLATE_FILL = '#F4E4C1'
+const SHADOW_FILL = 'fill="#3B2318" fill-opacity=".62"'
+const rectOf = (x: number, y: number, w: number, h: number, fill: string) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`
+const letterAt = (state: EnvelopeState, x: number, y: number) => `<g transform="translate(${x} ${y}) scale(${PX})">${spriteBody(envelope(state))}</g>`
+
+// The plate's words: its title, and the small line under it.
+const PLATE_TEXT = { x: 46, size: 18, sub: 16 }
+const BUTTON_TEXT = { x: 44, y: 2, size: 18 }
+
+/** The plate, on the design's own pixels. */
+function plateBody(panel: HearthPanel) {
+  const h = panel.sub ? PLATE.tall : PLATE.h
+  const edges = `<rect x="4" y="4" width="${PLATE.w}" height="${h}" ${SHADOW_FILL}/>${rectOf(0, 0, PLATE.w, h, PLATE_EDGES[0])}${rectOf(2, 2, PLATE.w - 4, h - 4, PLATE_EDGES[1])}${rectOf(5, 5, PLATE.w - 10, h - 10, PLATE_EDGES[2])}${rectOf(7, 7, PLATE.w - 14, h - 14, PLATE_FILL)}`
+  const title = line(panel.title, PLATE_TEXT.x, panel.sub ? 6 : 9, PLATE_TEXT.size, INK)
+  return `${edges}${letterAt(panel.letter, 13, Math.round(h / 2) - 11)}${title}${panel.sub ? line(panel.sub, PLATE_TEXT.x, 27, PLATE_TEXT.sub, '#7A4A32') : ''}`
+}
+
+/** The button on the stove, at rest in gold, under the pointer in cream. */
+export function buttonBody(label: string, lit: boolean) {
+  const [edge, fill] = lit ? ['#E4633A', '#FFF6DE'] : [PLATE_EDGES[0], '#FFC857']
+  return `<rect x="4" y="4" width="${PLATE.button}" height="${PLATE.buttonH}" ${SHADOW_FILL}/>${rectOf(0, 0, PLATE.button, PLATE.buttonH, edge)}${rectOf(2, 2, PLATE.button - 4, PLATE.buttonH - 4, fill)}${letterAt('discreet', 10, 5)}${line(label, BUTTON_TEXT.x, BUTTON_TEXT.y, BUTTON_TEXT.size, INK)}`
+}
+
+/** The plate's corner over the stove, and its scale. */
+export const plateAt = (at: StoveSpot) => {
+  const k = round(at.s * PLATE_K)
+  return { x: round(at.x + PLATE.x * k), y: round(at.y + PLATE.y * k), k }
+}
+
+/** The room of the button, in pixels of the room. */
+export const buttonBox = (at: StoveSpot) => {
+  const c = plateAt(at)
+  return { x: c.x, y: c.y, w: PLATE.button * c.k, h: PLATE.buttonH * c.k, k: c.k }
+}
+
+/**
+ * What lies in front of the stove and on the desk, in the one image that may change at any time.
+ * `desk`: where the manager's desk stands.
+ */
+export function hearthFront(look: HearthLook, at: StoveSpot, desk: { x: number; y: number }) {
+  const heap = look.ash === 'none' ? '' : onStove(at, `<g transform="translate(0 ${ASH_TOP})">${spriteBody(ash(look.ash, 0))}</g>`)
+  const letter = look.letter ? letterAt(look.letter, desk.x + LETTER_DESK.x, desk.y + LETTER_DESK.y) : ''
+  const c = plateAt(at)
+  const panel = look.panel
+  const plate = panel ? `<g transform="translate(${c.x} ${c.y}) scale(${c.k})">${panel.button ? buttonBody(panel.title, false) : plateBody(panel)}</g>` : ''
+  return { body: heap + letter + plate, letters: panel ? `${panel.title}${panel.sub}` : '' }
 }
 
 export const MOTION = `.bo{animation:bo .6s steps(2) infinite}@keyframes bo{to{transform:translateY(-2px)}}
@@ -614,6 +746,8 @@ export function roomScene(p: RoomInput, o: SceneOptions = {}): Scene {
   const teleW = 72 * teleK
 
   const { w: rugW, h: rugH, x: rugX, y: rugY } = rugOf(v, n, o.base, !!p.chief)
+  // A floor cell shows no hearth: the conversation it stands for keeps its own.
+  const hearth = p.hearth && !cell ? stoveSpot(p) : null
   // The tray stands after the last desk of the widest row, level with the manager: the tube runs down clear of them all.
   const seats = Math.min(v.cols, Math.max(1, n))
   const tray = p.chief ? { x: seatX(seats, v) + (seats - 1) * v.col + Math.round(SPRITE_W * v.s) + TRAY_DX - SPRITE_W, y: managerOrigin(v).y + TRAY_DY } : null
@@ -627,6 +761,8 @@ export function roomScene(p: RoomInput, o: SceneOptions = {}): Scene {
     ...(o.plate ? { plate: cells({ x: 0, y: 0, w: o.plate.w, h: o.plate.h }) } : {}),
     ...(tray ? { tube: cells({ x: tray.x + TUBE_DX, y: tray.y + TUBE_DY, w: TUBE_W, h: v.h - tray.y - TUBE_DY }) } : {}),
     ...(p.settings ? { corner: Math.ceil((SETTINGS_CORNER * v.w) / p.width / PX) } : {}),
+    ...(cell ? {} : { wallEnd: (v.w - ROOM_MARGIN - STEADY_BOARD_W - 10 - 72) / PX }),
+    ...(hearth ? { stove: cells({ x: hearth.x, y: hearth.y, w: STOVE_W * hearth.s, h: STOVE_FEET * hearth.s }) } : {}),
   })
   const room = { ...drawn, floor: detail ? [] : drawn.floor, wall: detail >= 4 ? [] : drawn.wall }
   const T = THEMES[room.theme]
@@ -660,10 +796,16 @@ export function roomScene(p: RoomInput, o: SceneOptions = {}): Scene {
   for (const it of room.floor) need(`f-${it.id}`, () => def(`f-${it.id}`, FLOOR_DECOR[it.id]()))
 
   const titles = agents.map(d => (detail >= 5 ? '' : fit(d.title, TITLE, 98)))
-  const items: { bottom: number; svg: string }[] = room.floor.map(it => {
+  const back = o.layer === 'back'
+  const catAt = room.floor.find(it => it.id === 'chat')
+  // Alone in a drawing of its own, the cat lies where it would, and stands out of the back.
+  const items: { bottom: number; svg: string }[] = room.floor.flatMap(it => {
     const svg = use(`f-${it.id}`, it.x * PX, it.y * PX)
-    return { bottom: it.y + it.h, svg: it.id === 'chat' ? `<g class="sl">${svg}</g>` : svg }
+    if (it.id !== 'chat') return [{ bottom: it.y + it.h, svg }]
+    return back ? [] : [{ bottom: it.y + it.h, svg: `<g class="sl">${svg}</g>` }]
   })
+  const fired = hearth && !back ? flames(p.hearth!.fire) : null
+  if (hearth) items.push({ bottom: (hearth.y + STOVE_FEET * hearth.s) / PX, svg: onStove(hearth, `${spriteBody(flue())}${spriteBody(stove())}${fired?.body ?? ''}`) })
   const seat = (d: RoomDesk, i: number, at: { x: number; y: number }, title: string, fresh: boolean) => {
     const tx = Math.round(60 - textWidth(title, TITLE) / 2)
     // Past the point where nothing moves at a desk, a person and a desk make one definition: a full floor writes hundreds.
@@ -676,19 +818,22 @@ export function roomScene(p: RoomInput, o: SceneOptions = {}): Scene {
     items.push({ bottom: (at.y + SPRITE_H * v.s) / PX, svg: `<g transform="translate(${at.x} ${at.y})${shrink}"${fresh ? ' opacity="0"' : ''}>${fade}${body}</g>` })
   }
   // The manager comes last in the phases, and his plate stays to the last step of the size limit.
-  seat(boss, n, managerOrigin(v), boss.title, false)
-  agents.forEach((d, i) => seat(d, i, deskOrigin(i, v, n), titles[i]!, i >= p.previous && p.previous !== n))
+  if (!back) seat(boss, n, managerOrigin(v), boss.title, false)
+  if (!back) agents.forEach((d, i) => seat(d, i, deskOrigin(i, v, n), titles[i]!, i >= p.previous && p.previous !== n))
   // The tray and the counter stay to the last step of the size limit.
   if (p.chief && tray) items.push({ bottom: (tray.y + 66) / PX, svg: mailroom(p.chief, tray.x, tray.y, v.h) })
   items.sort((a, b) => a.bottom - b.bottom)
 
   const win = room.wall.find(it => it.id === 'fenetre')
+  const life: SceneLife = { lights: sparks(room), cat: catAt ? { x: catAt.x * PX, y: catAt.y * PX, w: catAt.w * PX, h: catAt.h * PX, svg: paths(FLOOR_DECOR.chat(), PX) } : null }
+  const front = hearth && !back ? hearthFront(p.hearth!, hearth, managerOrigin(v)) : null
+  const crabbed = `<g class="c" style="animation-delay:-${seedOf(p.sessionId) % 80}s"><g class="lg">${use('crab', Math.round(v.w / 2) - 20, v.h - 34)}</g></g>`
   const body = `<rect width="${v.w}" height="102" fill="url(#${wall})"/><rect y="102" width="${v.w}" height="48" fill="url(#${wainscot})"/><rect y="150" width="${v.w}" height="${v.h - 150}" fill="url(#floor)"/>${use('trims')}
-${use(rug, rugX, rugY)}${detail >= 2 ? '' : lights(v, win ? win.x * PX : null)}${room.wall.map(it => use(hung(it), it.x * PX, it.y * PX)).join('')}${sparkle(room)}
+${use(rug, rugX, rugY)}${detail >= 2 ? '' : lights(v, win ? win.x * PX : null)}${room.wall.map(it => use(hung(it), it.x * PX, it.y * PX)).join('')}${back ? '' : lightPaths(life.lights)}
 ${screen(teleX, teleY, teleK)}${board(plan, p.steps, boardX, boardY)}
-${items.map(it => it.svg).join('')}<g class="c" style="animation-delay:-${seedOf(p.sessionId) % 80}s"><g class="lg">${use('crab', Math.round(v.w / 2) - 20, v.h - 34)}</g></g>`
-  const words = `${t('room.tokens')}${boss.title}${plan.title}${p.steps.length ? '' : t('room.noPlan')}${p.chief?.shown ?? ''}`
-  return { defs, letters: `${words}${titles.join('')}${plan.labels.join('')}`, body, w: v.w, h: v.h }
+${items.map(it => it.svg).join('')}${back ? '' : crabbed}${front?.body ?? ''}`
+  const words = `${t('room.tokens')}${boss.title}${plan.title}${p.steps.length ? '' : t('room.noPlan')}${p.chief?.shown ?? ''}${front?.letters ?? ''}`
+  return { defs, letters: `${words}${titles.join('')}${plan.labels.join('')}`, body, w: v.w, h: v.h, style: fired?.style ?? '', life }
 }
 
 const box = (w: number, h: number) => `0 0 ${w} ${h}`
@@ -699,10 +844,10 @@ function zoomOf(p: RoomInput, w: number, h: number) {
   return p.previous !== p.desks.length ? `<animate attributeName="viewBox" from="${Math.round((w - was.w) / 2)} 0 ${was.w} ${was.h}" to="${box(w, h)}" dur=".8s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".4 0 .2 1"/>` : ''
 }
 
-function draw(p: RoomInput, detail: number): string {
-  const s = roomScene(p, { detail })
+function draw(p: RoomInput, detail: number, layer?: 'back'): string {
+  const s = roomScene(p, { detail, ...(layer ? { layer } : {}) })
   return `${svgOpen(p.width, p.height, box(s.w, s.h))}
-<style>${MOTION}</style>
+<style>${MOTION}${s.style}</style>
 ${zoomOf(p, s.w, s.h)}<defs>${[...s.defs.values()].join('')}${letterDefs(s.letters)}</defs>
 ${s.body}
 </svg>`
@@ -718,12 +863,19 @@ let lastKey = ''
 let lastSvg = ''
 
 /** Same input, same string: an unchanged source never reloads the drawing. The count is not part of it. */
-export function roomSvg(p: RoomInput): string {
-  const key = JSON.stringify([getLanguage(), { ...p, tokens: 0 }])
+function drawn(key: string, make: (detail: number) => string) {
   if (key !== lastKey) {
     lastKey = key
     // A full room gives up its furniture before it gives up a desk.
-    lastSvg = [1, 2, 3, 4, 5, 6, 7].reduce((svg, detail) => (svg.length > MAX_SVG ? draw(p, detail) : svg), draw(p, 0))
+    lastSvg = [1, 2, 3, 4, 5, 6, 7].reduce((svg, detail) => (svg.length > MAX_SVG ? make(detail) : svg), make(0))
   }
   return lastSvg
+}
+
+export const roomSvg = (p: RoomInput): string => drawn(JSON.stringify([getLanguage(), { ...p, tokens: 0 }]), detail => draw(p, detail))
+
+/** The bottom image of a room in layers: neither a desk nor the hearth's state can change it. */
+export function roomBackSvg(p: RoomInput): string {
+  const still = { ...p, tokens: 0, desks: p.desks.map(() => ({ title: '', state: 'done' as const, hue: 0 })), manager: AT_REST, hearth: COLD_HEARTH }
+  return drawn(JSON.stringify(['back', getLanguage(), still]), detail => draw(still, detail, 'back'))
 }

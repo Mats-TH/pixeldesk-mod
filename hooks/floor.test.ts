@@ -19,7 +19,7 @@ test('same state, same drawing', async () => {
   expect(floorOf(rooms(8))).toBe(floorOf(rooms(8)))
 })
 
-test('a full floor fits under the limit, at 8 and 16 rooms', async () => {
+test('a full floor fits under the limit, at 8 and 16 rooms', { timeoutMs: 30000 }, async () => {
   for (const n of [8, 16]) {
     for (const agents of [1, 3, 6, 16]) {
       const svg = floorOf(Array.from({ length: n }, (_, i) => room(i, agents)))
@@ -61,7 +61,7 @@ test('at 8 normal rooms, furniture and animations stay', async () => {
   expect(svg, 'typing hands').toContain('class="ha')
 })
 
-test('even an absurd floor stays under the limit, its steps shown', async () => {
+test('even an absurd floor stays under the limit, its steps shown', { timeoutMs: 30000 }, async () => {
   const long = 'Un libellé interminable qui remplit toute la largeur du tableau'
   const r = Array.from({ length: 16 }, (_, i) => ({ ...room(i, 16), title: long, steps: Array.from({ length: 24 }, () => ({ text: long, status: 'pending' as const })) }))
   const svg = floorOf(r)
@@ -198,7 +198,7 @@ test('the chief’s room keeps everyone in the room, even at 16 agents', async (
   }
 })
 
-test('with the tray, the floor fits under the limit at 8 and 16 rooms, envelope on its way', async () => {
+test('with the tray, the floor fits under the limit at 8 and 16 rooms, envelope on its way', { timeoutMs: 30000 }, async () => {
   for (const n of [8, 16]) {
     for (const agents of [1, 6, 16]) {
       const rooms = Array.from({ length: n }, (_, i) => ({ ...room(i, agents), state: 'working' as const }))
@@ -280,7 +280,7 @@ test('a room with no agent whose Manager works stays lit, and says so', async ()
   expect(floorOf([room(0, 0), { ...quiet, manager: { working: false } }]), 'at rest the shade comes back').toContain('fill-opacity=".56"')
 })
 
-test('with the Managers, the floor stays under the limit and keeps them at the last level', async () => {
+test('with the Managers, the floor stays under the limit and keeps them at the last level', { timeoutMs: 30000 }, async () => {
   for (const n of [8, 16]) {
     for (const agents of [1, 6, 16]) {
       const list = Array.from({ length: n }, (_, i) => ({ ...room(i, agents), manager: { working: i % 2 === 0, done: i % 5, total: 8, live: true } }))

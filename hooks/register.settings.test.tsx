@@ -48,6 +48,8 @@ describe('the button', () => {
     const normal = await sourceOf(ui, 'settings-look')
     const hover = kids(await ui.find({ key: 'settings-button' }))[0]
     expect(hover).toMatchObject({ props: { display: 'none' }, hover: { display: 'flex' } })
+    const look = await ui.find({ key: 'settings-look' })
+    expect({ left: hover.props.left, top: hover.props.top, width: hover.props.width, height: hover.props.height }).toEqual({ left: 0, top: 0, width: look?.props.width, height: look?.props.height })
     expect(hover.props.key).toBeUndefined()
     await press(ui, 'settings-button-0')
     expect(await sourceOf(ui, 'settings-look')).not.toBe(normal)
@@ -63,7 +65,7 @@ describe('the button', () => {
     const [source, alt] = [await sourceOf(ui), await altOf(ui)]
     await press(ui, 'settings-button-1')
     expect(w.state.settings.open).toBe(true)
-    expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau.")
+    expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
     expect([await sourceOf(ui), await altOf(ui)]).toEqual([source, alt])
     await press(ui, 'settings-button-0')
     expect(await hasKey(ui, 'settings-panel')).toBe(false)
@@ -76,7 +78,7 @@ describe('the button', () => {
     const ui = await mountPane($)
     expect(await press(ui, 'settings-button-1')).toEqual({ element: 'settings-button-1' })
     expect(w.state.settings.open).toBe(true)
-    for (const [key, departure] of [['settings-each-0', 'each'], ['settings-plan-0', 'plan'], ['settings-each-3', 'each'], ['settings-plan-2', 'plan']] as const) {
+    for (const [key, departure] of [['settings-each-0', 'each'], ['settings-plan-0', 'plan'], ['settings-each-1', 'each'], ['settings-plan-2', 'plan']] as const) {
       await press(ui, key)
       expect(w.state.settings.departure).toBe(departure)
     }
@@ -89,7 +91,7 @@ describe('the button', () => {
     await start($)
     const ui = await mountPane($)
     await press(ui, 'settings-button-0')
-    for (const button of await ui.findAll({ type: 'Button' })) expect(button.props.key).toMatch(/^settings-(button|plan|each)-\d$/)
+    for (const button of await ui.findAll({ type: 'Button' })) expect(button.props.key).toMatch(/^(settings-(button|plan|each)-\d|hearth-(warm-on|warm-off|mode-auto|mode-manual|compact-[0-3]|compact-always)(-\d)?)$/)
     expect(w.state.settings.open).toBe(true)
   })
 })
@@ -107,8 +109,8 @@ describe('the panel', () => {
     const { ui } = await opened($, on)
     const panel = await ui.find({ key: 'settings-panel' })
     expect(panel.props).toMatchObject({ position: 'absolute', left: 1, top: 2 })
-    expect((await ui.find({ key: 'settings-zone-plan' })).props).toMatchObject({ position: 'absolute', left: 2, top: 4, width: 28, height: 3 })
-    expect((await ui.find({ key: 'settings-zone-each' })).props).toMatchObject({ position: 'absolute', left: 2, top: 7, width: 28, height: 4 })
+    expect((await ui.find({ key: 'settings-zone-plan' })).props).toMatchObject({ position: 'absolute', left: 2, top: 3, width: 25, height: 3 })
+    expect((await ui.find({ key: 'settings-zone-each' })).props).toMatchObject({ position: 'absolute', left: 2, top: 6, width: 25, height: 2 })
     expect(kids(await ui.find({ key: 'settings-zone-plan' })).map((el: any) => el.props.key)).toEqual(['settings-plan'])
     const [lit, zone] = kids(await ui.find({ key: 'settings-zone-each' }))
     expect(zone.props.key).toBe('settings-each')
@@ -120,10 +122,10 @@ describe('the panel', () => {
   test('an option saves, keeps the other keys, the panel stays, any row answers', async ($, on) => {
     const { w, ui } = await opened($, on, { files: { [SETTINGS_FILE]: '{"theme":"night","hidden":true}' } })
     const [source, alt] = [await sourceOf(ui), await altOf(ui)]
-    await press(ui, 'settings-each-3')
+    await press(ui, 'settings-each-1')
     expect(w.file(SETTINGS_FILE)).toBe('{\n  "theme": "night",\n  "hidden": true,\n  "departure": "each"\n}\n')
-    expect(w.state.settings).toEqual({ open: true, departure: 'each' })
-    expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi.")
+    expect(w.state.settings).toEqual({ open: true, departure: 'each', warm: true, handoffMode: 'auto', compactBefore: 2 })
+    expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
     expect([await sourceOf(ui), await altOf(ui)]).toEqual([source, alt])
     await press(ui, 'settings-each-0')
     expect(w.json(SETTINGS_FILE).departure, 'the same again').toBe('each')
@@ -226,7 +228,7 @@ describe('the panel', () => {
   })
 
   test('a desk under the panel gets its zone back when it closes', async ($, on) => {
-    const { w, ui } = await opened($, on, {}, { bodyColumns: 34, scroll: { offset: 0, bodyRows: 16 } })
+    const { w, ui } = await opened($, on, {}, { bodyColumns: 34, scroll: { offset: 0, bodyRows: 30 } })
     await sendPlan($, [step('One', 'in_progress')], 'Job')
     for (const id of ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']) await spawn($, w, id)
     await ui.redraw()
@@ -304,7 +306,7 @@ describe('in both languages', () => {
     await start($)
     const ui = await mountPane($)
     await press(ui, 'settings-button-0')
-    expect(await altOf(ui, 'settings-panel')).toBe('Settings. When desks leave. End of plan, selected. As they finish.')
+    expect(await altOf(ui, 'settings-panel')).toBe('Settings. When desks leave. End of plan, selected. As they finish. Cache. Keep the cache warm, selected. Handoff. Automatic, selected. Manual. Compacts twice, then changes conversation.')
     expect(await altOf(ui, 'settings-look')).toBe('Close settings')
   })
 
@@ -313,7 +315,7 @@ describe('in both languages', () => {
     await start($)
     const ui = await mountPane($)
     await press(ui, 'settings-button-0')
-    expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi.")
+    expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
   })
 
   test('a call while the panel is open leaves it open', async ($, on) => {

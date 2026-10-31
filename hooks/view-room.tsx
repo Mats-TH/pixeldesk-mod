@@ -1,18 +1,24 @@
 import type { EngineInterface, RenderElement } from 'claude-code'
 
-import type { AgentRecord, ChatTurn, DrawnPlan, Seen, SettingsView } from '../types'
+import type { AgentRecord, ChatTurn, DrawnPlan, Handoff, Hearth, Seen, SettingsView } from '../types'
 import { desk, metaOf, sayOf, summaryOf } from './agents'
-import { bubblePlace, agentCard, cardAlt, cardSvg, managerCard, stepCard } from './card'
+import { SHADOW, WIDE, bubblePlace, agentCard, cardAlt, cardPlace, cardSvg, managerCard, stepCard, zoneCells } from './card'
 import type { CardZone, StepAgent } from './card'
+import { handoffCard } from './card-handoff'
+import type { HandoffCard } from './card-handoff'
+import { hearthCard } from './card-hearth'
 import { managerSay, minutesBetween } from './chat'
 import { managerOf } from './desks'
 import { log } from './disk'
+import { seedOf } from './draw'
 import { plural, t } from './i18n'
 import type { Memory } from './memory'
-import { boardLines, deskBoxes, lineSvg, managerBox, roomCountSvg, roomSvg, viewOf, zoomPair } from './room'
-import type { RoomDesk, RoomInput } from './room'
+import { COLD_HEARTH, boardLines, deskBoxes, hearthBox, letterBox, lineSvg, managerBox, roomBackSvg, roomCountSvg, roomSvg, viewOf, zoomPair } from './room'
+import type { HearthLook, HearthPanel, RoomDesk, RoomInput } from './room'
+import { buttonLit, crabLayer, decorLayers, deskLayers, fireLayer, keeperLayer, labelsSvg } from './room-layers'
+import type { Layer } from './room-layers'
 import { CELL_H, CELL_W, cellsOf, hoverZone } from './view-shared'
-import { panelCells, settingsElements } from './view-settings'
+import { panelCells, pressRows, settingsElements } from './view-settings'
 import type { PanelCells } from './view-settings'
 import type { Frame, Table } from './view-shared'
 
@@ -28,6 +34,8 @@ export type RoomView = {
   now: number
   chat: ChatTurn
   settings: SettingsView
+  hearth: Hearth | null
+  handoff: Handoff | null
 }
 
 /** What the open settings panel leaves a zone: it only exists from its right or from below it. */
@@ -126,12 +134,128 @@ function reveals({ Box, Svg }: Table, view: RoomView, input: Pick<RoomInput, 'de
   })
 }
 
-/** The room and its count, each sent once with the zoom of an arrival. */
-function drawings(m: Memory, input: RoomInput, previous: number) {
+/**
+ * The image under all else and its count, each sent once with the zoom of an arrival. `still`: a plain image reloads
+ * at no cost, so nothing holds its zoom back once the arrival is over.
+ */
+function drawings(m: Memory, input: RoomInput, previous: number, image: (p: RoomInput) => string, still: boolean) {
   const n = input.desks.length
   const at = (zoom: boolean) => ({ ...input, previous: zoom ? previous : n })
-  m.roomPair = zoomPair(m.roomPair, previous !== n, zoom => roomSvg(at(zoom)), zoom => roomCountSvg(at(zoom)))
+  const pair = zoomPair(m.roomPair, previous !== n, zoom => image(at(zoom)), zoom => roomCountSvg(at(zoom)))
+  m.roomPair = still && previous === n ? { ...pair, image: { ...pair.image, sent: pair.image.plain } } : pair
   return m.roomPair
+}
+
+/** What the plate over the stove says, when it says anything. */
+function panelOf(hearth: Hearth | null, handoff: Handoff | null): HearthPanel | null {
+  const title = t('hearth.panel.title')
+  const panel = (sub: string, letter: HearthPanel['letter']) => ({ title, sub, letter, button: false })
+  switch (handoff?.phase) {
+    case 'offered': return { title: t('hearth.panel.change'), sub: '', letter: 'discreet', button: true }
+    case 'waiting': {
+      const n = handoff.waitingAgents + handoff.waitingChats
+      return panel(n ? plural('hearth.panel.after', n, { n }) : t('hearth.panel.afterTurn'), 'waiting')
+    }
+    case 'writing': return panel(t('hearth.panel.writing'), 'discreet')
+    case 'ready': return panel(t('hearth.panel.ready'), 'bright')
+    default: return hearth?.ash === 'full' && handoff?.phase !== 'failed' ? panel('', 'discreet') : null
+  }
+}
+
+const LETTERS: Partial<Record<Handoff['phase'], HearthLook['letter']>> = { offered: 'discreet', waiting: 'waiting', writing: 'discreet', ready: 'bright', failed: 'discreet' }
+
+/** The hearth as the room shows it. A visit holds back what the logic has already moved, until the keeper gets there. */
+function hearthLook(m: Memory, { hearth, handoff }: RoomView): HearthLook {
+  const letter = LETTERS[handoff?.phase ?? 'idle'] ?? null
+  if (!hearth) return { ...COLD_HEARTH, letter }
+  const shown = m.hearthShown ?? { fire: hearth.fire, ash: hearth.ash }
+  if (!hearth.keeper) {
+    m.hearthShown = { fire: hearth.fire, ash: hearth.ash }
+    m.visit = null
+  } else if (m.visit?.run !== hearth.keeperRun) m.visit = { ...shown, run: hearth.keeperRun, tool: hearth.keeper, layer: null }
+  const fire = m.visit?.tool === 'log' ? m.visit.fire : hearth.fire
+  return { fire, ash: hearth.ash, letter, panel: panelOf(hearth, handoff) }
+}
+
+/** The keeper's drawing, once for each visit: a source that moved would start him over. */
+function keeperOf(m: Memory, input: RoomInput): Layer | null {
+  const v = m.visit
+  if (!v) return null
+  v.layer ??= keeperLayer(input, v.tool, v.run, v)
+  return v.layer
+}
+
+/** A small drawing that moves, on its cells. Its key keeps the frame through every redraw. */
+function liveBox({ Box, Svg }: Table, l: Layer) {
+  return (
+    <Box key={l.key} position="absolute" left={l.left} top={l.top} width={l.cols} height={l.rows} flexDirection="column">
+      <Svg source={l.source} alt={l.alt} width={l.width} height={l.height} isInteractive />
+    </Box>
+  )
+}
+
+/** The card of the hearth, over the stove. */
+function hearthZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null) {
+  const n = view.agents.length
+  const zone = zoneOf(hearthBox(n, frame.width, frame.height), n, frame)
+  if (!view.hearth || !clearOf(zone, panel)) return null
+  const card = hearthCard({ hearth: view.hearth, warm: view.settings.warm, now: view.now })
+  return hoverZone(ui, 'hearth-card', zone, cardSvg(card, frame.width, frame.height), cardAlt(card), frame)
+}
+
+// The height of a button on the handoff's card, as `card-handoff.ts` draws it.
+const CARD_BUTTON_H = 24
+
+/** The first row of a zone goes by the gesture's own key, the next ones add their row to it. */
+const gestureRow = (name: string) => (row: number) => (row ? `${name}-${row}` : name)
+
+/** The button on the stove: the labels show it, this is its look under the pointer, and one blank Button per row, as a press only reaches the engine on a Button. */
+function changeZone(ui: Table, input: RoomInput, label: string) {
+  const { Box, Svg } = ui
+  const lit = buttonLit(input, label)
+  return (
+    <Box key="hearth-change" position="absolute" left={lit.left} top={lit.top} width={lit.cols} height={lit.rows}>
+      <Box position="absolute" left={0} top={0} display="none" hover={{ display: 'flex' }}>
+        <Svg source={lit.source} alt={label} width={lit.width} height={lit.height} />
+      </Box>
+      <Box position="absolute" left={0} top={0} width={lit.cols} height={lit.rows} overflow="hidden">
+        {pressRows(ui, gestureRow('handoff-change'), lit.cols, lit.rows)}
+      </Box>
+    </Box>
+  )
+}
+
+/** The press of a button the handoff's card draws, in the cells of the card. */
+function cardButton(ui: Table, b: HandoffCard['buttons'][number], k: number) {
+  const { Box } = ui
+  const zone = zoneCells({ x: b.x * k, y: b.y * k, w: b.w * k, h: CARD_BUTTON_H * k })
+  return (
+    <Box key={`zone-${b.key}`} position="absolute" left={zone.left} top={zone.top} width={zone.cols} height={zone.rows} overflow="hidden">
+      {pressRows(ui, gestureRow(b.key), zone.cols, zone.rows)}
+    </Box>
+  )
+}
+
+/** The card of a handoff under way, over the letter: it stays open while the pointer is on it, for its buttons. */
+function handoffZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null) {
+  const { Box, Svg } = ui
+  const handoff = view.handoff
+  if (!handoff || handoff.phase === 'idle') return null
+  const n = view.agents.length
+  const zone = zoneOf(letterBox(n, frame.width, frame.height), n, frame)
+  if (!clearOf(zone, panel)) return null
+  const card = handoffCard(handoff)
+  const drawn = cardSvg(card, frame.width, frame.height)
+  const size = cellsOf(drawn)
+  const at = cardPlace(zone, size, frame.pane)
+  return (
+    <Box key="handoff-card" position="absolute" left={zone.left} top={zone.top} width={zone.width} height={zone.height}>
+      <Box position="absolute" left={at.left - zone.left} top={at.top - zone.top} width={size.cols} height={size.rows} display="none" hover={{ display: 'flex' }}>
+        <Svg source={drawn.source} alt={cardAlt(card)} width={drawn.width} height={drawn.height} />
+        {card.buttons.map(b => cardButton(ui, b, drawn.width / (WIDE + SHADOW)))}
+      </Box>
+    </Box>
+  )
 }
 
 /** The room as a drawing; null when it will not fit the engine's limit, and the list takes over. */
@@ -140,14 +264,16 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
   const desks: RoomDesk[] = view.agents.map(desk)
   const steps = (view.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))
   const manager = managerOf(view.chat.working ? 'working' : undefined, steps)
-  const input: RoomInput = { sessionId: m.sessionId, desks, manager, previous: desks.length, steps, tokens: view.tokens, width: frame.width, height: frame.height, ...(mobile ? {} : { settings: true }) }
-  const pair = drawings(m, input, Math.min(view.seen.previous, desks.length))
+  const look = hearthLook(m, view)
+  const input: RoomInput = { sessionId: m.sessionId, desks, manager, previous: desks.length, steps, tokens: view.tokens, width: frame.width, height: frame.height, hearth: look, ...(mobile ? {} : { settings: true }) }
+  // A phone's web view moves an image: the room stays whole there. On the desktop an image stands still.
+  const pair = drawings(m, input, Math.min(view.seen.previous, desks.length), mobile ? roomSvg : roomBackSvg, !mobile)
   if (pair.image.sent.length > SVG_MAX) {
     await log($, m, `room drawing too large: ${pair.image.sent.length}`)
     return null
   }
   const alt = plural('pane.roomAlt', desks.length, { n: desks.length, summary: summaryOf(view.agents), manager: t(view.chat.working ? 'manager.working' : 'manager.resting') })
-  const image = <Svg key="room-svg" source={pair.image.sent} alt={alt} width={frame.width} height={frame.height} isInteractive />
+  const image = <Svg key="room-svg" source={pair.image.sent} alt={alt} width={frame.width} height={frame.height} />
   const count = (
     <Box key="room-count" position="absolute" left={0} top={0} width="100%" height="100%" flexDirection="column">
       <Svg source={pair.count.sent} alt="tokens" width={frame.width} height={frame.height} />
@@ -163,18 +289,33 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
       </Box>
     )
   }
+  const labels = (
+    <Box key="room-labels" position="absolute" left={0} top={0} width="100%" height="100%" flexDirection="column">
+      <Svg source={labelsSvg(input)} alt={t('pane.labels')} width={frame.width} height={frame.height} />
+    </Box>
+  )
+  const keeper = keeperOf(m, input)
   const board = boardLines({ desks, steps, width: frame.width, height: frame.height })
-  const panel = view.settings.open ? panelCells(view.settings.departure, frame) : null
+  const panel = view.settings.open ? panelCells(view.settings, frame) : null
   // Once the panel reaches the board's column the lines have no zone left.
   const lines = panel && panel.left + panel.cols > Math.floor(board.left / CELL_W) ? [] : visibleLines(board.lines, frame.height)
   return (
     <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
       {image}
       {count}
+      {decorLayers(input).map(l => liveBox(ui, l))}
+      {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
+      {liveBox(ui, crabLayer(input, seedOf(m.sessionId) % 80))}
+      {liveBox(ui, fireLayer(input, look.fire))}
+      {labels}
+      {keeper ? liveBox(ui, keeper) : null}
       {reveals(ui, view, input, lines, board, frame)}
       {managerZone(ui, view, frame, panel, false)}
       {deskZones(ui, view, frame, panel)}
+      {hearthZone(ui, view, frame, panel)}
+      {handoffZone(ui, view, frame, panel)}
       {lines.length ? lineColumn(ui, lines, frame) : null}
+      {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
       {settingsElements(ui, view.settings, frame)}
     </Box>
   )

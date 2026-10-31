@@ -53,8 +53,73 @@ export type ManagerDesk = { working: boolean; done?: number; total?: number; liv
 /** `plan`: finished desks leave together once the plan is over. `each`: one by one. */
 export type Departure = 'plan' | 'each'
 
+/** How a conversation changes when its ash is full: on its own, or at the press of `Changer`. */
+export type HandoffMode = 'auto' | 'manual'
+
+/** How many compactions a conversation takes before it changes for a new one. */
+export type CompactBefore = 0 | 1 | 2 | 3 | 'always'
+
 /** What the settings button shows. `open` never reaches the disk. */
-export type SettingsView = { open: boolean; departure: Departure }
+export type SettingsView = { open: boolean; departure: Departure; warm: boolean; handoffMode: HandoffMode; compactBefore: CompactBefore }
+
+// ---------- The hearth and the handoff ----------
+
+/** The share of the cache's time still ahead: past 60 %, 30 % and 10 %, then the embers, then nothing. */
+export type Fire = 'full' | 'medium' | 'low' | 'embers' | 'out'
+
+/** How full the context is, by 1, 25, 50 and 80 %. */
+export type Ash = 'none' | 'small' | 'medium' | 'large' | 'full'
+
+/** What the keeper carries on his visit: a log after a relaunch, a broom after a compaction. */
+export type Keeper = 'log' | 'broom'
+
+/** Why relaunches stopped until the next turn: three failures, a cap, a cold cache, nothing to read yet, or a handoff. */
+export type WarmStop = 'failed' | 'cap' | 'cold' | 'nothing' | 'handoff'
+
+/**
+ * The cache and the context, for the room's hearth. `coolsAt`: when the cache goes cold, null with no clock.
+ * `relaunchCap`: null while the session is active. `keeper` goes back to null once his visit is over, and `keeperRun`
+ * grows with each visit. `lengthMs`, `warmSince` and `failures` carry the clock through a reload.
+ */
+export type Hearth = {
+  fire: Fire
+  ash: Ash
+  coolsAt: number | null
+  relaunches: number
+  relaunchCap: number | null
+  active: boolean
+  contextPercent: number
+  compactions: number
+  compactTarget: CompactBefore
+  keeper: Keeper | null
+  keeperRun: number
+  warmStop: WarmStop | null
+  warmError: string
+  lengthMs: number
+  warmSince: number
+  failures: number
+}
+
+export type HandoffPhase = 'idle' | 'offered' | 'waiting' | 'writing' | 'ready' | 'failed'
+
+/**
+ * Where a change of conversation stands. `step`: 0 to 4 while writing. `file`: the handoff, or the draft after a failure,
+ * as an absolute path. `urgent`: the context is past 85 %. `words`, `error` and `note` are what the card and the row say.
+ * `asked`: somebody asked for this handoff, as opposed to the ash waiting for the work to end.
+ */
+export type Handoff = {
+  phase: HandoffPhase
+  waitingAgents: number
+  waitingChats: number
+  step: number
+  file: string | null
+  urgent: boolean
+  words: number
+  error: string
+  note: string
+  asked: boolean
+  opening?: boolean
+}
 
 // ---------- The floor ----------
 
@@ -93,9 +158,12 @@ declare module 'claude-code' {
       agents: AgentRecord[]
       chat: ChatTurn
       floor: FloorSeat[]
+      handoff: Handoff
+      hearth: Hearth
       language: 'fr' | 'en'
       limits: Limit[]
       minute: number
+      cardClock: number
       news: News
       plan: DrawnPlan | null
       seen: Seen

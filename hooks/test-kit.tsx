@@ -61,6 +61,7 @@ export type World = ReturnType<typeof world>
 /** Registers the whole world beneath the plugin. Call it first in a test: `$` loads the plugins on its first call. */
 export function world(on: Loose, options: WorldOptions = {}) {
   const files = new Map(Object.entries(options.files ?? {}).map(([path, text]) => [pathKey(path), text]))
+  const stamps = new Map<string, number>()
   const w = {
     files,
     clock: mock.clock(on, { now: options.now ?? NOON }) as MockClock,
@@ -82,6 +83,10 @@ export function world(on: Loose, options: WorldOptions = {}) {
     settingsReads: 0,
     agents: [...(options.agents ?? [])] as Loose[],
     limits: options.limits ?? [],
+    /** The context the status line reports. */
+    context: {} as Record<string, unknown>,
+    /** Answers a host command, or leaves it to the culture's answer. */
+    answerRun: null as ((e: Loose) => Answer | undefined) | null,
     nextAgent: 'a1',
     /** The path of a read or write that must fail. */
     refuseRead: null as RegExp | null,
@@ -94,6 +99,7 @@ export function world(on: Loose, options: WorldOptions = {}) {
     agentLists: 0,
     /** Keys of the state a write of the mod bounces off. */
     refuseState: new Set<string>(),
+    refuseStateRead: new Set<string>(),
     /** What the mod published last, by key of the state. */
     state: { ...(options.held ?? {}) } as Record<string, Loose>,
     /** Every key of the state the mod wrote, in order. */
@@ -118,14 +124,14 @@ export function world(on: Loose, options: WorldOptions = {}) {
         const [name, ...rest] = path.slice(base.length).split('/')
         names.set(name!, rest.length ? 'dir' : 'file')
       }
-      return [...names].map(([name, kind]) => ({ name, kind, size: 0, modifiedAt: 0 }))
+      return [...names].map(([name, kind]) => ({ name, kind, size: files.get(`${base}${name}`)?.length ?? 0, mtimeMs: stamps.get(`${base}${name}`) ?? 0, modifiedAt: 0 }))
     },
   }
 
   mock.env(on, options.env ?? FRENCH)
 
   on('session.id', () => (options.session === null ? denied('no session') : { value: options.session ?? SESSION }))
-  on('session.usage', () => (w.refuse.has('session.usage') ? denied('no usage') : { value: { startedAt: 0, context: {}, rateLimits: w.limits } }))
+  on('session.usage', () => (w.refuse.has('session.usage') ? denied('no usage') : { value: { startedAt: 0, context: w.context, rateLimits: w.limits } }))
   on('session.start', (_: Loose, e: Loose) => ({ cwd: e.cwd }))
   on('session.measure', (_: Loose, e: Loose) => ({ changed: e.changed ?? [] }))
   on('session.receive', (_: Loose, e: Loose) => (w.consumeReceived ? { consumed: 'taken' } : { text: e.text }))
@@ -193,6 +199,8 @@ export function world(on: Loose, options: WorldOptions = {}) {
   })
   on('process.run', (_: Loose, e: Loose) => {
     w.runs.push(e)
+    const answered = w.answerRun?.(e)
+    if (answered) return answered
     if (typeof options.culture === 'function') return options.culture()
     return { value: { exitCode: 0, stdout: `${options.culture ?? ''}\r\n`, stderr: '' } }
   })
@@ -209,6 +217,7 @@ export function world(on: Loose, options: WorldOptions = {}) {
     w.writes.push(path)
     if (w.refuseWrite?.test(path)) return denied('write refused')
     files.set(path, e.text)
+    stamps.set(path, w.clock.now())
     return { value: undefined }
   })
   on('fs.exists', (_: Loose, e: Loose) => {
@@ -228,7 +237,7 @@ export function world(on: Loose, options: WorldOptions = {}) {
     return (w.answers[e.tool] ?? (() => ({ result: {} })))(e)
   })
 
-  on('state.get', (_: Loose, e: Loose, next: Loose) => (options.held && e.key in options.held ? { value: { value: options.held[e.key], version: 1 } } : next(e)))
+  on('state.get', (_: Loose, e: Loose, next: Loose) => (w.refuseStateRead.has(e.key) ? denied('state refused') : options.held && e.key in options.held ? { value: { value: options.held[e.key], version: 1 } } : next(e)))
   on('state.set', (_: Loose, e: Loose, next: Loose) => {
     if (w.refuseState.has(e.key)) return denied('state refused')
     w.state[e.key] = e.value
@@ -294,14 +303,17 @@ async function modelStep($: Loose, agentId?: string) {
 
 /** Puts the bottom of `turn.step` in place: a step that spends what the test says. */
 export function steps(on: Loose) {
-  const next = { usage: null as ReturnType<typeof usage> | null }
+  const next = { usage: null as ReturnType<typeof usage> | null, hold: Promise.resolve() }
   on('turn.step', async function* (): AsyncGenerator<never, Record<string, unknown>> {
+    await next.hold
     return { turnId: 't', index: 0, answer: '', toolUses: [], stopReason: 'end_turn', usage: next.usage }
   })
-  return async ($: Loose, spent: ReturnType<typeof usage> | null, agentId?: string) => {
+  const spend = async ($: Loose, spent: ReturnType<typeof usage> | null, agentId?: string) => {
     next.usage = spent
     return modelStep($, agentId)
   }
+  /** The next steps wait for this before they answer. */
+  return Object.assign(spend, { hold: (wait: Promise<void>) => void (next.hold = wait) })
 }
 
 /** A turn opens, on the main loop or an agent's. */

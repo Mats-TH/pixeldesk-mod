@@ -1,6 +1,6 @@
-import type { PlanLine } from '../types'
+import type { CompactBefore, Departure, HandoffMode, PlanLine, SettingsView } from '../types'
 import { plain } from './desks'
-import type { Departure, FloorRoom } from './desks'
+import type { FloorRoom } from './desks'
 import { decides, getLanguage, plural, t } from './i18n'
 import type { TextKey } from './i18n'
 import { canvas, paths } from './pixel/canvas'
@@ -26,23 +26,25 @@ export type Card = {
 export type CardManager = { working: boolean; title: string; text: string; meta: string; plan: readonly PlanLine[] }
 export type CardAgent = { role: string; task: string; text: string; meta: string; state: DeskState; hue: number; plan: readonly PlanLine[] }
 export type CardDrawing = { source: string; width: number; height: number }
+/** A card that draws itself: the hearth's and the handoff's. `cardSvg` and `cardAlt` take it as any other. */
+export type DrawnCard = { alt: string; draw: (maxW: number, maxH: number) => CardDrawing }
 /** An agent of the room, as a step can name it. */
 export type StepAgent = { role: string; hue: number; state: DeskState }
 /** All the bubble of a plan line says. `who`: an agent, `claude` for the main chat, null when nobody has it yet. */
 export type StepCard = { title: string; detail: string; who: StepAgent | 'claude' | null }
 
-const INK = '#1B1730'
-const WOOD_DARK = '#3B2318'
-const WOOD = '#8A5A3A'
-const PLATE_EDGE = '#4A2C2A'
-const PLATE = '#F4E4C1'
-const BROWN = '#7B4D35'
-const PURPLE = '#6E5A9E'
-const SCREW = '#C9A24A'
-const CHIP_TEXT = '#FFF6DE'
-const GOLD = '#FFC857'
-const WON = '#8CC265'
-const STOP = '#E4633A'
+export const INK = '#1B1730'
+export const WOOD_DARK = '#3B2318'
+export const WOOD = '#8A5A3A'
+export const PLATE_EDGE = '#4A2C2A'
+export const PLATE = '#F4E4C1'
+export const BROWN = '#7B4D35'
+export const PURPLE = '#6E5A9E'
+export const SCREW = '#C9A24A'
+export const CHIP_TEXT = '#FFF6DE'
+export const GOLD = '#FFC857'
+export const WON = '#8CC265'
+export const STOP = '#E4633A'
 
 const MEDALS: Record<Tenue, string> = { Corail: '#EB8A6B', Turquoise: '#5FB6AB', Violet: '#9F90E0', Rose: '#DF7E9E', Bleu: '#6F9DD6', Or: '#E8B864' }
 const STATES: Record<DeskState | 'rest', { label: string; line: string; chip: string; light: string }> = {
@@ -53,22 +55,26 @@ const STATES: Record<DeskState | 'rest', { label: string; line: string; chip: st
 }
 
 // The card of the design: 272 wide, a frame of 7 around the plate, 14 of padding inside it.
-const WIDE = 272
-const SHADOW = 4
+export const WIDE = 272
+export const SHADOW = 4
 const FRAME = 7
-const LEFT = 21
-const INNER = 230
-const GAP = 12
-const MEDAL_W = 44
-const MEDAL_H = 52
-const AFTER_MEDAL = 10
-const TITLE = 30
-const BIG = 20
-const BIG_LINE = 22
-const SMALL = 16
-const SMALL_LINE = 18
-const BAR_H = 14
-const CHIP_H = 20
+export const LEFT = 21
+export const INNER = 230
+export const GAP = 12
+export const MEDAL_W = 44
+export const MEDAL_H = 52
+export const AFTER_MEDAL = 10
+export const TITLE = 30
+export const BIG = 20
+export const BIG_LINE = 22
+export const SMALL = 16
+export const SMALL_LINE = 18
+export const BAR_H = 14
+export const CHIP_H = 20
+// The dark ground of a medal and of what is left to fill.
+export const DEEP = '#3A3355'
+// All a plate holds above its first line and below its last.
+export const PLATE_PAD = 14
 // What a line gives up when a pane is short: task, text and step lines, widest first.
 const ROOMY = [2, 4, 2] as const
 const TIGHT = [1, 2, 1] as const
@@ -134,7 +140,8 @@ export function stepCard(st: { text: string; detail?: string; who?: string }, ag
 const isStep = (c: Card | StepCard): c is StepCard => 'who' in c
 
 /** The card in words, for a reader that cannot see it. */
-export function cardAlt(c: Card | StepCard) {
+export function cardAlt(c: Card | StepCard | DrawnCard) {
+  if ('draw' in c) return c.alt
   if (isStep(c)) {
     const who = c.who === 'claude' ? `Claude, ${t('card.mainChat')}` : c.who ? `${c.who.role}, ${STATES[c.who.state].label}` : t('card.unassigned')
     return [c.title, c.detail, who].filter(Boolean).join('. ')
@@ -151,30 +158,66 @@ function layout(c: Card, [taskLines, textLines, stepLines]: readonly [number, nu
   const headH = Math.max(c.hue === null ? 0 : MEDAL_H, TITLE + task.length * BIG_LINE)
   const barH = c.cells.length || c.dots ? SMALL_LINE + 4 + BAR_H + 4 + step.length * SMALL_LINE + GAP : 0
   const footH = chip ? CHIP_H : SMALL_LINE
-  const plate = 14 + headH + GAP + 2 + GAP + text.length * BIG_LINE + GAP + barH + footH + 14
-  return { chip, textW, task, text, step, headH, barH, footH, plate, height: FRAME * 2 + plate }
+  const plate = PLATE_PAD + headH + GAP + 2 + GAP + text.length * BIG_LINE + GAP + barH + footH + PLATE_PAD
+  return { chip, textW, task, text, step, headH, barH, footH, plate, height: cardHeight(plate) }
 }
 
-const box = (x: number, y: number, w: number, h: number, fill: string, r = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${r ? ` rx="${r}"` : ''} fill="${fill}"/>`
+export const box = (x: number, y: number, w: number, h: number, fill: string, r = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${r ? ` rx="${r}"` : ''} fill="${fill}"/>`
 
 function screw(x: number, y: number) {
   return `${box(x, y, 6, 6, SCREW)}${box(x, y, 2, 2, PLATE)}${box(x + 4, y + 4, 2, 2, BROWN)}`
 }
 
 // Jersey 10 sits low in its line: this much above the box brings it where the design has it.
-const textTop = (y: number, size: number, lineH: number) => Math.round(y + (lineH - size * 1.06) / 2)
+export const textTop = (y: number, size: number, lineH: number) => Math.round(y + (lineH - size * 1.06) / 2)
+
+/** The full height of a card around a plate. */
+export const cardHeight = (plate: number) => FRAME * 2 + plate
+
+/** What a card's words go through: one line at (x, y), in a box `lineH` tall. */
+export const writer = (words: string[]) => (s: string, x: number, y: number, size: number, lineH: number, fill: string) => {
+  if (s) words.push(line(s, x, textTop(y, size, lineH), size, fill))
+}
+
+/** The shadow, then the frame and the plate. */
+export function cardBack(plate: number) {
+  const h = cardHeight(plate)
+  return [
+    box(SHADOW, SHADOW, WIDE, h, '#0F0A1A', 4).replace('/>', ' fill-opacity=".38"/>'),
+    box(0, 0, WIDE, h, WOOD_DARK, 4),
+    box(2, 2, WIDE - 4, h - 4, WOOD, 2),
+    box(FRAME, FRAME, WIDE - FRAME * 2, plate, PLATE_EDGE, 2),
+    box(FRAME + 2, FRAME + 2, WIDE - FRAME * 2 - 4, plate - 4, PLATE),
+  ]
+}
+
+/** A medal with no portrait, for an icon on the dark ground. */
+export const medalBack = (y: number) => [box(LEFT, y, MEDAL_W, MEDAL_H, WOOD_DARK, 2), box(LEFT + 2, y + 2, MEDAL_W - 4, MEDAL_H - 4, DEEP)]
+
+/** The four screws of the plate, over all the rest. */
+export function cardScrews(plate: number) {
+  const [left, right, bottom] = [FRAME + 4, WIDE - FRAME - 10, FRAME + plate - 10]
+  return [screw(left, FRAME + 4), screw(right, FRAME + 4), screw(left, bottom), screw(right, bottom)]
+}
+
+/** A state chip against the right edge, with its top at `y`. */
+export function chipParts(look: { label: string; chip: string; light: string }, y: number, write: ReturnType<typeof writer>) {
+  const width = 6 + 6 + 5 + Math.ceil(textWidth(look.label, SMALL)) + 6
+  const x = LEFT + INNER - width
+  write(look.label, x + 17, y + 2, SMALL, 16, CHIP_TEXT)
+  return { width, parts: [box(x, y, width, CHIP_H, look.chip, 2), box(x + 6, y + 7, 6, 6, look.light)] }
+}
+
+/** The whole document of a card, `fullW` by `fullH` once scaled to `width` by `height`. */
+export function cardDocument(fullW: number, fullH: number, width: number, height: number, shown: string, parts: readonly string[], words: readonly string[], moving = '') {
+  // At these sizes the font's grid falls between pixels: only the words are smoothed, as in the design.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${fullW} ${fullH}" shape-rendering="crispEdges">${moving}<defs>${letterDefs(shown)}</defs>${parts.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g></svg>`
+}
 
 function draw(c: Card, l: ReturnType<typeof layout>, width: number, height: number) {
-  const h = l.height
-  const parts: string[] = []
+  const parts = cardBack(l.plate)
   const words: string[] = []
-  const write = (s: string, x: number, y: number, size: number, lineH: number, fill: string) => {
-    if (s) words.push(line(s, x, textTop(y, size, lineH), size, fill))
-  }
-  // The shadow, then the frame and the plate.
-  parts.push(box(SHADOW, SHADOW, WIDE, h, '#0F0A1A', 4).replace('/>', ' fill-opacity=".38"/>'))
-  parts.push(box(0, 0, WIDE, h, WOOD_DARK, 4), box(2, 2, WIDE - 4, h - 4, WOOD, 2))
-  parts.push(box(FRAME, FRAME, WIDE - FRAME * 2, l.plate, PLATE_EDGE, 2), box(FRAME + 2, FRAME + 2, WIDE - FRAME * 2 - 4, l.plate - 4, PLATE))
+  const write = writer(words)
   let y = LEFT
   // The head: the portrait, then the post and the task.
   const textX = c.hue === null ? LEFT : LEFT + MEDAL_W + AFTER_MEDAL
@@ -204,22 +247,15 @@ function draw(c: Card, l: ReturnType<typeof layout>, width: number, height: numb
   // The foot: the time and the count, then the state chip against the right edge.
   let metaW = INNER
   if (l.chip) {
-    const chipW = 6 + 6 + 5 + Math.ceil(textWidth(l.chip.label, SMALL)) + 6
-    const chipX = LEFT + INNER - chipW
-    metaW = INNER - chipW - 8
-    parts.push(box(chipX, y, chipW, CHIP_H, l.chip.chip, 2), box(chipX + 6, y + 7, 6, 6, l.chip.light))
-    write(l.chip.label, chipX + 17, y + 2, SMALL, 16, CHIP_TEXT)
+    const chip = chipParts(l.chip, y, write)
+    metaW = INNER - chip.width - 8
+    parts.push(...chip.parts)
   }
   write(fit(c.meta, SMALL, metaW), LEFT, y, SMALL, l.footH, PURPLE)
-  // The four screws of the plate, over all the rest.
-  const [screwL, screwR, screwB] = [FRAME + 4, WIDE - FRAME - 10, FRAME + l.plate - 10]
-  parts.push(screw(screwL, FRAME + 4), screw(screwR, FRAME + 4), screw(screwL, screwB), screw(screwR, screwB))
+  parts.push(...cardScrews(l.plate))
   const shown = `${fit(c.title, TITLE, l.textW)}${l.task.join('')}${l.text.join('')}${c.label}${l.step.join('')}${c.meta}${l.chip?.label ?? ''}`
   const moving = c.dots === 'working' ? '<style>.td0,.td1,.td2{animation:td 1.2s steps(1) infinite}.td1{animation-delay:.3s}.td2{animation-delay:.6s}@keyframes td{0%,30%{opacity:1}31%,100%{opacity:.25}}@media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>' : ''
-  const fullW = WIDE + SHADOW
-  const fullH = h + SHADOW
-  // At these sizes the font's grid falls between pixels: only the words are smoothed, as in the design.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${fullW} ${fullH}" shape-rendering="crispEdges">${moving}<defs>${letterDefs(shown)}</defs>${parts.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g></svg>`
+  return cardDocument(WIDE + SHADOW, l.height + SHADOW, width, height, shown, parts, words, moving)
 }
 
 // The bubble of the design: 220 wide, a frame of 5 around the plate, the words 12 inside it.
@@ -292,7 +328,7 @@ function drawStep(c: StepCard, l: ReturnType<typeof stepLayout>, width: number, 
 const drawings = new Map<string, CardDrawing>()
 
 /** Fits a card in `maxW` by `maxH`: it first loses lines, then the whole card shrinks. */
-function fitted(fullW: number, roomyH: number, tightH: number, maxW: number, maxH: number) {
+export function fitted(fullW: number, roomyH: number, tightH: number, maxW: number, maxH: number) {
   const tight = roomyH + SHADOW > maxH
   const fullH = (tight ? tightH : roomyH) + SHADOW
   const k = Math.min(1, maxW / fullW, maxH / fullH)
@@ -300,7 +336,8 @@ function fitted(fullW: number, roomyH: number, tightH: number, maxW: number, max
 }
 
 /** The card, or the bubble of a plan line, as a drawing at most `maxW` by `maxH`. */
-export function cardSvg(c: Card | StepCard, maxW: number, maxH: number): CardDrawing {
+export function cardSvg(c: Card | StepCard | DrawnCard, maxW: number, maxH: number): CardDrawing {
+  if ('draw' in c) return c.draw(maxW, maxH)
   const key = JSON.stringify([getLanguage(), c, maxW, maxH])
   const known = drawings.get(key)
   if (known) return known
@@ -326,21 +363,40 @@ const CELL_W = 8
 const CELL_H = 21
 type Area = { x: number; y: number; w: number; h: number }
 const GEAR: Area = { x: 10, y: 10, w: 32, h: 32 }
-// The panel of the design, 256 by 242, and its option lines.
+// The panel of the design, 296 wide, 542 tall or 470 once `Manuel` hides the cursor, and its option lines.
 const PANEL_X = 8
 const PANEL_Y = 46
-const PANEL_W = 256
-const PANEL_H = 242
+const PANEL_W = 296
+const PANEL_H: Record<HandoffMode, number> = { auto: 542, manual: 470 }
 const OPTION_X = 17
-const OPTION_W = 222
-const OPTION_H = 72
+const OPTION_W = 262
 // How wide the sentence of an option may run: what stands right of its tick box.
-export const OPTION_TEXT = 182
-const OPTION_Y: Record<Departure, number> = { plan: 75, each: 153 }
-const OPTIONS: Record<Departure, { name: TextKey; line: TextKey }> = {
-  plan: { name: 'settings.plan.name', line: 'settings.plan.line' },
-  each: { name: 'settings.each.name', line: 'settings.each.line' },
+export const OPTION_TEXT = 222
+export type OptionId = Departure | 'warm' | 'auto' | 'manual'
+const OPTION_SHORT = 54
+const OPTION_TALL = 72
+const OPTIONS: Record<OptionId, { name: TextKey; line: TextKey; y: number; h: number }> = {
+  plan: { name: 'settings.plan.name', line: 'settings.plan.line', y: 75, h: OPTION_TALL },
+  each: { name: 'settings.each.name', line: 'settings.each.line', y: 153, h: OPTION_SHORT },
+  warm: { name: 'hearth.warm.name', line: 'hearth.warm.line', y: 237, h: OPTION_TALL },
+  auto: { name: 'hearth.auto.name', line: 'hearth.auto.line', y: 339, h: OPTION_SHORT },
+  manual: { name: 'hearth.manual.name', line: 'hearth.manual.line', y: 471, h: OPTION_SHORT },
 }
+const OPTION_IDS = Object.keys(OPTIONS) as OptionId[]
+// Without the cursor, `Manuel` takes its place.
+const MANUAL_Y: Record<HandoffMode, number> = { auto: 471, manual: 399 }
+const CACHE_Y = 213
+const HANDOFF_Y = 315
+const CURSOR_Y = 399
+const STEP_Y = CURSOR_Y + 22
+const STEP_H = 22
+const STEP_GAP = 2
+const STEP_LABEL_H = 18
+const PHRASE_Y = CURSOR_Y + 48
+const STEP_W = 40
+const STEP_LAST_W = 94
+/** The steps of the cursor, in the order of the design. */
+export const COMPACT_STEPS: readonly CompactBefore[] = [0, 1, 2, 3, 'always']
 const GEAR_ROWS = ['.FFFFFFFFFFFFFF.', 'FLLLLLLLLLLLLLLF', 'FLCEEEEEEEEEECDF', 'FLEEEEEEEEEEEEDF', 'FLEEEEEMMEEEEEDF', 'FLEEEMEMMEMEEEDF', 'FLEEEEMMMMEEEEDF', 'FLEEMMMEEMMMEEDF', 'FLEEMMMEEMMMEEDF', 'FLEEEEMMMMEEEEDF', 'FLEEEMEMMEMEEEDF', 'FLEEEEEMMEEEEEDF', 'FLEEEEEEEEEEEEDF', 'FLCEEEEEEEEEECDF', 'FLDDDDDDDDDDDDDF', '.FFFFFFFFFFFFFF.']
 // Pressed in: the light edge goes dark, and the dark edge goes to the fill.
 const GEAR_PRESSED = GEAR_ROWS.map((row, i) => (i === 1 ? 'FFFFFFFFFFFFFFFF' : i === 14 ? 'FDDDDDDDDDDDDDDF' : i ? row.replace('FL', 'FF').replace(/DF$/, 'EF') : row))
@@ -356,6 +412,14 @@ const OPTION_LOOKS = {
   off: { back: CREAM_LIGHT, edge: '#D8C49E', line: PURPLE },
   lit: { back: '#FFF2C4', edge: SCREW, line: PURPLE },
 } as const
+const STEP_LOOKS = {
+  normal: { back: CREAM_LIGHT, edge: '#D8C49E' },
+  lit: { back: '#FFDF8F', edge: SCREW },
+  chosen: { back: GOLD, edge: WOOD_DARK },
+} as const
+
+const stepX = (i: number) => OPTION_X + i * (STEP_W + STEP_GAP)
+const stepW = (value: CompactBefore) => (value === 'always' ? STEP_LAST_W : STEP_W)
 
 /** The button in `width` by `height`, from (dx, dy): a look of its own, as the room's drawing never changes for it. */
 export function gearSvg(look: GearLook, dx: number, dy: number, width: number, height: number) {
@@ -365,10 +429,14 @@ export function gearSvg(look: GearLook, dx: number, dy: number, width: number, h
 }
 
 /** Where the button and the panel fall in a pane. The panel only shrinks to stay whole; `k` is its scale. */
-export function settingsPlace(width: number, height: number) {
-  const k = Math.floor(Math.min(1, (width - PANEL_X) / (PANEL_W + SHADOW), (height - PANEL_Y) / (PANEL_H + SHADOW)) * 1000) / 1000
-  const option = (id: Departure): Area => ({ x: PANEL_X + OPTION_X * k, y: PANEL_Y + OPTION_Y[id] * k, w: OPTION_W * k, h: OPTION_H * k })
-  return { k, button: GEAR, panel: { x: PANEL_X, y: PANEL_Y, w: (PANEL_W + SHADOW) * k, h: (PANEL_H + SHADOW) * k }, options: { plan: option('plan'), each: option('each') } }
+export function settingsPlace(width: number, height: number, mode: HandoffMode = 'auto') {
+  // The scale is the tall panel's in both modes: a press on `Manuel` moves nothing above it.
+  const k = Math.floor(Math.min(1, (width - PANEL_X) / (PANEL_W + SHADOW), (height - PANEL_Y) / (PANEL_H.auto + SHADOW)) * 1000) / 1000
+  const area = (x: number, y: number, w: number, h: number): Area => ({ x: PANEL_X + x * k, y: PANEL_Y + y * k, w: w * k, h: h * k })
+  const option = (id: OptionId) => area(OPTION_X, id === 'manual' ? MANUAL_Y[mode] : OPTIONS[id].y, OPTION_W, OPTIONS[id].h)
+  const options = Object.fromEntries(OPTION_IDS.map(id => [id, option(id)])) as Record<OptionId, Area>
+  const steps = COMPACT_STEPS.map((value, i) => ({ value, ...area(stepX(i), STEP_Y, stepW(value), STEP_H) }))
+  return { k, mode, button: GEAR, panel: { x: PANEL_X, y: PANEL_Y, w: (PANEL_W + SHADOW) * k, h: (PANEL_H[mode] + SHADOW) * k }, options, steps }
 }
 export type SettingsPlace = ReturnType<typeof settingsPlace>
 
@@ -387,11 +455,12 @@ export function drawnCells(b: Area) {
 }
 
 /** One option line, from the top left corner of its box. */
-function optionParts(id: Departure, look: keyof typeof OPTION_LOOKS, chosen: boolean) {
+function optionParts(id: OptionId, look: keyof typeof OPTION_LOOKS, chosen: boolean) {
   const ink = OPTION_LOOKS[look]
+  const { h } = OPTIONS[id]
   const name = t(OPTIONS[id].name)
   const lines = wrap(t(OPTIONS[id].line), SMALL, OPTION_TEXT, 2)
-  const parts = [box(0, 0, OPTION_W, OPTION_H, ink.edge, 2), box(2, 2, OPTION_W - 4, OPTION_H - 4, ink.back), box(10, 12, 12, 12, INK), box(12, 14, 8, 8, chosen ? GOLD : CREAM_LIGHT)]
+  const parts = [box(0, 0, OPTION_W, h, ink.edge, 2), box(2, 2, OPTION_W - 4, h - 4, ink.back), box(10, 12, 12, 12, INK), box(12, 14, 8, 8, chosen ? GOLD : CREAM_LIGHT)]
   if (chosen) parts.push(box(14, 16, 4, 4, INK))
   const words = [line(name, 30, textTop(8, 18, 20), 18, INK), ...lines.map((row, i) => line(row, 30, textTop(28 + i * SMALL_LINE, SMALL, SMALL_LINE), SMALL, ink.line))]
   return { parts, words, shown: `${name}${lines.join('')}` }
@@ -400,35 +469,76 @@ function optionParts(id: Departure, look: keyof typeof OPTION_LOOKS, chosen: boo
 const optionGroup = (o: ReturnType<typeof optionParts>, x: number, y: number) => `<g transform="translate(${x} ${y})">${o.parts.join('')}<g shape-rendering="geometricPrecision">${o.words.join('')}</g></g>`
 
 /** A drawing placed at `b` on whole cells, for a Box. */
-function placed(b: Area, k: number, defs: string, body: string) {
+export function placed(b: Area, k: number, defs: string, body: string) {
   const at = drawnCells(b)
   const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${at.width}" height="${at.height}" viewBox="0 0 ${at.width} ${at.height}" shape-rendering="crispEdges"><defs>${defs}</defs><g transform="translate(${Math.round(at.dx * 100) / 100} ${Math.round(at.dy * 100) / 100})${k < 1 ? ` scale(${k})` : ''}">${body}</g></svg>`
   return { ...at, source }
 }
 
-/** The panel, with the chosen option in gold and its box ticked. */
-export function settingsSvg(choice: Departure, place: SettingsPlace) {
-  const [plan, each] = [optionParts('plan', choice === 'plan' ? 'on' : 'off', choice === 'plan'), optionParts('each', choice === 'each' ? 'on' : 'off', choice === 'each')]
-  const [title, sub] = [t('settings.title'), t('settings.departure')]
-  const frame = [
-    box(SHADOW, SHADOW, PANEL_W, PANEL_H, '#0F0A1A', 4).replace('/>', ' fill-opacity=".38"/>'),
-    box(0, 0, PANEL_W, PANEL_H, WOOD_DARK, 4),
-    box(2, 2, PANEL_W - 4, PANEL_H - 4, WOOD, 2),
-    box(5, 5, PANEL_W - 10, PANEL_H - 10, PLATE_EDGE, 2),
-    box(7, 7, PANEL_W - 14, PANEL_H - 14, PLATE),
-    box(OPTION_X, 43, OPTION_W, 2, SCREW),
-  ]
-  const words = line(title, OPTION_X, textTop(15, BIG, BIG_LINE), BIG, INK) + line(sub, OPTION_X, textTop(51, SMALL, SMALL_LINE), SMALL, PLATE_EDGE)
-  const body = `${frame.join('')}<g shape-rendering="geometricPrecision">${words}</g>${optionGroup(plan, OPTION_X, OPTION_Y.plan)}${optionGroup(each, OPTION_X, OPTION_Y.each)}`
-  const said = (id: Departure) => (choice === id ? t('settings.chosen', { name: t(OPTIONS[id].name) }) : t(OPTIONS[id].name))
-  const alt = t('settings.alt', { title, departure: sub, plan: said('plan'), each: said('each') })
-  return { ...placed({ x: PANEL_X, y: PANEL_Y, w: (PANEL_W + SHADOW) * place.k, h: (PANEL_H + SHADOW) * place.k }, place.k, letterDefs(`${title}${sub}${plan.shown}${each.shown}`), body), alt }
+const stepLabel = (value: CompactBefore) => (value === 'always' ? t('hearth.always') : String(value))
+const stepPhrase = (value: CompactBefore) => t(`hearth.cursor.${value}`)
+
+/** One step of the cursor, from the top left corner of its box. */
+function stepParts(value: CompactBefore, look: keyof typeof STEP_LOOKS) {
+  const ink = STEP_LOOKS[look]
+  const w = stepW(value)
+  const label = stepLabel(value)
+  const word = line(label, Math.round((w - textWidth(label, SMALL)) / 2), textTop(2, SMALL, STEP_LABEL_H), SMALL, INK)
+  return { body: `${box(0, 0, w, STEP_H, ink.edge)}${box(2, 2, w - 4, STEP_H - 4, ink.back)}<g shape-rendering="geometricPrecision">${word}</g>`, shown: label }
 }
 
-/** An option under the pointer, as a drawing that lies over the panel. */
-export function optionSvg(id: Departure, place: SettingsPlace) {
-  const lit = optionParts(id, 'lit', false)
+/** What the panel shows, its choices all read at once. */
+export type PanelChoices = Pick<SettingsView, 'departure' | 'warm' | 'handoffMode' | 'compactBefore'>
+
+/** The panel in words, for a reader that cannot see it. */
+function panelAlt(c: PanelChoices) {
+  const said = (id: OptionId, chosen: boolean) => (chosen ? t('settings.chosen', { name: t(OPTIONS[id].name) }) : t(OPTIONS[id].name))
+  const departure = t('settings.alt', { title: t('settings.title'), departure: t('settings.departure'), plan: said('plan', c.departure === 'plan'), each: said('each', c.departure === 'each') })
+  const hearth = t('hearth.alt', { cache: t('hearth.section.cache'), warm: said('warm', c.warm), handoff: t('hearth.section.handoff'), auto: said('auto', c.handoffMode === 'auto'), manual: said('manual', c.handoffMode === 'manual') })
+  return c.handoffMode === 'auto' ? `${departure} ${hearth} ${stepPhrase(c.compactBefore)}` : `${departure} ${hearth}`
+}
+
+/** The panel, with each chosen option in gold and its box ticked. */
+export function settingsSvg(c: PanelChoices, place: SettingsPlace) {
+  const auto = place.mode === 'auto'
+  const height = PANEL_H[place.mode]
+  const made = (id: OptionId, chosen: boolean) => optionParts(id, chosen ? 'on' : 'off', chosen)
+  const options = [
+    { made: made('plan', c.departure === 'plan'), y: OPTIONS.plan.y },
+    { made: made('each', c.departure === 'each'), y: OPTIONS.each.y },
+    { made: made('warm', c.warm), y: OPTIONS.warm.y },
+    { made: made('auto', auto), y: OPTIONS.auto.y },
+    { made: made('manual', !auto), y: MANUAL_Y[place.mode] },
+  ]
+  const [title, sub, cache, handoff] = [t('settings.title'), t('settings.departure'), t('hearth.section.cache'), t('hearth.section.handoff')]
+  const frame = [
+    box(SHADOW, SHADOW, PANEL_W, height, '#0F0A1A', 4).replace('/>', ' fill-opacity=".38"/>'),
+    box(0, 0, PANEL_W, height, WOOD_DARK, 4),
+    box(2, 2, PANEL_W - 4, height - 4, WOOD, 2),
+    box(5, 5, PANEL_W - 10, height - 10, PLATE_EDGE, 2),
+    box(7, 7, PANEL_W - 14, height - 14, PLATE),
+    box(OPTION_X, 43, OPTION_W, 2, SCREW),
+  ]
+  const small = (s: string, y: number, fill: string) => line(s, OPTION_X, textTop(y, SMALL, SMALL_LINE), SMALL, fill)
+  const words = [line(title, OPTION_X, textTop(15, BIG, BIG_LINE), BIG, INK), small(sub, 51, PLATE_EDGE), small(cache, CACHE_Y, PLATE_EDGE), small(handoff, HANDOFF_Y, PLATE_EDGE)]
+  const [heading, phrase] = [t('hearth.cursor'), stepPhrase(c.compactBefore)]
+  if (auto) words.push(small(heading, CURSOR_Y, PLATE_EDGE), small(fit(phrase, SMALL, OPTION_W), PHRASE_Y, PURPLE))
+  const steps = auto ? COMPACT_STEPS.map((value, i) => `<g transform="translate(${stepX(i)} ${STEP_Y})">${stepParts(value, value === c.compactBefore ? 'chosen' : 'normal').body}</g>`) : []
+  const body = `${frame.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g>${options.map(o => optionGroup(o.made, OPTION_X, o.y)).join('')}${steps.join('')}`
+  const shown = `${title}${sub}${cache}${handoff}${options.map(o => o.made.shown).join('')}${auto ? `${heading}${phrase}${COMPACT_STEPS.map(stepLabel).join('')}` : ''}`
+  return { ...placed(place.panel, place.k, letterDefs(shown), body), alt: panelAlt(c) }
+}
+
+/** An option under the pointer, as a drawing that lies over the panel. `ticked`: a choice that stays ticked under it, as the cache's. */
+export function optionSvg(id: OptionId, place: SettingsPlace, ticked = false) {
+  const lit = optionParts(id, 'lit', ticked)
   return placed(place.options[id], place.k, letterDefs(lit.shown), optionGroup(lit, 0, 0))
+}
+
+/** A step of the cursor under the pointer. */
+export function stepSvg(value: CompactBefore, place: SettingsPlace) {
+  const lit = stepParts(value, 'lit')
+  return placed(place.steps[COMPACT_STEPS.indexOf(value)]!, place.k, letterDefs(lit.shown), lit.body)
 }
 
 /**

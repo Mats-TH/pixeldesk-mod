@@ -209,7 +209,7 @@ describe('the floor in the pane', () => {
     const root = await ui.find({ key: 'floor' })
     expect(root?.props).toMatchObject({ flexDirection: 'column', height: 22, overflow: 'hidden', backgroundColor: 'transparent', marginX: -1 })
     expect(kids(root).map(el => el.props?.key ?? el.type)).toEqual(['Svg', 'floor-count', `room-${SESSION}`, 'room-kid'])
-    expect(kids(root)[0].props.isInteractive).toBe(true)
+    expect(kids(root)[0].props.isInteractive).toBeUndefined()
   })
 
   test('100% with no measure', async ($, on) => {
