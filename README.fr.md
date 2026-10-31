@@ -125,6 +125,7 @@ La barre est toujours là. Le panneau s'ouvre avec la session dans l'application
 | `/pixeldesk warm on` | Met les relances en marche dans toutes les conversations. C'est le réglage par défaut. |
 | `/pixeldesk warm off` | Coupe les relances dans toutes les conversations, et rien d'autre. Le feu suit alors simplement le cache. |
 | `/pixeldesk refresh` | Écrit une passation tout de suite, ou dès que les travaux en cours sont finis. Clique sur `Nouvelle conversation` quand elle est prête. |
+| `/pixeldesk compact` | Compacte tout de suite, comme le mode Automatique, une fois le tour fini. Il compte dans le curseur. |
 
 Pour retirer aussi la barre, désactive le plugin avec `/plugin`.
 

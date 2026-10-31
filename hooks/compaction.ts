@@ -8,6 +8,7 @@ import { t } from './i18n'
 import type { Memory } from './memory'
 
 const NOTE_FILES = 15
+const HEADLESS = /headless/i
 
 const section = (title: string, lines: readonly string[]) => (lines.length ? `### ${title}\n${lines.map(line => `- ${line}`).join('\n')}\n` : '')
 
@@ -47,7 +48,22 @@ export async function onCompact($: EngineInterface, m: Memory, e: SessionCompact
   }
 }
 
-/** The mod compacts, between two turns, with the handoff's brief. A hook's refusal or a turn in the way is only logged. */
+/**
+ * A session the app runs has no `$.session.compact`: there a compaction only runs as the command, queued for when
+ * the session is idle, and only `onCompact` knows that it stood.
+ */
+async function compacted($: EngineInterface, m: Memory, brief: string): Promise<{ skip?: string }> {
+  try {
+    return await $.session.compact({ instructions: brief })
+  } catch (err) {
+    if (!HEADLESS.test(reason(err))) throw err
+  }
+  const before = m.heat.compactions
+  await $.command.run({ command: 'compact', args: brief })
+  return m.heat.compactions === before ? { skip: 'the command compacted nothing' } : {}
+}
+
+/** The mod compacts, between two turns, with the handoff's brief. A hook's refusal or a turn in the way is logged, and answers false. */
 export async function compactNow($: EngineInterface, m: Memory) {
   const h = m.heat
   const before = h.compactions
@@ -55,14 +71,17 @@ export async function compactNow($: EngineInterface, m: Memory) {
   h.compacting = true
   try {
     await guard($, m, 'compaction notes', async () => writeNotes($, m, await $.session.messages()))
-    const done = await $.session.compact({ instructions: t('handoff.compactBrief', { file: tilde(notesPath(m), m.home) }) })
-    if (done.skip !== undefined) await log($, m, `compaction skipped: ${done.skip}`)
-    else {
-      if (h.compactions === before) await counted($, m)
-      toast($, m, t('handoff.compactedToast'))
+    const done = await compacted($, m, t('handoff.compactBrief', { file: tilde(notesPath(m), m.home) }))
+    if (done.skip !== undefined) {
+      await log($, m, `compaction skipped: ${done.skip}`)
+      return false
     }
+    if (h.compactions === before) await counted($, m)
+    toast($, m, t('handoff.compactedToast'))
+    return true
   } catch (err) {
     await log($, m, `compaction: ${reason(err)}`)
+    return false
   } finally {
     h.ownCompact = false
     h.compacting = false

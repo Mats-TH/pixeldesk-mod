@@ -92,6 +92,39 @@ describe('auto: compact under the cursor, change past it', () => {
     expect(w.log()).toContain('compaction skipped: not now')
   })
 
+  test('/pixeldesk compact compacts at once, under the mark, and it counts', async ($, on) => {
+    const { w, h, fill } = hearthWorld(on)
+    h.messages = [{ role: 'user', text: 'Une demande', toolUses: [] }]
+    fill(30)
+    await start($)
+    expect((await command($, 'compact')).text).toBe('Compactage lancé.')
+    await w.clock.advance(1)
+    expect(h.compacts).toHaveLength(1)
+    expect(h.compacts[0].instructions).toContain('notes-')
+    expect(w.state.hearth.compactions).toBe(1)
+    expect(w.file(NOTES)).toContain('Compactage 1')
+    expect(w.toasts).toContain('Conversation compactée, les notes sont enregistrées.')
+  })
+
+  test('/pixeldesk compact never lands on a turn', async ($, on) => {
+    const { w, h } = hearthWorld(on)
+    await start($)
+    await startTurn($)
+    expect((await command($, 'compact')).text).toContain('Pas maintenant')
+    await w.clock.advance(1)
+    expect(h.compacts).toEqual([])
+  })
+
+  test('/pixeldesk compact says so when it is refused', async ($, on) => {
+    const { w, h } = hearthWorld(on)
+    h.compactAnswer = { skip: 'not now' }
+    await start($)
+    await command($, 'compact')
+    await w.clock.advance(1)
+    expect(w.state.hearth.compactions).toBe(0)
+    expect(w.toasts).toContain('Le compactage n’a pas abouti. La raison est dans le journal de PixelDesk.')
+  })
+
   test('a compaction count outlives a restart', async ($, on) => {
     const { w } = hearthWorld(on, { files: { [STATE_FILE]: JSON.stringify({ compactions: 2, snooze: 0 }) } })
     await start($)

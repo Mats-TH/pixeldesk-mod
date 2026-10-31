@@ -6,7 +6,7 @@ import { restoreChat } from './chat'
 import { readFloor } from './floorfile'
 import { readOwnDesk, writeDesk } from './deskfile'
 import { guard, readHome } from './disk'
-import { pulse, runRefresh, runWarm, startHearth } from './hearth'
+import { pulse, runCompact, runRefresh, runWarm, startHearth } from './hearth'
 import { closeSettings, followSettings, setDeparture, setHidden } from './preferences'
 import { t } from './i18n'
 import type { TextKey } from './i18n'
@@ -48,7 +48,7 @@ function planSpec() {
 const refreshSpec = () => ({ name: 'refresh', description: t('handoff.toolDescription'), inputSchema: { type: 'object', properties: {} }, isDeferred: false })
 
 async function registerAll($: EngineInterface, m: Memory) {
-  await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|warm on|off|refresh]', immediate: true }))
+  await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|warm on|off|refresh|compact]', immediate: true }))
   await guard($, m, 'plan tool', () => $.tool.register(planSpec()))
   await guard($, m, 'refresh tool', () => $.tool.register(refreshSpec()))
 }
@@ -131,13 +131,14 @@ async function runDeparture($: EngineInterface, m: Memory, value: string | undef
   return { text: t('cmd.departure.set', { name: t(OPTION_NAMES[value]), value }) }
 }
 
-/** `/pixeldesk`, with `hide`, `show`, `departure`, `warm`, `refresh` or nothing. */
+/** `/pixeldesk`, with `hide`, `show`, `departure`, `warm`, `refresh`, `compact` or nothing. */
 export async function runCommand($: EngineInterface, m: Memory, args: string) {
   const word = args.trim().toLowerCase()
   const [head, value, extra] = word.split(/\s+/)
   if (head === 'departure' && extra === undefined) return runDeparture($, m, value)
   if (head === 'warm' && extra === undefined) return runWarm($, m, value)
   if (word === 'refresh') return runRefresh($, m)
+  if (word === 'compact') return runCompact($, m)
   if (word === 'hide') {
     await setHidden($, m, true)
     return { text: t('cmd.hidden') }

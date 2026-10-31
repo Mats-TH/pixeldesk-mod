@@ -112,6 +112,11 @@ async function isFree($: EngineInterface, m: Memory) {
   return !m.chatTurn.working && h.requests === 0 && !h.compacting && (await $.clock.now()) >= h.endedAt + SETTLE_MS
 }
 
+/** Nothing under way that a compaction would land on. */
+export async function canCompact($: EngineInterface, m: Memory) {
+  return !isBusy(m.change.phase) && (await isFree($, m))
+}
+
 async function isCold($: EngineInterface, m: Memory) {
   const cools = coolsAtOf(m.heat)
   return cools === null || cools <= (await $.clock.now())

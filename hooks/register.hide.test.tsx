@@ -147,7 +147,7 @@ describe('/pixeldesk', () => {
     await start($)
     const opens = w.opened.length
     const answer = await command($, 'off')
-    expect(answer.text).toBe('Option inconnue. Utilise /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm ou /pixeldesk refresh.')
+    expect(answer.text).toBe('Option inconnue. Utilise /pixeldesk, /pixeldesk hide, /pixeldesk show, /pixeldesk departure, /pixeldesk warm, /pixeldesk refresh ou /pixeldesk compact.')
     expect(w.file(SETTINGS_FILE)).toBeUndefined()
     expect(w.opened).toHaveLength(opens)
     expect(w.closed).toEqual([])

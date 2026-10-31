@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { lengthIn } from './cachelength'
+import { compactNow } from './compaction'
 import { gather, scrubbed, slugOf, stampOf, tilde, unwrapped } from './handoff-gather'
 import { ashOf, fireOf, lengthProven } from './heat'
 import { en, fr } from './i18n'
+import { createMemory } from './memory'
 
 const use = (tool: string, input: object) => ({ tool, input })
 const said = (role: 'user' | 'assistant', text: string, toolUses: object[] = []) => ({ role, text, toolUses }) as any
@@ -152,7 +154,57 @@ describe('the texts of the two features', () => {
   })
 
   test('no toast is long enough to be cut', () => {
-    const toasts = ['handoff.readyToast', 'handoff.failedToast', 'handoff.compactedToast', 'handoff.started', 'handoff.pressEnter', 'handoff.startFailed', 'handoff.noFolder'] as const
+    const toasts = ['handoff.readyToast', 'handoff.failedToast', 'handoff.compactedToast', 'handoff.compactFailed', 'handoff.started', 'handoff.pressEnter', 'handoff.startFailed', 'handoff.noFolder'] as const
     for (const key of toasts) for (const dictionary of [fr, en]) expect(dictionary[key].length).toBeLessThanOrEqual(140)
+  })
+})
+
+describe('compacting in a session the app runs', () => {
+  const HEADLESS = '$.session.compact: not available in a headless (-p / SDK) session yet'
+
+  function fakeEngine(refusal: string, runs: (m: ReturnType<typeof createMemory>) => void = () => undefined) {
+    const m = createMemory('fr')
+    const calls: { command: string; args: string }[] = []
+    const engine: any = {
+      session: {
+        compact: async () => {
+          throw new Error(refusal)
+        },
+        messages: async () => [],
+      },
+      command: {
+        run: async (call: { command: string; args: string }) => {
+          calls.push(call)
+          runs(m)
+        },
+      },
+      clock: { now: async () => 0 },
+      ui: { toast: () => undefined },
+    }
+    return { m, engine, calls }
+  }
+
+  test('the refused call goes through /compact, with the brief, and counts once', async () => {
+    const { m, engine, calls } = fakeEngine(HEADLESS, memory => {
+      memory.heat.compactions += 1
+    })
+    expect(await compactNow(engine, m)).toBe(true)
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.command).toBe('compact')
+    expect(calls[0]!.args).toContain('notes-')
+    expect(m.heat.compactions).toBe(1)
+    expect(m.heat.compacting).toBe(false)
+  })
+
+  test('a /compact that left the conversation as it was is a failure', async () => {
+    const { m, engine } = fakeEngine(HEADLESS)
+    expect(await compactNow(engine, m)).toBe(false)
+    expect(m.heat.compactions).toBe(0)
+  })
+
+  test('any other refusal stays one: no command runs over a turn', async () => {
+    const { m, engine, calls } = fakeEngine('a turn is running')
+    expect(await compactNow(engine, m)).toBe(false)
+    expect(calls).toEqual([])
   })
 })

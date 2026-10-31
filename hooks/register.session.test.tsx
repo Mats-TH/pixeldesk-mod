@@ -41,7 +41,7 @@ describe('starting a session', () => {
   test('the command and the tool are registered, the tool not deferred', async ($, on) => {
     const w = world(on)
     await start($)
-    expect(w.commands).toEqual([{ name: 'pixeldesk', description: 'Affiche PixelDesk : la barre de progression des tâches et une carte en direct par sous-agent', argumentHint: '[hide|show|departure plan|each|warm on|off|refresh]', immediate: true }])
+    expect(w.commands).toEqual([{ name: 'pixeldesk', description: 'Affiche PixelDesk : la barre de progression des tâches et une carte en direct par sous-agent', argumentHint: '[hide|show|departure plan|each|warm on|off|refresh|compact]', immediate: true }])
     expect(w.tools[0].name).toBe('plan')
     expect(w.tools[0].isDeferred).toBe(false)
   })

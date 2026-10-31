@@ -125,6 +125,7 @@ The bar is always there. The panel opens with the session in the desktop app, an
 | `/pixeldesk warm on` | Turns relaunches on in every conversation. This is the default. |
 | `/pixeldesk warm off` | Turns relaunches off in every conversation, and nothing else. The fire just follows the cache. |
 | `/pixeldesk refresh` | Writes a handoff now, or as soon as the running work is done. Click `New conversation` when it is ready. |
+| `/pixeldesk compact` | Compacts now, like Automatic mode does, once the turn is over. It counts toward the slider. |
 
 To remove the bar too, turn the plugin off with `/plugin`.
 

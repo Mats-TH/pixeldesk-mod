@@ -4,6 +4,16 @@ All notable changes to PixelDesk are listed here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-10-31
+
+### Added
+
+- `/pixeldesk compact` compacts now, like Automatic mode does, once the turn is over.
+
+### Fixed
+
+- Automatic mode now compacts in the desktop app. It runs `/compact`, the only way the app allows.
+
 ## [1.1.0] - 2026-10-31
 
 The cache stays warm, and the conversation changes by itself.
@@ -45,5 +55,6 @@ First public release.
 - `/pixeldesk`, `/pixeldesk hide`, `/pixeldesk show` and `/pixeldesk departure` commands.
 - French and English, with automatic detection and a `language` option (`auto`, `fr`, `en`).
 
+[1.1.1]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.1.0]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.0.0]: https://github.com/Mats-TH/pixeldesk-mod/releases

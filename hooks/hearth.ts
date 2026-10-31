@@ -1,8 +1,9 @@
 import type { EngineInterface, RenderSurface } from 'claude-code'
 
 import { readLength } from './cachelength'
-import { askChange, cancelChange, closeChange, copyHandoff, forceChange, openHandoff, restoreChange, retryChange, settleChange, startConversation } from './change'
-import { guard } from './disk'
+import { askChange, canCompact, cancelChange, closeChange, copyHandoff, forceChange, openHandoff, restoreChange, retryChange, settleChange, startConversation } from './change'
+import { compactNow } from './compaction'
+import { guard, toast } from './disk'
 import { restoreHearth } from './handoff-disk'
 import { clearHeat, coolsAtOf, fireMoments, heatPass, publishHearth, readContext, relaunchMoment, restoreHeat, turnEnded } from './heat'
 import { plural, t } from './i18n'
@@ -87,6 +88,16 @@ export async function runRefresh($: EngineInterface, m: Memory) {
   if (!(await askChange($, m))) return { text: t('handoff.busy') }
   await pulse($, m)
   return { text: t(m.change.phase === 'writing' ? 'handoff.running' : 'handoff.queued') }
+}
+
+/** `/pixeldesk compact`: the compaction of the automatic mode, now, and it counts as one. */
+export async function runCompact($: EngineInterface, m: Memory) {
+  if (!(await canCompact($, m))) return { text: t('handoff.compactBusy') }
+  void compactNow($, m).then(done => {
+    if (!done) toast($, m, t('handoff.compactFailed'))
+    m.wake()
+  })
+  return { text: t('handoff.compactStarted') }
 }
 
 const clockWord = (ms: number) => {
