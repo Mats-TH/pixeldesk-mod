@@ -5,6 +5,7 @@ import type { CardDrawing, CardZone } from './card'
 import { setLanguage } from './i18n'
 import type { Memory } from './memory'
 import { CELL_H, CELL_W } from './room'
+import type { Layer } from './room-layers'
 import { readLanguage } from './state'
 
 export type Pane = RenderInput<'Pane'>
@@ -44,6 +45,15 @@ export function hoverZone({ Box, Svg }: Table, key: string, zone: CardZone, card
       <Box position="absolute" left={at.left - zone.left} top={at.top - zone.top} display="none" hover={{ display: 'flex' }}>
         <Svg source={card.source} alt={alt} width={card.width} height={card.height} />
       </Box>
+    </Box>
+  )
+}
+
+/** A small drawing that moves, on its cells. Its key keeps the frame through every redraw. */
+export function liveBox({ Box, Svg }: Table, l: Layer) {
+  return (
+    <Box key={l.key} position="absolute" left={l.left} top={l.top} width={l.cols} height={l.rows} flexDirection="column">
+      <Svg source={l.source} alt={l.alt} width={l.width} height={l.height} isInteractive />
     </Box>
   )
 }

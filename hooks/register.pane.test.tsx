@@ -67,7 +67,7 @@ describe('the room, on the desktop', () => {
     const ui = await mountPane($)
     const names = kids(await ui.find({ key: 'room' })).map(el => el.props?.key ?? el.type)
     // The lights and the cat depend on the seed of the room.
-    expect(names.filter(name => name !== 'live-lights' && name !== 'live-cat')).toEqual(['Svg', 'room-count', 'live-manager', 'live-a1', 'live-crab', 'live-fire', 'room-labels', 'reveal-0', 'desk-manager', 'desk-a1', 'hearth-card', 'plan-lines', 'settings-look', 'settings-button'])
+    expect(names.filter(name => name !== 'live-lights' && name !== 'live-cat')).toEqual(['Svg', 'room-count', 'live-crab', 'live-manager', 'live-a1', 'live-fire', 'room-labels', 'reveal-0', 'desk-manager', 'desk-a1', 'hearth-card', 'plan-lines', 'settings-look', 'settings-button'])
   })
 
   test('the count is a plain image at the size of the drawing', async ($, on) => {

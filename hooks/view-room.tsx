@@ -10,17 +10,17 @@ import { hearthCard } from './card-hearth'
 import { managerSay, minutesBetween } from './chat'
 import { managerOf } from './desks'
 import { log } from './disk'
-import { seedOf } from './draw'
 import { plural, t } from './i18n'
 import type { Memory } from './memory'
 import { COLD_HEARTH, boardLines, deskBoxes, hearthBox, letterBox, lineSvg, managerBox, roomBackSvg, roomCountSvg, roomSvg, viewOf, zoomPair } from './room'
 import type { HearthLook, HearthPanel, RoomDesk, RoomInput } from './room'
 import { buttonLit, crabLayer, decorLayers, deskLayers, fireLayer, keeperLayer, labelsSvg } from './room-layers'
 import type { Layer } from './room-layers'
-import { CELL_H, CELL_W, cellsOf, hoverZone } from './view-shared'
+import { CELL_H, CELL_W, cellsOf, hoverZone, liveBox } from './view-shared'
 import { panelCells, pressRows, settingsElements } from './view-settings'
 import type { PanelCells } from './view-settings'
 import type { Frame, Table } from './view-shared'
+import { packOf } from './pixel/themes'
 
 // The engine refuses a drawing past this many characters.
 const SVG_MAX = 131_072
@@ -31,6 +31,7 @@ export type RoomView = {
   plan: DrawnPlan | null
   seen: Seen
   tokens: number
+  cost: number | null
   now: number
   chat: ChatTurn
   settings: SettingsView
@@ -51,7 +52,7 @@ function zoneOf(b: { x: number; y: number; w: number; h: number }, n: number, fr
 /** The hover zones of the desks. */
 function deskZones(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null) {
   const n = view.agents.length
-  const boxes = deskBoxes(n, frame.width, frame.height)
+  const boxes = deskBoxes(n, frame.width, frame.height, view.settings.theme)
   return view.agents.flatMap((agent, i) => {
     const zone = zoneOf(boxes[i]!, n, frame)
     if (!clearOf(zone, panel)) return []
@@ -73,7 +74,7 @@ function managerCardOf({ chat, plan, now }: RoomView) {
 function managerZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null, mobile: boolean) {
   const { Box } = ui
   const n = view.agents.length
-  const zone = zoneOf(managerBox(n, frame.width, frame.height), n, frame)
+  const zone = zoneOf(managerBox(n, frame.width, frame.height, view.settings.theme), n, frame)
   if (mobile) return <Box key="desk-manager" position="absolute" left={zone.left} top={zone.top} width={zone.width} height={zone.height} />
   if (!clearOf(zone, panel)) return null
   const card = managerCardOf(view)
@@ -117,7 +118,7 @@ function reveals({ Box, Svg }: Table, view: RoomView, input: Pick<RoomInput, 'de
   return lines.map(l => {
     const step = steps[l.i]!
     const scope = `line-${l.i}`
-    const light = lineSvg(step.status, l.label, l, board.scale, CELL_W, CELL_H)
+    const light = lineSvg(step.status, l.label, l, board.scale, CELL_W, CELL_H, packOf(view.settings.theme).board)
     const card = stepCard(step, agents)
     const bubble = cardSvg(card, frame.width, frame.height)
     const place = bubblePlace(Math.floor(board.left / CELL_W), (l.y + l.h / 2) / CELL_H, Math.ceil(board.under / CELL_H), cellsOf(bubble), frame.pane)
@@ -185,19 +186,10 @@ function keeperOf(m: Memory, input: RoomInput): Layer | null {
   return v.layer
 }
 
-/** A small drawing that moves, on its cells. Its key keeps the frame through every redraw. */
-function liveBox({ Box, Svg }: Table, l: Layer) {
-  return (
-    <Box key={l.key} position="absolute" left={l.left} top={l.top} width={l.cols} height={l.rows} flexDirection="column">
-      <Svg source={l.source} alt={l.alt} width={l.width} height={l.height} isInteractive />
-    </Box>
-  )
-}
-
 /** The card of the hearth, over the stove. */
 function hearthZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | null) {
   const n = view.agents.length
-  const zone = zoneOf(hearthBox(n, frame.width, frame.height), n, frame)
+  const zone = zoneOf(hearthBox(n, frame.width, frame.height, view.settings.theme), n, frame)
   if (!view.hearth || !clearOf(zone, panel)) return null
   const card = hearthCard({ hearth: view.hearth, fire: view.settings.fire, now: view.now })
   return hoverZone(ui, 'hearth-card', zone, cardSvg(card, frame.width, frame.height), cardAlt(card), frame)
@@ -242,7 +234,7 @@ function briefingZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells
   const briefing = view.briefing
   if (!briefing || briefing.phase === 'idle') return null
   const n = view.agents.length
-  const zone = zoneOf(letterBox(n, frame.width, frame.height), n, frame)
+  const zone = zoneOf(letterBox(n, frame.width, frame.height, view.settings.theme), n, frame)
   if (!clearOf(zone, panel)) return null
   const card = briefingCard(briefing)
   const drawn = cardSvg(card, frame.width, frame.height)
@@ -265,7 +257,7 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
   const steps = (view.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))
   const manager = managerOf(view.chat.working ? 'working' : undefined, steps)
   const look = hearthLook(m, view)
-  const input: RoomInput = { sessionId: m.sessionId, desks, manager, previous: desks.length, steps, tokens: view.tokens, width: frame.width, height: frame.height, hearth: look, ...(mobile ? {} : { settings: true }) }
+  const input: RoomInput = { sessionId: m.sessionId, desks, manager, previous: desks.length, steps, tokens: view.tokens, cost: view.cost, theme: view.settings.theme, width: frame.width, height: frame.height, hearth: look, ...(mobile ? {} : { settings: true }) }
   // A phone's web view moves an image: the room stays whole there. On the desktop an image stands still.
   const pair = drawings(m, input, Math.min(view.seen.previous, desks.length), mobile ? roomSvg : roomBackSvg, !mobile)
   if (pair.image.sent.length > SVG_MAX) {
@@ -295,7 +287,7 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
     </Box>
   )
   const keeper = keeperOf(m, input)
-  const board = boardLines({ desks, steps, width: frame.width, height: frame.height })
+  const board = boardLines({ desks, steps, theme: view.settings.theme, width: frame.width, height: frame.height })
   const panel = view.settings.open ? panelCells(view.settings, frame) : null
   // Once the panel reaches the board's column the lines have no zone left.
   const lines = panel && panel.left + panel.cols > Math.floor(board.left / CELL_W) ? [] : visibleLines(board.lines, frame.height)
@@ -304,8 +296,8 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
       {image}
       {count}
       {decorLayers(input).map(l => liveBox(ui, l))}
+      {liveBox(ui, crabLayer(input))}
       {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
-      {liveBox(ui, crabLayer(input, seedOf(m.sessionId) % 80))}
       {liveBox(ui, fireLayer(input, look.fire))}
       {labels}
       {keeper ? liveBox(ui, keeper) : null}

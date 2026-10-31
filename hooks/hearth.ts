@@ -9,7 +9,7 @@ import { clearHeat, coolsAtOf, fireMoments, heatPass, publishHearth, readContext
 import { plural, t } from './i18n'
 import type { TextKey } from './i18n'
 import type { Memory } from './memory'
-import { setCompactBefore, setBriefingMode, setFire } from './preferences'
+import { setTheme, setCompactBefore, setBriefingMode, setFire } from './preferences'
 
 const SETTLE_MS = 1000
 
@@ -148,6 +148,12 @@ async function runGesture($: EngineInterface, m: Memory, name: string, surface: 
     case 'hearth-compact-2': return setCompactBefore($, m, 2)
     case 'hearth-compact-3': return setCompactBefore($, m, 3)
     case 'hearth-compact-always': return setCompactBefore($, m, 'always')
+    case 'theme-cosy': return setTheme($, m, 'cosy')
+    case 'theme-japonais': return setTheme($, m, 'japonais')
+    case 'theme-nature': return setTheme($, m, 'nature')
+    case 'theme-futuriste': return setTheme($, m, 'futuriste')
+    case 'theme-geek': return setTheme($, m, 'geek')
+    case 'theme-base': return setTheme($, m, 'base')
     default: return undefined
   }
 }

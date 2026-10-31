@@ -16,6 +16,7 @@ const SUMMARIES = { plugin: 'pixeldesk', key: 'summaries' } as const
 const SEEN = { plugin: 'pixeldesk', key: 'seen' } as const
 const FLOOR = { plugin: 'pixeldesk', key: 'floor' } as const
 const TOKENS = { plugin: 'pixeldesk', key: 'tokens' } as const
+const COST = { plugin: 'pixeldesk', key: 'cost' } as const
 const NEWS = { plugin: 'pixeldesk', key: 'news' } as const
 const HEARTH = { plugin: 'pixeldesk', key: 'hearth' } as const
 const BRIEFING = { plugin: 'pixeldesk', key: 'briefing' } as const
@@ -123,6 +124,14 @@ export async function readTokens($: EngineInterface) {
 
 export function writeTokens($: EngineInterface, value: number) {
   return $.state.set(TOKENS, value)
+}
+
+export async function readCost($: EngineInterface) {
+  return (await $.state.get(COST)).value
+}
+
+export function writeCost($: EngineInterface, value: number) {
+  return $.state.set(COST, value)
 }
 
 export async function readNews($: EngineInterface) {

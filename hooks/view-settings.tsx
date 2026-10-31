@@ -1,5 +1,5 @@
-import type { CompactBefore, Departure, SettingsView } from '../types'
-import { COMPACT_STEPS, drawnCells, gearSvg, optionSvg, settingsPlace, settingsSvg, stepSvg, zoneCells } from './card'
+import type { CompactBefore, Departure, RoomTheme, SettingsView } from '../types'
+import { COMPACT_STEPS, ROOM_THEMES, drawnCells, gearSvg, optionSvg, settingsPlace, settingsSvg, stepSvg, themeSvg, zoneCells } from './card'
 import type { GearLook, OptionId, SettingsPlace } from './card'
 import { t } from './i18n'
 import type { Frame, Table } from './view-shared'
@@ -104,6 +104,11 @@ function stepZone(ui: Table, value: CompactBefore, chosen: boolean, panel: Panel
   return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.steps[COMPACT_STEPS.indexOf(value)]!), chosen ? null : stepSvg(value, place), gestureRow(name), panel)
 }
 
+function themeZone(ui: Table, id: RoomTheme, chosen: boolean, panel: PanelCells, place: SettingsPlace) {
+  const name = `theme-${id}`
+  return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.themes[ROOM_THEMES.indexOf(id)]!), chosen ? null : themeSvg(id, place), gestureRow(name), panel)
+}
+
 /** The sections of the cache and the briefing: the cursor only where it applies. */
 function hearthZones(ui: Table, view: SettingsView, panel: PanelCells, place: SettingsPlace) {
   const auto = view.briefingMode === 'auto'
@@ -134,6 +139,7 @@ export function settingsElements(ui: Table, view: SettingsView, frame: Frame) {
       <Svg source={drawn.source} alt={drawn.alt} width={drawn.width} height={drawn.height} />
       {OPTIONS.map(id => departureZone(ui, id, id === view.departure, drawn, place))}
       {hearthZones(ui, view, drawn, place)}
+      {ROOM_THEMES.map(id => themeZone(ui, id, id === view.theme, drawn, place))}
     </Box>
   )
   return [...button, panel]

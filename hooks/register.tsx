@@ -14,7 +14,7 @@ import { entered, received } from './news'
 import { pressSettings } from './preferences'
 import { answerPlan, applyMirror, isMirror, newTurn, noteFor } from './planning'
 import { runCommand, startSession } from './session'
-import { writeLimits } from './state'
+import { writeCost, writeLimits } from './state'
 import { sumOf } from './tokens'
 import { drawBand } from './view-band'
 import { drawPane } from './view-pane'
@@ -67,6 +67,7 @@ export const register: Register = (on, options) => {
 
   on('session.measure', async ($, e, next) => {
     await guard($, m, 'limits', () => writeLimits($, e.rateLimits))
+    if (e.cost) await guard($, m, 'cost', () => writeCost($, e.cost!.usd))
     return next(e)
   })
 
@@ -156,7 +157,7 @@ export const register: Register = (on, options) => {
     }
   }
 
-  on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth)-/ }, ($, e) => pressGesture($, m, e))
+  on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth|theme)-/ }, ($, e) => pressGesture($, m, e))
 
   on('ui.render', { component: 'Pane', requestId: 'pixeldesk' }, ($, e) => drawPane($, m, e))
 

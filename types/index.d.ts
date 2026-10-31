@@ -59,8 +59,11 @@ export type BriefingMode = 'auto' | 'manual'
 /** How many compactions a conversation takes before it changes for a new one. */
 export type CompactBefore = 0 | 1 | 2 | 3 | 'always'
 
+/** The world the rooms stand in, for every conversation. */
+export type RoomTheme = 'cosy' | 'japonais' | 'nature' | 'futuriste' | 'geek' | 'base'
+
 /** What the settings button shows. `open` never reaches the disk. */
-export type SettingsView = { open: boolean; departure: Departure; fire: boolean; briefingMode: BriefingMode; compactBefore: CompactBefore }
+export type SettingsView = { open: boolean; departure: Departure; fire: boolean; briefingMode: BriefingMode; compactBefore: CompactBefore; theme: RoomTheme }
 
 // ---------- The hearth and the briefing ----------
 
@@ -171,6 +174,7 @@ declare module 'claude-code' {
       shimmer: number
       summaries: Record<string, string>
       tokens: number
+      cost: number | null
     }
   }
 }

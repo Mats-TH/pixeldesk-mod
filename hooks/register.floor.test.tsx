@@ -204,12 +204,26 @@ describe('the floor in the pane', () => {
     return { w, ui: await mountPane($) }
   }
 
-  test('the root fills the pane: drawing, count, a zone per room', async ($, on) => {
+  test('the root fills the pane: drawing, count, the crab, a zone per room', async ($, on) => {
     const { ui } = await floorPane($, on)
     const root = await ui.find({ key: 'floor' })
     expect(root?.props).toMatchObject({ flexDirection: 'column', height: 22, overflow: 'hidden', backgroundColor: 'transparent', marginX: -1 })
-    expect(kids(root).map(el => el.props?.key ?? el.type)).toEqual(['Svg', 'floor-count', `room-${SESSION}`, 'room-kid'])
+    expect(kids(root).map(el => el.props?.key ?? el.type)).toEqual(['Svg', 'floor-count', 'floor-crab', `room-${SESSION}`, 'room-kid'])
     expect(kids(root)[0].props.isInteractive).toBeUndefined()
+  })
+
+  test('the crab has an image that plays, the zones lie over it, and nothing of a turn reaches it', async ($, on) => {
+    const { w, ui } = await floorPane($, on)
+    const box = await ui.find({ key: 'floor-crab' })
+    expect(box?.props).toMatchObject({ position: 'absolute', flexDirection: 'column' })
+    const image = kids(box)[0]
+    expect(image.props.isInteractive).toBe(true)
+    expect(image.props.alt).toBe('Le crabe')
+    const source = await sourceOf(ui, 'floor-crab')
+    w.files.set(deskFile('kid'), desk('kid', { tokens: 5000, working: 1, agents: 1, desks: [{ title: 'Testeur', state: 'working', hue: 0 }] }))
+    await beat(w)
+    await receive($)
+    expect(await sourceOf(ui, 'floor-crab')).toBe(source)
   })
 
   test('100% with no measure', async ($, on) => {

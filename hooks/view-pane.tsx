@@ -8,7 +8,7 @@ import type { FloorRoom } from './desks'
 import { t } from './i18n'
 import { NO_TURN } from './memory'
 import type { Memory } from './memory'
-import { readAgents, readCardClock, readChat, readFloorRooms, readBriefing, readHearth, readMinute, readNews, readPlan, readSeen, readSettings, readSummaries, readTokens } from './state'
+import { readAgents, readCardClock, readChat, readFloorRooms, readBriefing, readHearth, readMinute, readNews, readPlan, readSeen, readSettings, readSummaries, readTokens, readCost } from './state'
 import { floorView } from './view-floor'
 import { roomView } from './view-room'
 import type { RoomView } from './view-room'
@@ -61,6 +61,7 @@ export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
   const summaries = (await readSummaries($)) ?? {}
   const plan = (await readPlan($)) ?? null
   const tokens = (await readTokens($)) ?? 0
+  const cost = (await readCost($)) ?? null
   const news = (await readNews($)) ?? { count: 0, shown: 0 }
   await readMinute($)
   await readCardClock($)
@@ -73,10 +74,10 @@ export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
   const frame = frameOf(e)
   const mobile = e.surface === 'mobile'
   const now = await $.clock.now()
-  if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile)
+  const settings = (await readSettings($)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme }
+  if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile, settings.theme)
   const seen = (await readSeen($)) ?? { shown: agents.length, previous: agents.length }
-  const settings = (await readSettings($)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore }
-  const view: RoomView = { agents, summaries, plan, seen, tokens, now, chat, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
+  const view: RoomView = { agents, summaries, plan, seen, tokens, cost, now, chat, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
   const list = $.ui.resolve(e) as unknown as Words
   const rows = mobile ? [managerRow(list, chat, plan), ...agentRows(list, agents, summaries)] : null
   return (await roomView($, m, ui, frame, view, mobile, rows)) ?? words()

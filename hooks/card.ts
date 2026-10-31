@@ -1,4 +1,4 @@
-import type { CompactBefore, Departure, BriefingMode, PlanLine, SettingsView } from '../types'
+import type { CompactBefore, Departure, BriefingMode, PlanLine, SettingsView, RoomTheme } from '../types'
 import { plain } from './desks'
 import type { FloorRoom } from './desks'
 import { decides, getLanguage, plural, t } from './i18n'
@@ -366,7 +366,9 @@ const GEAR: Area = { x: 10, y: 10, w: 32, h: 32 }
 // The panel of the design, 296 wide, 542 tall or 470 once `Manuel` hides the cursor, and its option lines.
 const PANEL_X = 8
 const PANEL_Y = 46
-const PANEL_W = 296
+const PANEL_W = 442
+/** The themes, in the order of the panel. */
+export const ROOM_THEMES: readonly RoomTheme[] = ['cosy', 'japonais', 'nature', 'futuriste', 'geek', 'base']
 const PANEL_H: Record<BriefingMode, number> = { auto: 542, manual: 470 }
 const OPTION_X = 17
 const OPTION_W = 262
@@ -418,6 +420,14 @@ const STEP_LOOKS = {
   chosen: { back: GOLD, edge: WOOD_DARK },
 } as const
 
+// The themes stand in a column of their own, beside the other sections: a taller panel would shrink on most panes.
+const THEME_X = OPTION_X + OPTION_W + 14
+const THEME_Y = 51
+const THEME_H = 24
+const THEME_W = 134
+const THEME_GAP = 4
+const themeSpot = (i: number) => ({ x: THEME_X, y: THEME_Y + 24 + i * (THEME_H + THEME_GAP) })
+
 const stepX = (i: number) => OPTION_X + i * (STEP_W + STEP_GAP)
 const stepW = (value: CompactBefore) => (value === 'always' ? STEP_LAST_W : STEP_W)
 
@@ -436,7 +446,8 @@ export function settingsPlace(width: number, height: number, mode: BriefingMode 
   const option = (id: OptionId) => area(OPTION_X, id === 'manual' ? MANUAL_Y[mode] : OPTIONS[id].y, OPTION_W, OPTIONS[id].h)
   const options = Object.fromEntries(OPTION_IDS.map(id => [id, option(id)])) as Record<OptionId, Area>
   const steps = COMPACT_STEPS.map((value, i) => ({ value, ...area(stepX(i), STEP_Y, stepW(value), STEP_H) }))
-  return { k, mode, button: GEAR, panel: { x: PANEL_X, y: PANEL_Y, w: (PANEL_W + SHADOW) * k, h: (PANEL_H[mode] + SHADOW) * k }, options, steps }
+  const themes = ROOM_THEMES.map((id, i) => ({ id, ...area(themeSpot(i).x, themeSpot(i).y, THEME_W, THEME_H) }))
+  return { k, mode, button: GEAR, panel: { x: PANEL_X, y: PANEL_Y, w: (PANEL_W + SHADOW) * k, h: (PANEL_H[mode] + SHADOW) * k }, options, steps, themes }
 }
 export type SettingsPlace = ReturnType<typeof settingsPlace>
 
@@ -487,15 +498,24 @@ function stepParts(value: CompactBefore, look: keyof typeof STEP_LOOKS) {
   return { body: `${box(0, 0, w, STEP_H, ink.edge)}${box(2, 2, w - 4, STEP_H - 4, ink.back)}<g shape-rendering="geometricPrecision">${word}</g>`, shown: label }
 }
 
+/** One theme of the panel, from the top left corner of its box. */
+function themeParts(id: RoomTheme, look: keyof typeof STEP_LOOKS) {
+  const ink = STEP_LOOKS[look]
+  const label = t(`theme.${id}`)
+  const word = line(label, Math.round((THEME_W - textWidth(label, SMALL)) / 2), textTop(3, SMALL, STEP_LABEL_H), SMALL, INK)
+  return { body: `${box(0, 0, THEME_W, THEME_H, ink.edge)}${box(2, 2, THEME_W - 4, THEME_H - 4, ink.back)}<g shape-rendering="geometricPrecision">${word}</g>`, shown: label }
+}
+
 /** What the panel shows, its choices all read at once. */
-export type PanelChoices = Pick<SettingsView, 'departure' | 'fire' | 'briefingMode' | 'compactBefore'>
+export type PanelChoices = Pick<SettingsView, 'departure' | 'fire' | 'briefingMode' | 'compactBefore' | 'theme'>
 
 /** The panel in words, for a reader that cannot see it. */
 function panelAlt(c: PanelChoices) {
   const said = (id: OptionId, chosen: boolean) => (chosen ? t('settings.chosen', { name: t(OPTIONS[id].name) }) : t(OPTIONS[id].name))
   const departure = t('settings.alt', { title: t('settings.title'), departure: t('settings.departure'), plan: said('plan', c.departure === 'plan'), each: said('each', c.departure === 'each') })
   const hearth = t('hearth.alt', { cache: t('hearth.section.cache'), fire: said('fire', c.fire), briefing: t('hearth.section.briefing'), auto: said('auto', c.briefingMode === 'auto'), manual: said('manual', c.briefingMode === 'manual') })
-  return c.briefingMode === 'auto' ? `${departure} ${hearth} ${stepPhrase(c.compactBefore)}` : `${departure} ${hearth}`
+  const theme = `${t('settings.theme')}. ${t('settings.chosen', { name: t(`theme.${c.theme}`) })}.`
+  return c.briefingMode === 'auto' ? `${departure} ${hearth} ${stepPhrase(c.compactBefore)} ${theme}` : `${departure} ${hearth} ${theme}`
 }
 
 /** The panel, with each chosen option in gold and its box ticked. */
@@ -517,15 +537,17 @@ export function settingsSvg(c: PanelChoices, place: SettingsPlace) {
     box(2, 2, PANEL_W - 4, height - 4, WOOD, 2),
     box(5, 5, PANEL_W - 10, height - 10, PLATE_EDGE, 2),
     box(7, 7, PANEL_W - 14, height - 14, PLATE),
-    box(OPTION_X, 43, OPTION_W, 2, SCREW),
+    box(OPTION_X, 43, THEME_X + THEME_W - OPTION_X, 2, SCREW),
   ]
   const small = (s: string, y: number, fill: string) => line(s, OPTION_X, textTop(y, SMALL, SMALL_LINE), SMALL, fill)
-  const words = [line(title, OPTION_X, textTop(15, BIG, BIG_LINE), BIG, INK), small(sub, 51, PLATE_EDGE), small(cache, CACHE_Y, PLATE_EDGE), small(briefing, BRIEFING_Y, PLATE_EDGE)]
+  const words = [line(title, OPTION_X, textTop(15, BIG, BIG_LINE), BIG, INK), small(sub, 51, PLATE_EDGE), small(cache, CACHE_Y, PLATE_EDGE), small(briefing, BRIEFING_Y, PLATE_EDGE), line(t('settings.theme'), THEME_X, textTop(THEME_Y, SMALL, SMALL_LINE), SMALL, PLATE_EDGE)]
   const [heading, phrase] = [t('hearth.cursor'), stepPhrase(c.compactBefore)]
   if (auto) words.push(small(heading, CURSOR_Y, PLATE_EDGE), small(fit(phrase, SMALL, OPTION_W), PHRASE_Y, PURPLE))
   const steps = auto ? COMPACT_STEPS.map((value, i) => `<g transform="translate(${stepX(i)} ${STEP_Y})">${stepParts(value, value === c.compactBefore ? 'chosen' : 'normal').body}</g>`) : []
-  const body = `${frame.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g>${options.map(o => optionGroup(o.made, OPTION_X, o.y)).join('')}${steps.join('')}`
-  const shown = `${title}${sub}${cache}${briefing}${options.map(o => o.made.shown).join('')}${auto ? `${heading}${phrase}${COMPACT_STEPS.map(stepLabel).join('')}` : ''}`
+  const themes = ROOM_THEMES.map((id, i) => ({ made: themeParts(id, id === c.theme ? 'chosen' : 'normal'), at: themeSpot(i) }))
+  const themed = themes.map(o => `<g transform="translate(${o.at.x} ${o.at.y})">${o.made.body}</g>`).join('')
+  const body = `${frame.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g>${options.map(o => optionGroup(o.made, OPTION_X, o.y)).join('')}${steps.join('')}${themed}`
+  const shown = `${title}${sub}${cache}${briefing}${t('settings.theme')}${themes.map(o => o.made.shown).join('')}${options.map(o => o.made.shown).join('')}${auto ? `${heading}${phrase}${COMPACT_STEPS.map(stepLabel).join('')}` : ''}`
   return { ...placed(place.panel, place.k, letterDefs(shown), body), alt: panelAlt(c) }
 }
 
@@ -533,6 +555,12 @@ export function settingsSvg(c: PanelChoices, place: SettingsPlace) {
 export function optionSvg(id: OptionId, place: SettingsPlace, ticked = false) {
   const lit = optionParts(id, 'lit', ticked)
   return placed(place.options[id], place.k, letterDefs(lit.shown), optionGroup(lit, 0, 0))
+}
+
+/** A theme under the pointer. */
+export function themeSvg(id: RoomTheme, place: SettingsPlace) {
+  const lit = themeParts(id, 'lit')
+  return placed(place.themes[ROOM_THEMES.indexOf(id)]!, place.k, letterDefs(lit.shown), lit.body)
 }
 
 /** A step of the cursor under the pointer. */

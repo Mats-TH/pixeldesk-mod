@@ -1,16 +1,16 @@
-import { FLOOR_DECOR, THEMES, WALL_DECOR } from './pixel/decor'
-import type { FloorDecor, WallDecor } from './pixel/decor'
+import type { FloorSlot, Pack } from './pixel/pack'
+import { packOf } from './pixel/themes'
 
 export type Box = { x: number; y: number; w: number; h: number }
-export type Placed<I> = Box & { id: I; slotW: number }
-export type DrawnRoom = { theme: keyof typeof THEMES; wall: Placed<WallDecor>[]; floor: Placed<FloorDecor>[]; window: boolean }
+export type Placed = Box & { id: string; slotW: number }
+export type DrawnRoom = { wall: Placed[]; floor: Placed[]; basket: Box; window: boolean }
 /**
  * What a room holds before its decor is drawn, in cells: its size, the screen and the board on the wall, the rug on the
  * floor. `corner`: how far from the left the wall stays clear of decor, for the settings button. `wallEnd`: where the
  * wall's decor stops whatever the plan, so the lights never move with a board that grows; what the screen then reaches
- * steps down. `stove`: the floor it takes.
+ * steps down. `stove`: the floor it takes. `taken`: what else stands on the floor, as desks a theme does not seat on the rug.
  */
-export type RoomFit = { w: number; h: number; tele: Box; board: Box; rug: Box; plate?: Box; tube?: Box; corner?: number; wallEnd?: number; stove?: Box }
+export type RoomFit = { w: number; h: number; tele: Box; board: Box; rug: Box; corner?: number; wallEnd?: number; stove?: Box; taken?: readonly Box[] }
 
 // A room of the base size, with a short plan.
 const BASE_FIT: RoomFit = {
@@ -45,58 +45,35 @@ function rng(seed: number) {
   return next
 }
 
-// Picks stand left to right, in this order, until the wall runs out: a wider room shows more of them.
-const WALL_PICKS: (WallDecor | null)[][] = [
-  ['fenetre', 'etagere', 'liege'],
-  ['horloge', 'suspendue', 'affiche', null],
-  ['etagere', 'liege', 'peinture', 'fenetre'],
-  ['suspendue', 'affiche', 'horloge', null],
-  ['peinture', 'liege', 'etagere'],
-  ['affiche', 'suspendue', 'peinture', null],
-]
-const WALL_Y: Record<WallDecor, number> = { fenetre: 7, etagere: 19, liege: 15, peinture: 17, affiche: 17, horloge: 17, suspendue: 3, guirlande: 3 }
 const WALL_LEFT = 6
 const WALL_GAP = 4
 const WALL_GAP_MAX = 14
 const WIDE = 300
-// The lowest a thing on the wall may hang, above the wainscot.
-const WALL_FLOOR = 58
-const SAG = 26
-
-// Each slot lists what may stand there, and may stay empty. A slot counts from the left or from the right
-// of the room; `front` slots count up from its bottom, the others stand against the wall.
-type FloorSlot = { x?: number; right?: number; up: number; w: number; items: (FloorDecor | null)[]; front?: boolean; minW?: number }
-const FLOOR_SLOTS: FloorSlot[] = [
-  { x: 6, up: 97, w: 44, items: ['cafe', 'bibliotheque', 'fontaine', 'lampe'] },
-  { x: 46, up: 102, w: 34, items: ['monstera', 'lampe', 'fontaine', null] },
-  { x: 86, up: 102, w: 72, items: ['canape', 'fontaine', null], minW: WIDE },
-  { right: 78, up: 102, w: 72, items: ['canape', 'fontaine', 'monstera'] },
-  { x: 24, up: 46, w: 24, items: ['pouf', 'poubelle', null], front: true },
-  { x: 20, up: 10, w: 30, items: ['chat', 'poubelle', null], front: true },
-  { right: 42, up: 22, w: 40, items: ['cartons', 'pouf', 'poubelle', null], front: true },
-  { right: 60, up: 8, w: 16, items: ['poubelle', null], front: true },
-]
+// What a string of lights leaves clear below it.
+const STRING_LOW = 17
+const STRING_W = 130
 
 // How far furniture may stand before what hangs on the wall.
 const WALL_OVERLAP = 10
 const BAND = 6
+const BASKET_X = 6
 
 const crosses = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 const above = (o: Box, x: number, w: number) => x < o.x + o.w && o.x < x + w
 
 const wallLeft = (fit: RoomFit) => Math.max(WALL_LEFT, fit.corner ?? 0)
 
-function placeWall(roll: (n: number) => number, fit: RoomFit) {
+function placeWall(roll: (n: number) => number, fit: RoomFit, { wall: decor }: Pack) {
   const end = Math.floor(fit.wallEnd ?? fit.tele.x) - 3
-  const used = new Set<WallDecor>()
-  const picked: { id: WallDecor; w: number; h: number }[] = []
+  const used = new Set<string>()
+  const picked: { id: string; w: number; h: number }[] = []
   let room = end - wallLeft(fit)
-  for (const items of WALL_PICKS) {
+  for (const items of decor.picks) {
     // A long wall leaves no slot empty.
     const free = items.filter(id => (id === null ? fit.w < WIDE : !used.has(id)))
     const id = free[roll(free.length || 1)] ?? null
     if (!id) continue
-    const c = WALL_DECOR[id]()
+    const c = decor.items[id]!.draw()
     const gap = picked.length ? WALL_GAP : 0
     if (c.w + gap <= room) {
       room -= c.w + gap
@@ -105,88 +82,92 @@ function placeWall(roll: (n: number) => number, fit: RoomFit) {
     }
   }
   const spread = picked.length > 1 ? Math.min(WALL_GAP_MAX, WALL_GAP + Math.floor(room / (picked.length - 1))) : 0
-  const wall: Placed<WallDecor>[] = []
+  const wall: Placed[] = []
   let x = wallLeft(fit)
   for (const it of picked) {
-    // The name plate of a floor cell covers the top left corner: what would sit under it hangs lower, or goes.
-    const under = !!fit.plate && above(fit.plate, x, it.w) && WALL_Y[it.id] < fit.plate.y + fit.plate.h
-    const y = under ? fit.plate!.y + fit.plate!.h : WALL_Y[it.id]
-    if (under && y + it.h > WALL_FLOOR) continue
-    wall.push({ id: it.id, x, y, w: it.w, h: it.h, slotW: it.w + spread })
+    wall.push({ id: it.id, x, y: decor.items[it.id]!.y, w: it.w, h: it.h, slotW: it.w + spread })
     x += it.w + spread
   }
   return wall
 }
 
 /** The string of lights above what hangs on the wall, from the window to the screen. */
-function placeLights(roll: (n: number) => number, wall: Placed<WallDecor>[], fit: RoomFit): Placed<WallDecor> | null {
+function placeLights(roll: (n: number) => number, wall: Placed[], fit: RoomFit, { wall: decor }: Pack): Placed | null {
   const lit = roll(3) > 0
+  const string = decor.string
+  if (!string) return null
+  // What the theme keeps apart from it, as what it would cross.
+  if (decor.clash?.some(pair => pair.includes(string.id) && wall.some(it => pair.includes(it.id)))) return null
   const win = wall.find(it => it.id === 'fenetre')
-  const x = win ? win.x + win.w + 2 : wallLeft(fit)
-  const left = fit.plate ? Math.max(x, Math.ceil(fit.plate.x + fit.plate.w) + 2) : x
-  const w = Math.floor((Math.floor(fit.wallEnd ?? fit.tele.x) - 2 - left) / SAG) * SAG
-  const clear = wall.every(it => it.id === 'suspendue' || !above(it, left, Math.min(w, 130)) || it.y >= 17)
-  if (!lit || w < 2 * SAG || !clear) return null
-  return { id: 'guirlande', x: left, y: WALL_Y.guirlande, w: Math.min(w, 130), h: 14, slotW: Math.min(w, 130) }
+  const left = win ? win.x + win.w + 2 : wallLeft(fit)
+  const w = Math.floor((Math.floor(fit.wallEnd ?? fit.tele.x) - 2 - left) / string.sag) * string.sag
+  const clear = wall.every(it => !above(it, left, Math.min(w, STRING_W)) || it.y >= STRING_LOW)
+  if (!lit || w < 2 * string.sag || !clear) return null
+  return { id: string.id, x: left, y: string.y, w: Math.min(w, STRING_W), h: string.h, slotW: Math.min(w, STRING_W) }
 }
 
-export function drawRoom(sessionId: string, fit: RoomFit = BASE_FIT): DrawnRoom {
-  const roll = rng(seedOf(sessionId))
-  const names = Object.keys(THEMES) as (keyof typeof THEMES)[]
-  const theme = names[roll(names.length)]!
-  const placed = placeWall(roll, fit)
-  const lights = placeLights(roll, placed, fit)
-  const hung = placed.filter(it => !crosses(it, fit.tele))
-  const wall = lights ? [lights, ...hung] : hung
-  const fixed = [fit.tele, fit.board, ...(fit.tube ? [fit.tube] : [])]
-  // A piece never hides the wall decor, and never the screen or the board, not even a little.
-  const free = (b: Box) => !hung.some(o => above(o, b.x, b.w) && b.y + WALL_OVERLAP < o.y + o.h) && !fixed.some(o => crosses(o, b))
-  const usedFloor = new Set<FloorDecor>()
-  const floor: Placed<FloorDecor>[] = []
-  const put = (id: FloorDecor, b: Box, slotW: number) => {
+/** The crab's basket, in every room: in the left corner of the floor, or the first place along it. */
+function placeBasket(fit: RoomFit, pack: Pack, blocked: (b: Box) => boolean): Box {
+  const c = pack.basket(false)
+  const at = { x: BASKET_X, y: fit.h - BAND - c.h, w: c.w, h: c.h }
+  while (at.x + at.w < fit.w && blocked(at)) at.x += 4
+  return at.x + at.w < fit.w ? at : { ...at, x: BASKET_X }
+}
+
+function placeFloor(roll: (n: number) => number, fit: RoomFit, pack: Pack, free: (b: Box) => boolean, fixed: readonly Box[], basket: Box) {
+  const usedFloor = new Set<string>()
+  const floor: Placed[] = []
+  const put = (id: string, b: Box, slotW: number) => {
     usedFloor.add(id)
     floor.push({ id, ...b, slotW })
   }
-  for (const slot of FLOOR_SLOTS) {
+  const clear = (b: Box) => !crosses(basket, b) && !floor.some(o => crosses(o, b)) && !(fit.stove && crosses(fit.stove, b)) && !fit.taken?.some(o => crosses(o, b))
+  const settle = (slot: FloorSlot, id: string, x: number) => {
+    const c = pack.floor.items[id]!()
+    if (slot.front) {
+      const side = { x, y: fit.h - slot.up - c.h, w: c.w, h: c.h }
+      if (!crosses(side, fit.rug) && clear(side)) return side
+      // Where the rug takes the whole floor, what stood beside it moves to the band below.
+      const band = { x, y: fit.h - BAND - c.h, w: c.w, h: c.h }
+      while (band.x + band.w < fit.w && !clear(band)) band.x += 4
+      return band.x + band.w < fit.w && band.y >= fit.rug.y + fit.rug.h && clear(band) ? band : null
+    }
+    const back = { x, y: slot.up - c.h, w: c.w, h: c.h }
+    if (free(back) && clear(back)) return back
+    // Under a board that grew, a piece steps forward rather than cover it.
+    const hit = fixed.filter(o => above(o, x, c.w))
+    const low = { ...back, y: Math.ceil(Math.max(...hit.map(o => o.y + o.h), back.y)) }
+    return hit.length && free(low) && clear(low) && !crosses(low, fit.rug) ? low : null
+  }
+  for (const slot of pack.floor.slots) {
     const open = slot.items.filter(id => id === null || !usedFloor.has(id))
     const start = roll(open.length)
     if (slot.minW && fit.w < slot.minW) continue
-    const baseX = slot.x ?? fit.w - slot.right!
+    const x = Math.round(slot.x ?? fit.w - slot.right!)
     for (let i = 0; i < open.length; i += 1) {
       const id = open[(start + i) % open.length] ?? null
       if (id === null) break
-      const c = FLOOR_DECOR[id]()
-      if (c.w > slot.w) continue
-      const x = Math.round(baseX)
-      const clear = (b: Box) => !floor.some(o => crosses(o, b)) && !(fit.tube && crosses(fit.tube, b)) && !(fit.stove && crosses(fit.stove, b))
-      if (slot.front) {
-        const side = { x, y: fit.h - slot.up - c.h, w: c.w, h: c.h }
-        if (!crosses(side, fit.rug) && clear(side)) {
-          put(id, side, slot.w)
-          break
-        }
-        // Where the rug takes the whole floor, what stood beside it moves to the band below.
-        const band = { x, y: fit.h - BAND - c.h, w: c.w, h: c.h }
-        while (band.x + band.w < fit.w && !clear(band)) band.x += 4
-        if (band.x + band.w < fit.w && band.y >= fit.rug.y + fit.rug.h && clear(band)) {
-          put(id, band, slot.w)
-          break
-        }
-        continue
-      }
-      const back = { x, y: slot.up - c.h, w: c.w, h: c.h }
-      if (free(back) && clear(back)) {
-        put(id, back, slot.w)
-        break
-      }
-      // Under a board that grew, a piece steps forward rather than cover it.
-      const hit = fixed.filter(o => above(o, x, c.w))
-      const low = { ...back, y: Math.ceil(Math.max(...hit.map(o => o.y + o.h), back.y)) }
-      if (hit.length && free(low) && clear(low) && !crosses(low, fit.rug)) {
-        put(id, low, slot.w)
+      if (pack.floor.items[id]!().w > slot.w) continue
+      const spot = settle(slot, id, x)
+      if (spot) {
+        put(id, spot, slot.w)
         break
       }
     }
   }
-  return { theme, wall, floor, window: hung.some(it => it.id === 'fenetre') }
+  return floor
+}
+
+export function drawRoom(sessionId: string, fit: RoomFit = BASE_FIT, pack: Pack = packOf(undefined)): DrawnRoom {
+  const roll = rng(seedOf(sessionId))
+  const placed = placeWall(roll, fit, pack)
+  const lights = placeLights(roll, placed, fit, pack)
+  const hung = placed.filter(it => !crosses(it, fit.tele) && !(pack.wall.stands && [...(fit.taken ?? []), ...(fit.stove ? [fit.stove] : [])].some(o => crosses(it, o))))
+  const wall = lights ? [lights, ...hung] : hung
+  const fixed = [fit.tele, fit.board]
+  // A piece never hides the wall decor, and never the screen or the board, not even a little.
+  const free = (b: Box) => !hung.some(o => above(o, b.x, b.w) && b.y + WALL_OVERLAP < o.y + o.h) && !fixed.some(o => crosses(o, b))
+  const basket = placeBasket(fit, pack, b => !!(fit.stove && crosses(fit.stove, b)) || !!fit.taken?.some(o => crosses(o, b)))
+  const floor = placeFloor(roll, fit, pack, free, fixed, basket)
+  return { wall, floor, basket, window: hung.some(it => it.id === 'fenetre') }
 }

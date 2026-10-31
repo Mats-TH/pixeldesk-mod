@@ -190,7 +190,9 @@ describe('the gestures and the drawings', () => {
     // The manager, the fire, the crab and the decor: each small drawing is one iframe of its own, and they stop there.
     const frames = svgs.filter((svg: any) => svg.props.isInteractive)
     expect(frames.length).toBeLessThanOrEqual(6)
-    for (const svg of frames) expect(svg.props.width * svg.props.height, 'no frame the size of the room').toBeLessThan(0.5 * svgs[0].props.width * svgs[0].props.height)
+    // The crab alone has the whole floor, and the wall stays out of his frame.
+    const share = (svg: any) => (svg.props.alt === 'Le crabe' ? 0.8 : 0.5)
+    for (const svg of frames) expect(svg.props.width * svg.props.height, 'no frame the size of the room').toBeLessThan(share(svg) * svgs[0].props.width * svgs[0].props.height)
   })
 
   test('/clear starts the count over', async ($, on) => {

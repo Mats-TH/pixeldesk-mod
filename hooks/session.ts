@@ -7,7 +7,7 @@ import { readFloor } from './floorfile'
 import { readOwnDesk, writeDesk } from './deskfile'
 import { guard, readHome } from './disk'
 import { pulse, runCompact, runMove, runFire, startHearth } from './hearth'
-import { closeSettings, followSettings, setDeparture, setHidden } from './preferences'
+import { ROOM_THEMES, isTheme, setTheme, closeSettings, followSettings, setDeparture, setHidden } from './preferences'
 import { t } from './i18n'
 import type { TextKey } from './i18n'
 import { settleLanguage } from './language'
@@ -48,7 +48,7 @@ function planSpec() {
 const moveSpec = () => ({ name: 'move', description: t('briefing.toolDescription'), inputSchema: { type: 'object', properties: {} }, isDeferred: false })
 
 async function registerAll($: EngineInterface, m: Memory) {
-  await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|fire on|off|move|compact]', immediate: true }))
+  await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|fire on|off|theme <name>|move|compact]', immediate: true }))
   await guard($, m, 'plan tool', () => $.tool.register(planSpec()))
   await guard($, m, 'move tool', () => $.tool.register(moveSpec()))
 }
@@ -131,12 +131,22 @@ async function runDeparture($: EngineInterface, m: Memory, value: string | undef
   return { text: t('cmd.departure.set', { name: t(OPTION_NAMES[value]), value }) }
 }
 
-/** `/pixeldesk`, with `hide`, `show`, `departure`, `fire`, `move`, `compact` or nothing. */
+/** `/pixeldesk theme`: says which world the rooms stand in, or changes it. */
+async function runTheme($: EngineInterface, m: Memory, value: string | undefined) {
+  const names = ROOM_THEMES.join(', ')
+  if (value === undefined) return { text: t('cmd.theme.current', { name: t(`theme.${m.theme}`), names }) }
+  if (!isTheme(value)) return { text: t('cmd.theme.usage', { names }) }
+  await setTheme($, m, value)
+  return { text: t('cmd.theme.set', { name: t(`theme.${value}`) }) }
+}
+
+/** `/pixeldesk`, with `hide`, `show`, `departure`, `fire`, `theme`, `move`, `compact` or nothing. */
 export async function runCommand($: EngineInterface, m: Memory, args: string) {
   const word = args.trim().toLowerCase()
   const [head, value, extra] = word.split(/\s+/)
   if (head === 'departure' && extra === undefined) return runDeparture($, m, value)
   if (head === 'fire' && extra === undefined) return runFire($, m, value)
+  if (head === 'theme' && extra === undefined) return runTheme($, m, value)
   if (word === 'move') return runMove($, m)
   if (word === 'compact') return runCompact($, m)
   if (word === 'hide') {

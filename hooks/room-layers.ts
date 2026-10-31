@@ -1,12 +1,18 @@
-import type { Keeper } from '../types'
+import type { Keeper, RoomTheme } from '../types'
+import { seedOf } from './draw'
+import { fitted } from './floor'
 import { getLanguage, t } from './i18n'
 import { bulle } from './pixel/decor'
 import { fit, textWidth } from './pixel/font'
-import { ASH_TOP, STOVE_DEPOSIT, ash, keeper, spriteBody } from './pixel/hearth'
+import { keeper, spriteBody } from './pixel/hearth'
 import type { AshLevel, FireLevel, KeeperPose } from './pixel/hearth'
-import { TENUES, agentHue, chair, crab, desk, person } from './pixel/sprites'
+import { crabArt, crabLife, roundsScript } from './pixel/crab'
+import { WORLD } from './pixel/pack'
+import { TENUES, agentHue, person } from './pixel/sprites'
+import { packOf } from './pixel/themes'
 import { CELL_H, CELL_W, COLD_HEARTH, INK, MAX_SVG, MOTION, PX, SPRITE_W, TITLE, ZZ, actor, buttonBody, buttonBox, def, deskId, deskOrigin, deskRail, flames, hearthFront, letterDefs, lightPaths, line, managerOrigin, managerSeat, onStove, paneOf, roomScene, stoveSpot, svgOpen, use, work } from './room'
 import type { RoomDesk, RoomInput, StoveSpot } from './room'
+import type { Pack } from './pixel/pack'
 
 /**
  * A room in layers: an iframe that reloads makes the whole app flicker, so nothing that changes often lives in one.
@@ -25,11 +31,6 @@ const round = (n: number) => Math.round(n * 1000) / 1000
 const DESK_TOP = -14
 // A rail starts at 52 down a desk and stays on the labels: the person, their bubble and their hands all stop above 90.
 const DESK_H = 104
-const CRAB_W = 40
-const CRAB_H = 26
-const CRAB_TRAVEL = 120
-// What the fire changes on the stove, on its grid: the window, the log basket and the floor.
-const FIRE_AREA = { x: 11, y: 33, w: 26, h: 31 }
 
 /** Where a desk's left edge falls: on a whole column, so a desk that moves along its row keeps its source. */
 const deskLeft = (x: number, k: number) => Math.round((x * k) / CELL_W)
@@ -38,7 +39,7 @@ const deskLeft = (x: number, k: number) => Math.round((x * k) / CELL_W)
  * The cells that hold `box`, relative to `at`, and the view that lines them up with the room. With `snapped` the
  * drawing starts on its column: all that is left of its place in the source is how far its row falls inside a cell.
  */
-function cut(g: Geometry, at: { x: number; y: number }, box: Area, snapped = false): Cut {
+function cut(g: Pick<Geometry, 'k' | 'crop'>, at: { x: number; y: number }, box: Area, snapped = false): Cut {
   const px = (at.x + box.x) * g.k
   const py = (at.y + box.y) * g.k - g.crop
   const left = snapped ? deskLeft(at.x + box.x, g.k) : Math.floor(px / CELL_W)
@@ -72,7 +73,7 @@ function kept<T>(key: string, make: () => T): T {
 }
 
 /** What a room's size depends on: the same room, the same place for all that stands in it. */
-const roomKey = (p: RoomInput) => `${p.sessionId} ${p.desks.length} ${p.width} ${p.height} ${p.settings ?? false}`
+const roomKey = (p: RoomInput) => `${p.theme ?? 'cosy'} ${p.sessionId} ${p.desks.length} ${p.width} ${p.height} ${p.settings ?? false}`
 
 /** The manager, then the agents, each at the place the room gives. */
 function seatsOf(p: RoomInput) {
@@ -82,20 +83,26 @@ function seatsOf(p: RoomInput) {
 }
 
 /** All that shows a desk at work, its desk included: a person stands behind theirs. A rail or a name never gets here. */
-function deskLook(d: RoomDesk) {
+function deskLook(d: RoomDesk, { seat }: Pack) {
   const hue = d.hue % TENUES.length
-  const defs = [def('chair', chair()), def(deskId(d), desk(d.rest ? 'rest' : d.state)), def(`person-${hue}`, person(TENUES[hue]!))]
+  const defs = [def(deskId(d), seat.desk(d.rest ? 'rest' : d.state)), def(`person-${hue}`, (seat.person ?? person)(TENUES[hue]!))]
+  if (seat.chair) defs.push(def('chair', seat.chair()))
+  if (seat.behind) defs.push(def('behind', seat.behind.draw()))
   if (d.rest) defs.push(`<path id="zz" fill="#F4E4C1" d="${ZZ}"/>`)
   else if (d.state === 'working') defs.push(def('bulle', bulle()))
   // The hue picks the phase: the order of the desks would shift it when one leaves.
-  return { defs: defs.join(''), body: `${use('chair')}${actor(d, d.hue, 0)}${use(deskId(d))}${work(d, d.hue, false)}` }
+  const shelter = seat.behind ? use('behind', seat.behind.dx * PX, seat.behind.dy * PX) : ''
+  return { defs: defs.join(''), body: `${shelter}${seat.chair ? use('chair') : ''}${actor(d, d.hue, 0)}${use(deskId(d))}${work(d, d.hue, false)}` }
 }
 
-function deskLayer(key: string, d: RoomDesk, at: { x: number; y: number }, g: Geometry): Layer {
-  const c = cut(g, at, { x: 0, y: DESK_TOP, w: SPRITE_W, h: DESK_H }, true)
+function deskLayer(key: string, d: RoomDesk, at: { x: number; y: number }, g: Geometry, pack: Pack): Layer {
+  const rise = pack.seat.behind ? Math.min(DESK_TOP, pack.seat.behind.dy * PX) : DESK_TOP
+  const left = pack.seat.behind ? Math.min(0, pack.seat.behind.dx * PX) : 0
+  const right = pack.seat.behind ? Math.max(SPRITE_W, pack.seat.behind.dx * PX + pack.seat.behind.draw().w * PX) : SPRITE_W
+  const c = cut(g, at, { x: left, y: rise, w: right - left, h: DESK_H + DESK_TOP - rise }, !pack.seat.behind)
   const { view: _, ...place } = c
-  const source = kept(`desk ${d.rest ? 'rest' : d.state} ${d.hue} ${c.view} ${c.cols} ${c.rows}`, () => {
-    const parts = deskLook(d)
+  const source = kept(`desk ${pack.id} ${d.rest ? 'rest' : d.state} ${d.hue} ${c.view} ${c.cols} ${c.rows}`, () => {
+    const parts = deskLook(d, pack)
     return layerOf('', c, '', MOTION, parts.defs, parts.body).source
   })
   return { key, ...place, source, alt: d.title }
@@ -104,7 +111,8 @@ function deskLayer(key: string, d: RoomDesk, at: { x: number; y: number }, g: Ge
 /** The desks that move, the manager first: `ids` names the agents in the order of the input. */
 export function deskLayers(p: RoomInput, ids: readonly string[]) {
   const g = paneOf(p)
-  return seatsOf(p).map(({ d, at }, i) => deskLayer(i ? `live-${ids[i - 1]}` : 'live-manager', d, at, g))
+  const pack = packOf(p.theme)
+  return seatsOf(p).map(({ d, at }, i) => deskLayer(i ? `live-${ids[i - 1]}` : 'live-manager', d, at, g, pack))
 }
 
 /** The fire, alone in its drawing: its images in turn, and its source is its level. */
@@ -114,12 +122,13 @@ export function fireLayer(p: RoomInput, level: FireLevel): Layer {
     const at = stoveSpot(p)
     // On the stove's own grid: a room that grows and leaves the stove as it stood leaves this source as it was.
     const cell = PX * at.s
-    const lit = flames(level)
-    return layerOf('live-fire', cut({ ...g, k: g.k * cell }, { x: at.x / cell, y: at.y / cell }, FIRE_AREA), t('hearth.fireAlt'), lit.style, '', lit.body)
+    const pack = packOf(p.theme)
+    const lit = flames(level, pack)
+    return layerOf('live-fire', cut({ ...g, k: g.k * cell }, { x: at.x / cell, y: at.y / cell }, pack.hearth.fireArea), t('hearth.fireAlt'), lit.style, '', `${lit.body}${pack.hearth.front?.() ?? ''}`)
   })
 }
 
-const stillRoom = (p: RoomInput): RoomInput => ({ ...p, steps: [], tokens: 0, manager: { working: false }, hearth: COLD_HEARTH })
+const stillRoom = (p: RoomInput): RoomInput => ({ ...p, steps: [], tokens: 0, cost: null, manager: { working: false }, hearth: COLD_HEARTH })
 
 /** The small things of the decor that move: what a plan does to the room never reaches them. */
 export function decorLayers(p: RoomInput) {
@@ -128,18 +137,32 @@ export function decorLayers(p: RoomInput) {
     const { life } = roomScene(stillRoom(p), { layer: 'back' })
     const layers: Layer[] = []
     if (life.lights.box) layers.push(layerOf('live-lights', cut(g, { x: 0, y: 0 }, life.lights.box), t('pane.lights'), MOTION, '', lightPaths(life.lights)))
-    if (life.cat) layers.push(layerOf('live-cat', cut(g, { x: life.cat.x, y: life.cat.y }, { x: 0, y: -2, w: life.cat.w, h: life.cat.h + 2 }), t('pane.cat'), MOTION, '', `<g class="sl">${life.cat.svg}</g>`))
+    for (const it of life.moving) layers.push(layerOf(`live-${it.key}`, cut(g, { x: 0, y: 0 }, it.box), t(it.alt === 'sky' ? 'pane.sky' : 'pane.lights'), it.style, '', it.body))
     return layers
   })
 }
 
-/** The crab on its beat, under the desks' labels but over the floor. */
-export function crabLayer(p: RoomInput, delay: number): Layer {
-  return kept(`crab ${delay} ${roomKey(p)}`, () => {
+/** The crab's life, over the whole floor. It is the room's shape alone: anything else would start him over. */
+export function crabLayer(p: RoomInput): Layer {
+  return kept(`crab ${getLanguage()} ${roomKey(p)}`, () => {
     const g = paneOf(p)
-    const at = { x: Math.round(g.v.w / 2) - CRAB_W / 2, y: g.v.h - 34 }
-    const c = cut(g, at, { x: -CRAB_TRAVEL, y: -2, w: CRAB_W + 2 * CRAB_TRAVEL, h: CRAB_H + 2 })
-    return layerOf('live-crab', c, t('pane.crab'), MOTION, def('crab', crab()), `<g class="c" style="animation-delay:-${delay}s"><g class="lg">${use('crab')}</g></g>`)
+    const { ground } = roomScene(stillRoom(p), { layer: 'back' }).life
+    const art = crabLife(seedOf(p.sessionId), ground)
+    const c = cut(g, { x: 0, y: 0 }, { x: 0, y: ground.top, w: g.v.w, h: ground.bottom - ground.top })
+    return layerOf('live-crab', c, t('pane.crab'), art.style, art.defs, art.body)
+  })
+}
+
+/** The crab's rounds on a floor, over the whole world, on `n` conversations. Null: this world has no walk. It is the world's shape alone: anything else would start him over. */
+export function floorCrabLayer(n: number, width: number, height: number, theme?: RoomTheme): Layer | null {
+  return kept(`floor-crab ${getLanguage()} ${theme ?? 'cosy'} ${n} ${width} ${height}`, () => {
+    const script = roundsScript(packOf(theme).map.walk?.(n) ?? [])
+    if (!script) return null
+    const f = fitted(width, height)
+    const art = crabArt(script)
+    // The world stands in the middle of the pane: what its frame leaves above it is a crop that goes the other way.
+    const c = cut({ k: f.k, crop: -f.y }, { x: f.x / f.k, y: 0 }, { x: 0, y: 0, ...WORLD })
+    return layerOf('floor-crab', c, t('pane.crab'), art.style, art.defs, art.body)
   })
 }
 
@@ -149,22 +172,24 @@ function labelsDraw(p: RoomInput, detail: number) {
   const defs = new Map<string, string>()
   const need = (id: string, make: () => string) => void (defs.has(id) || defs.set(id, make()))
   const seats = seatsOf(p)
+  // A desk with a tent is not cut on a column: its labels stay where it stands.
+  const onColumn = (x: number) => (packOf(p.theme).seat.behind ? x : (deskLeft(x, k) * CELL_W) / k)
   let words = ''
   const onDesks = seats.map(({ d, at }, i) => {
     const title = !i || detail < 5 ? fit(d.title, TITLE, 98) : ''
     words += title
     const name = title ? line(title, Math.round(60 - textWidth(title, TITLE) / 2), 59, TITLE, INK) : ''
     const rail = d.rest ? '' : deskRail(d, Math.max(detail, 6), need)
-    return `<g transform="translate(${round((deskLeft(at.x, k) * CELL_W) / k)} ${at.y})">${rail}${name}</g>`
+    return `<g transform="translate(${round(onColumn(at.x))} ${at.y})">${rail}${name}</g>`
   })
   const manager = seats[0]!.at
-  const front = hearthFront(p.hearth ?? COLD_HEARTH, stoveSpot(p), { x: (deskLeft(manager.x, k) * CELL_W) / k, y: manager.y })
+  const front = hearthFront(p.hearth ?? COLD_HEARTH, stoveSpot(p), { x: onColumn(manager.x), y: manager.y }, packOf(p.theme))
   return `${svgOpen(p.width, p.height, `0 0 ${v.w} ${v.h}`)}<defs>${[...defs.values()].join('')}${letterDefs(words + front.letters)}</defs>${onDesks.join('')}${front.body}</svg>`
 }
 
 /** The labels of a room: the rails, the names, the ash, the plate and the letter. */
 export function labelsSvg(p: RoomInput) {
-  return kept(`labels ${getLanguage()} ${JSON.stringify([p.desks, p.manager, p.hearth, p.width, p.height])}`, () => [1, 2, 3, 4, 5, 6, 7].reduce((svg, detail) => (svg.length > MAX_SVG ? labelsDraw(p, detail) : svg), labelsDraw(p, 0)))
+  return kept(`labels ${getLanguage()} ${JSON.stringify([p.theme, p.desks, p.manager, p.hearth, p.width, p.height])}`, () => [1, 2, 3, 4, 5, 6, 7].reduce((svg, detail) => (svg.length > MAX_SVG ? labelsDraw(p, detail) : svg), labelsDraw(p, 0)))
 }
 
 // ---------- The keeper's visit ----------
@@ -200,13 +225,13 @@ function pose(name: KeeperPose, from: number, to: number, every: number, back = 
 }
 
 /** What takes at the very moment of the drop: the full fire over the old one, or the heap that goes. */
-function atTheDrop(tool: Keeper, at: StoveSpot, held: { fire: FireLevel; ash: AshLevel }) {
+function atTheDrop(tool: Keeper, at: StoveSpot, held: { fire: FireLevel; ash: AshLevel }, pack: Pack) {
   if (tool === 'log') {
-    const lit = flames('full')
+    const lit = flames('full', pack)
     return { style: lit.style, body: `<g display="none"><set attributeName="display" to="inline" begin="${seconds(DROPS_S)}" fill="freeze"/>${onStove(at, lit.body)}</g>` }
   }
   if (held.ash === 'none') return { style: '', body: '' }
-  return { style: '', body: `<g><set attributeName="display" to="none" begin="${seconds(DROPS_S)}" fill="freeze"/>${onStove(at, `<g transform="translate(0 ${ASH_TOP})">${spriteBody(ash(held.ash, 0))}</g>`)}</g>` }
+  return { style: '', body: `<g><set attributeName="display" to="none" begin="${seconds(DROPS_S)}" fill="freeze"/>${onStove(at, `<g transform="translate(0 ${pack.hearth.ashTop})">${pack.hearth.ash(held.ash, 0)}</g>`)}</g>` }
 }
 
 /**
@@ -216,7 +241,9 @@ function atTheDrop(tool: Keeper, at: StoveSpot, held: { fire: FireLevel; ash: As
 export function keeperLayer(p: RoomInput, tool: Keeper, run: number, held: { fire: FireLevel; ash: AshLevel }): Layer {
   const g = paneOf(p)
   const at = stoveSpot(p)
-  const stop = { x: at.x + STOVE_DEPOSIT.x * PX * at.s, y: at.y + (STOVE_DEPOSIT.y * PX - TIP_Y) * at.s }
+  const pack = packOf(p.theme)
+  const { deposit } = pack.hearth
+  const stop = { x: at.x + deposit.x * PX * at.s, y: at.y + (deposit.y * PX - TIP_Y) * at.s }
   if (tool === 'broom') Object.assign(stop, { x: stop.x + BROOM_SHIFT.x * at.s, y: stop.y + BROOM_SHIFT.y * at.s })
   const bottom = (g.crop + p.height) / g.k
   const lane = bottom - (LANE_BOTTOM + FEET) * at.s
@@ -230,7 +257,7 @@ export function keeperLayer(p: RoomInput, tool: Keeper, run: number, held: { fir
     ? `${pose('carry', 0, ARRIVES_S, STEP_S)}${pose('drop', ARRIVES_S, LEAVES_S, WORK_S)}${pose('walk', LEAVES_S, VISIT_S, STEP_S)}`
     : `${pose('broom', 0, ARRIVES_S, STEP_S)}${pose('sweep', ARRIVES_S, LEAVES_S, WORK_S)}${pose('broom', LEAVES_S, VISIT_S, STEP_S, true)}`
   const moved = `<g><animateTransform attributeName="transform" type="translate" values="${values}" keyTimes="${times}" dur="${VISIT_S}s" fill="freeze"/><g transform="scale(${at.s})">${walks}</g></g>`
-  const drop = atTheDrop(tool, at, held)
+  const drop = atTheDrop(tool, at, held, pack)
   const c = cut(g, { x: 0, y: 0 }, { x: 0, y: stop.y - 8, w: g.v.w, h: bottom - stop.y + 8 })
   const still = '@media (prefers-reduced-motion: reduce){svg>g{display:none}}'
   return layerOf(`live-keeper-${run}`, c, t('hearth.keeperAlt'), `${drop.style}${still}`, '', `${drop.body}${moved}`)

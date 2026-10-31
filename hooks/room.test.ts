@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import { packOf } from './pixel/themes'
 
 import { bubblePlace, cardAlt, cardPlace, cardSvg, gearSvg, agentCard, managerCard, optionSvg, roomCard, settingsPlace, settingsSvg, stepCard, zoneCells } from './card'
 import type { FloorRoom } from './desks'
@@ -93,10 +94,10 @@ test('the room fills its frame with no empty strip', async () => {
   expect(roomSvg(input(1))).toContain('preserveAspectRatio="xMidYMid slice"')
 })
 
-test('patterns are indexed by theme', async () => {
+test('a room defines the patterns of its back', async () => {
   const svg = roomSvg(input(1))
-  expect(/id="wall-[a-z]+"/.test(svg), 'wall').toBe(true)
-  expect(/id="wainscot-[a-z]+"/.test(svg), 'panelling').toBe(true)
+  expect(svg, 'wall').toContain('id="wall"')
+  expect(svg, 'panelling').toContain('id="low"')
 })
 
 test('a new agent starts the zoom, a plain redraw does not', async () => {
@@ -429,7 +430,7 @@ test('lines follow the drawing: the board’s offset and the crop of a short pan
 })
 
 test('the line under the pointer redraws to the pixel, on #F4E4C1, in whole cells', async () => {
-  const lit = lineSvg('pending', 'Documenter', { x: 500, y: 190, w: 100, h: 16.5 }, 1, 8, 21)
+  const lit = lineSvg('pending', 'Documenter', { x: 500, y: 190, w: 100, h: 16.5 }, 1, 8, 21, packOf(undefined).board)
   expect([lit.left, lit.top, lit.cols, lit.rows], 'the cells').toEqual([62, 9, 13, 1])
   expect([lit.width, lit.height], 'the drawing fills them').toEqual([104, 21])
   expect(lit.source, 'the highlight').toContain('fill="#F4E4C1"')
@@ -533,7 +534,7 @@ test('the Manager never moves sideways, and stays on the axis of the rug', async
     const b = managerBox(n, 780, 760)
     close(b.x + b.w / 2, 390, `${n} subagents`)
     const svg = roomSvg(mock(n))
-    const [, wide] = /id="rug-[a-z]+-(\d+)-\d+"/.exec(svg)!
+    const [, wide] = /id="rug-(\d+)-\d+"/.exec(svg)!
     const rug = Number(/<use href="#rug-[^"]+" x="(\d+)"/.exec(svg)![1])
     const [, w] = /viewBox="0 0 (\d+) /.exec(svg)!
     close(rug + Number(wide), Number(w) / 2, `the rug at ${n}`)
@@ -549,7 +550,7 @@ test('up to 16 subagents, everything fits the room, with no overlap', async () =
 })
 
 test('the rug follows the design: the same under 1 and 2 subagents, the big one from 3', async () => {
-  const rug = (n: number) => /id="rug-[a-z]+-(\d+)-(\d+)"/.exec(roomSvg(mock(n)))!.slice(1).map(v => Number(v) * 2)
+  const rug = (n: number) => /id="rug-(\d+)-(\d+)"/.exec(roomSvg(mock(n)))!.slice(1).map(v => Number(v) * 2)
   expect(rug(0), 'alone').toEqual([346, 208])
   expect(rug(1), '1 subagent: the rug keeps its size on screen').toEqual([394, 236])
   expect(rug(3), '3 desks abreast').toEqual([418, 268])
@@ -651,16 +652,16 @@ test('the settings button stays 32 px, on the design grid, in its three looks', 
 
 test('the settings panel says the words of the design, the chosen option gold and ticked', async () => {
   const place = settingsPlace(780, 760)
-  const choices = { departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2 } as const
+  const choices = { departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2, theme: 'cosy' } as const
   const on = settingsSvg(choices, place)
-  expect(on.alt).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation.")
+  expect(on.alt).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation. Thème. Cosy, choisi.")
   expect(on.source, 'the chosen option').toContain('fill="#FFDF8F"')
   expect(on.source, 'its gold border').toContain('fill="#C9A24A"')
   expect(on.source, 'the other option').toContain('fill="#FFF6DE"')
   const other = settingsSvg({ ...choices, departure: 'each' }, place)
   expect(other.alt).toContain("Fin du plan. Au fil de l'eau, choisi.")
   expect(on.source === other.source, 'the tick moves line').toBe(false)
-  expect(count(on.source, /fill="#FFC857"/g), 'a tick by section, and the step of the cursor').toBe(4)
+  expect(count(on.source, /fill="#FFC857"/g), 'a tick by section, the step of the cursor and the theme').toBe(5)
   expect(on.source.length < 40_000, String(on.source.length)).toBe(true)
 })
 
@@ -682,7 +683,7 @@ test('the zones follow the design at 780, and stay in true pixels elsewhere', as
   expect(at.options.auto).toEqual({ x: 25, y: 385, w: 262, h: 54 })
   expect(at.options.manual).toEqual({ x: 25, y: 517, w: 262, h: 54 })
   expect(at.steps[4]).toEqual({ value: 'always', x: 193, y: 467, w: 94, h: 22 })
-  expect(at.panel, '296 by 542, and its shadow').toEqual({ x: 8, y: 46, w: 300, h: 546 })
+  expect(at.panel, '442 by 542, and its shadow').toEqual({ x: 8, y: 46, w: 446, h: 546 })
   const manual = settingsPlace(780, 760, 'manual')
   expect(manual.panel.h, '470 once the cursor is gone').toBe(474)
   expect(manual.options.manual.y).toBe(445)

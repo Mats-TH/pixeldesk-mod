@@ -324,6 +324,6 @@ describe('the desk file', () => {
     const w = world(on, { env: FRENCH })
     await start($)
     expect(await hasKey(await mountPane($), 'desk-manager')).toBe(true)
-    expect(w.state.settings).toEqual({ open: false, departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2 })
+    expect(w.state.settings).toEqual({ open: false, departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2, theme: 'cosy' })
   })
 })

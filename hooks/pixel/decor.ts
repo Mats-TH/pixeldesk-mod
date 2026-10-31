@@ -267,28 +267,6 @@ export const enveloppe = () =>
   '<path fill="#1B1730" d="M2 0h16v2h2v10h-2v2H2v-2H0V2h2z"/><path fill="#FFF6DE" d="M2 2h16v10H2z"/>' +
   '<path fill="#D8C49E" d="M2 2h2v2h2v2h2v2h4V6h2V4h2V2h2v2h-2v2h-2v2h-2v2H8V8H6V6H4V4H2z"/><path fill="#E4633A" d="M8 6h4v4H8z"/>'
 
-/** The collecting tube, 50 wide and `h` tall: in from the left at the top, down the right, into its base. */
-export const tube = (h: number) =>
-  `<path fill="#2A2036" d="M0 0h46v${h - 12}h-8V8H0z"/><path fill="#46405C" d="M0 2h44v${h - 14}h-4V6H0z"/>` +
-  `<path fill="#8A84A8" d="M0 2h42v2H0zM40 4h2v${h - 16}h-2z"/><path fill="#1B1730" d="M34 ${h - 12}h16v12H34z"/><path fill="#8A84A8" d="M36 ${h - 10}h12v2H36z"/>`
-
-/**
- * The news tray, 68 by 66, with `pile` envelopes, 3 at most. Ten shapes at the fullest: the back and the tray
- * each carry their dark edge as a stroke, and the tray's feet are rings of that stroke with nothing inside.
- */
-export function casier(pile: number) {
-  const n = Math.max(0, Math.min(3, pile))
-  const top = 28 - (n - 1) * 8
-  const strips = Array.from({ length: n }, (_, i) => `M14 ${top + i * 8}h40v6H14z`).join('')
-  const stack = n
-    ? `<path fill="#1B1730" d="M12 ${top - 2}h44v${46 - top}H12z"/><path fill="#FFF6DE" d="${strips}"/>` +
-      `<path fill="#D8C49E" d="M14 ${top}h2v2h2v2h2v2h28v-2h2v-2h2v-2h2v2h-2v2h-2v2h-2v2H20v-2h-2v-2h-2v-2h-2z"/><path fill="#E4633A" d="M32 ${top + 4}h4v4h-4z"/>`
-    : ''
-  return `<path fill="#1B1730" fill-opacity=".28" d="M0 60h68v6H0z"/><path fill="#2A1C18" stroke="#3B2318" stroke-width="2" d="M7 23h54v21H7z"/>${stack}` +
-    '<path fill="#A97A4E" stroke="#4A2C2A" stroke-width="2" d="M3 41h62v18H3zM7 61h6v2H7zM55 61h6v2h-6z"/>' +
-    '<path fill="#C99A68" d="M4 42h60v2H4z"/><path fill="#8A5A3A" d="M4 54h60v4H4z"/><path fill="#C9A24A" d="M24 46h20v6H24z"/>'
-}
-
 /** The red counter of the news: `w` wide, its dark edge, then its face. */
 export const compteur = (x: number, y: number, w: number) => `<rect x="${x}" y="${y}" width="${w}" height="20" rx="2" fill="#1B1730"/><rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="16" fill="#B8452A"/>`
 

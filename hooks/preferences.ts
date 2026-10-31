@@ -1,8 +1,9 @@
 import type { EngineInterface } from 'claude-code'
 
-import type { CompactBefore, Departure, BriefingMode, SettingsView } from '../types'
+import type { CompactBefore, Departure, BriefingMode, RoomTheme, SettingsView } from '../types'
 import { sweep } from './agents'
 import { departureOf } from './desks'
+import { ROOM_THEMES } from './card'
 import { guard, log, onDisk, reason, settingsPath } from './disk'
 import { PANE } from './memory'
 import type { Memory } from './memory'
@@ -29,6 +30,8 @@ async function readFile($: EngineInterface, m: Memory): Promise<SettingsFile | u
   }
 }
 
+export { ROOM_THEMES }
+
 /** One setting changes and every other key stays. A failure goes to the log: the change still holds here, until the next read. */
 async function save($: EngineInterface, m: Memory, change: (settings: SettingsFile) => SettingsFile) {
   if (!onDisk(m)) return
@@ -45,7 +48,10 @@ const fireSetting = (settings: SettingsFile) => settings.fire !== false
 const modeOf = (settings: SettingsFile): BriefingMode => (settings.briefingMode === 'manual' ? 'manual' : 'auto')
 const compactOf = (value: unknown): CompactBefore => (value === 0 || value === 1 || value === 2 || value === 3 || value === 'always' ? value : 2)
 
-const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore })
+export const isTheme = (value: unknown): value is RoomTheme => ROOM_THEMES.includes(value as RoomTheme)
+const themeOf = (settings: SettingsFile): RoomTheme => (isTheme(settings.theme) ? settings.theme : 'cosy')
+
+const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme })
 
 function closePane($: EngineInterface, m: Memory) {
   return guard($, m, 'close pane', () => $.ui.close({ id: PANE }))
@@ -63,6 +69,11 @@ async function applyHearth($: EngineInterface, m: Memory, fire: boolean, briefin
   m.wake()
 }
 
+async function applyTheme($: EngineInterface, m: Memory, theme: RoomTheme) {
+  m.theme = theme
+  await writeSettings($, viewOf(m, await isOpen($)))
+}
+
 async function applyDeparture($: EngineInterface, m: Memory, departure: Departure) {
   m.departure = departure
   await writeSettings($, viewOf(m, await isOpen($)))
@@ -73,6 +84,12 @@ async function applyDeparture($: EngineInterface, m: Memory, departure: Departur
 export async function setDeparture($: EngineInterface, m: Memory, departure: Departure) {
   await save($, m, settings => ({ ...settings, departure }))
   await applyDeparture($, m, departure)
+}
+
+/** The world of the rooms, for every conversation, at any time. */
+export async function setTheme($: EngineInterface, m: Memory, theme: RoomTheme) {
+  await save($, m, settings => ({ ...settings, theme }))
+  await applyTheme($, m, theme)
 }
 
 /** Hiding is about the pane alone: the band and the tracking go on. */
@@ -112,6 +129,8 @@ export async function followSettings($: EngineInterface, m: Memory) {
   }
   const departure = departureOf(settings)
   if (departure !== m.departure) await applyDeparture($, m, departure)
+  const theme = themeOf(settings)
+  if (theme !== m.theme) await applyTheme($, m, theme)
   const [fire, mode, before] = [fireSetting(settings), modeOf(settings), compactOf(settings.compactBefore)]
   if (fire !== m.fire || mode !== m.briefingMode || before !== m.compactBefore) await applyHearth($, m, fire, mode, before)
 }

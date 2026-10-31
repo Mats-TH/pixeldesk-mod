@@ -58,7 +58,8 @@ describe('the iframes of a room', () => {
     expect(arrival.gone).toEqual([])
     await spawn($, w, 'a2', { description: 'Second' })
     // The first desk only moves along its row. The design draws the stove smaller from two agents on: its fire follows, once.
-    expect(await see(), 'a second arrival').toEqual({ ...QUIET, born: ['live-a2'], changed: ['live-fire'] })
+    // A new desk stands in the crab's way: his walk is worked out again, as for any change in the shape of the room.
+    expect(await see(), 'a second arrival').toEqual({ ...QUIET, born: ['live-a2'], changed: ['live-crab', 'live-fire'] })
 
     await sendPlan($, three(1), undefined, 'a1')
     expect(await see(), 'the plan of an agent').toEqual(QUIET)
@@ -83,7 +84,8 @@ describe('the iframes of a room', () => {
     expect(await see(), 'a desk ends').toEqual({ ...QUIET, changed: ['live-a1'] })
     await endTurn($, { agentId: 'a2', isAborted: true, reason: 'error' })
     const failed = await see()
-    expect(failed.changed.length, 'the other desk').toBeLessThanOrEqual(1)
+    // The desk that is done has left with it: the room changed shape, and the crab with it.
+    expect(failed.changed.filter(key => key !== 'live-crab').length, 'the other desk').toBeLessThanOrEqual(1)
     await endTurn($)
     expect(await see(), 'the manager rests').toEqual({ ...QUIET, changed: ['live-manager'] })
   })

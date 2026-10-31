@@ -190,7 +190,7 @@ describe('the row', () => {
 
 describe('the panel', () => {
   const place = settingsPlace(780, 760)
-  const choices = { departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2 } as const
+  const choices = { departure: 'plan', fire: true, briefingMode: 'auto', compactBefore: 2, theme: 'cosy' } as const
 
   test('296 by 542 with the cursor, 470 without', () => {
     expect(settingsSvg(choices, place).width >= 300).toBe(true)
