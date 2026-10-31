@@ -1,4 +1,4 @@
-import type { EngineInterface, RenderElement } from 'claude-code'
+import type { EngineInterface, RenderElement, RenderNode } from 'claude-code'
 
 import type { AgentRecord, ChatTurn, DrawnPlan, Briefing, Hearth, Seen, SettingsView } from '../types'
 import { desk, metaOf, sayOf, summaryOf } from './agents'
@@ -24,6 +24,9 @@ import { packOf } from './pixel/themes'
 
 // The engine refuses a drawing past this many characters.
 const SVG_MAX = 131_072
+// The desktop app drops a whole tree from 262,144 characters on, with no word: the last drawing stays, its buttons seem dead, and a pane with none stays empty.
+const TREE_MAX = 260_000
+const THIN_LEVELS = 5
 
 export type RoomView = {
   agents: readonly AgentRecord[]
@@ -250,7 +253,17 @@ function briefingZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells
   )
 }
 
-/** The room as a drawing; null when it will not fit the engine's limit, and the list takes over. */
+const wordsOf = (props: object | undefined) => Object.entries(props ?? {}).reduce((n, [key, value]) => n + key.length + (typeof value === 'string' ? value.length : 0), 0)
+
+/** A tree's weight as the app counts it: the words of each element, an image by its source and its alternative. */
+function charsOf(node: RenderNode): number {
+  if (typeof node === 'string') return node.length
+  if (node.type === 'Svg') return node.props.source.length + node.props.alt.length
+  if (node.type !== 'Box' && node.type !== 'Text' && node.type !== 'Button') return 0
+  return (node.children ?? []).reduce((n: number, child: RenderNode) => n + charsOf(child), wordsOf(node.props) + wordsOf(node.hover))
+}
+
+/** The room as a drawing, as thin as the app needs it; null when not even one image holds it, and the list takes over. */
 export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: Frame, view: RoomView, mobile: boolean, list: readonly RenderElement[] | null) {
   const { Box, Svg } = ui
   const desks: RoomDesk[] = view.agents.map(desk)
@@ -291,24 +304,48 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
   const panel = view.settings.open ? panelCells(view.settings, frame) : null
   // Once the panel reaches the board's column the lines have no zone left.
   const lines = panel && panel.left + panel.cols > Math.floor(board.left / CELL_W) ? [] : visibleLines(board.lines, frame.height)
+  /** The room at a level of thinning: the plan's lines go first, then the crab, the looks of the panel, and the cards. */
+  const thinned = (level: number) => {
+    const hovered = level < 1 ? lines : []
+    const cards = level < 4
+    return (
+      <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
+        {image}
+        {count}
+        {decorLayers(input).map(l => liveBox(ui, l))}
+        {level < 2 ? liveBox(ui, crabLayer(input)) : null}
+        {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
+        {liveBox(ui, fireLayer(input, look.fire))}
+        {labels}
+        {keeper ? liveBox(ui, keeper) : null}
+        {reveals(ui, view, input, hovered, board, frame)}
+        {cards ? managerZone(ui, view, frame, panel, false) : null}
+        {cards ? deskZones(ui, view, frame, panel) : null}
+        {cards ? hearthZone(ui, view, frame, panel) : null}
+        {briefingZone(ui, view, frame, panel)}
+        {hovered.length ? lineColumn(ui, hovered, frame) : null}
+        {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
+        {settingsElements(ui, view.settings, frame, level < 3)}
+      </Box>
+    )
+  }
+  for (let level = 0; level < THIN_LEVELS; level += 1) {
+    const tree = thinned(level)
+    if (charsOf(tree) < TREE_MAX) return tree
+  }
+  // The last resort is a phone's room: one image, still, under the same buttons.
+  const whole = roomSvg(input)
+  if (whole.length > SVG_MAX) {
+    await log($, m, `room drawing too large: ${whole.length}`)
+    return null
+  }
   return (
     <Box key="room" flexDirection="column" marginX={-1} height={frame.fit} overflow="hidden" backgroundColor="transparent">
-      {image}
+      <Svg key="room-svg" source={whole} alt={alt} width={frame.width} height={frame.height} />
       {count}
-      {decorLayers(input).map(l => liveBox(ui, l))}
-      {liveBox(ui, crabLayer(input))}
-      {deskLayers(input, view.agents.map(a => a.id)).map(l => liveBox(ui, l))}
-      {liveBox(ui, fireLayer(input, look.fire))}
-      {labels}
-      {keeper ? liveBox(ui, keeper) : null}
-      {reveals(ui, view, input, lines, board, frame)}
-      {managerZone(ui, view, frame, panel, false)}
-      {deskZones(ui, view, frame, panel)}
-      {hearthZone(ui, view, frame, panel)}
       {briefingZone(ui, view, frame, panel)}
-      {lines.length ? lineColumn(ui, lines, frame) : null}
       {look.panel?.button ? changeZone(ui, input, look.panel.title) : null}
-      {settingsElements(ui, view.settings, frame)}
+      {settingsElements(ui, view.settings, frame, false)}
     </Box>
   )
 }
