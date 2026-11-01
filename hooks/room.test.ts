@@ -698,13 +698,13 @@ test('in a low or narrow pane, the settings panel shrinks and is never cut', asy
   }
 })
 
-test('the cells of one option do not overlap the next', async () => {
+test('a zone stands on whole cells, and its margins bring it to its drawing', async () => {
   const at = settingsPlace(780, 760)
-  const [one, two] = [zoneCells(at.options.plan), zoneCells(at.options.each)]
-  expect(one, 'rows of 21 and columns of 8').toEqual({ left: 3, top: 6, cols: 33, rows: 3 })
-  expect(two).toEqual({ left: 3, top: 9, cols: 33, rows: 3 })
-  expect(one.top + one.rows <= two.top, 'the second starts after').toBe(true)
-  expect(zoneCells(at.button)).toEqual({ left: 1, top: 0, cols: 4, rows: 2 })
+  const [one, two] = [at.options.plan, at.options.each]
+  const bottom = (b: typeof one) => { const z = zoneCells(b); return z.top * 21 + z.marginTop * 10.5 + z.rows * 21 }
+  const top = (b: typeof one) => { const z = zoneCells(b); return z.top * 21 + z.marginTop * 10.5 }
+  expect(bottom(one) <= top(two), 'the second starts after').toBe(true)
+  expect(zoneCells(at.button)).toEqual({ left: 1, top: 0, marginLeft: 0.25, marginTop: 0.952, cols: 4, rows: 1.524 })
 })
 
 test('a room with no agent whose Manager works says so on its card', async () => {

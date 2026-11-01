@@ -18,7 +18,7 @@ import { writeCost, writeLimits } from './state'
 import { sumOf } from './tokens'
 import { drawBand } from './view-band'
 import { drawPane } from './view-pane'
-import { PRESS_ZONES, ZONE_ROWS } from './view-settings'
+import { PRESS_ZONES } from './view-settings'
 
 export { desk } from './agents'
 
@@ -150,12 +150,8 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // The pane may draw any row of a zone: each has its hook, and the tree's own `onPress` does nothing.
-  for (const zone of PRESS_ZONES) {
-    for (let row = 0; row < ZONE_ROWS; row += 1) {
-      on('ui.press', { plugin: 'pixeldesk', element: `${zone}-${row}` }, ($, e) => pressSettings($, m, e.element))
-    }
-  }
+  // Each zone has its hook, and the tree's own `onPress` does nothing.
+  for (const zone of PRESS_ZONES) on('ui.press', { plugin: 'pixeldesk', element: `${zone}-0` }, ($, e) => pressSettings($, m, e.element))
 
   on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth|theme)-/ }, ($, e) => pressGesture($, m, e))
 

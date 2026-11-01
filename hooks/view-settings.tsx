@@ -4,8 +4,6 @@ import type { GearLook, OptionId, SettingsPlace } from './card'
 import { t } from './i18n'
 import type { Frame, Table } from './view-shared'
 
-/** The rows a click zone may hold: each has a key and a hook of its own. */
-export const ZONE_ROWS = 6
 export const PRESS_ZONES = ['settings-button', 'settings-plan', 'settings-each'] as const
 
 const NO_BREAK = ' '
@@ -20,28 +18,29 @@ const ignore = () => undefined
 type Said = { label: string; variant: 'primary' | 'secondary' }
 
 /**
- * One invisible Button per row of a zone. A press only reaches the engine on a Button, so a zone is filled with them:
- * blank, wider than the zone so that no ellipsis shows, and answered by the `ui.press` hooks.
- * Given words, the Button keeps them for a reader, and draws only its blank.
+ * The invisible Button of a zone, for the zone's Box to hold as its only child: a Box lays out in a row, so the Button
+ * stretches to its height. A press only reaches the engine on a Button. Blank and wider than the zone, so that no ellipsis
+ * shows, it is answered by the `ui.press` hooks. Given words, it keeps them for a reader, and draws only its blank.
  */
-export function pressRows({ Box, Button }: Pick<Table, 'Box' | 'Button'>, keyOf: (row: number) => string, cols: number, rows: number, said?: Said) {
-  const blank = NO_BREAK.repeat(cols * 3)
+export function pressButton({ Button }: Pick<Table, 'Button'>, key: string, cols: number, said?: Said) {
+  const blank = NO_BREAK.repeat(Math.ceil(cols * 3))
   const hover = { backgroundColor: 'transparent' }
-  const buttons = Array.from({ length: Math.min(ZONE_ROWS, rows) }, (_, i) =>
-    said ? (
-      <Button key={keyOf(i)} plain label={said.label} variant={said.variant} hover={hover} onPress={ignore}>
-        {blank}
-      </Button>
-    ) : (
-      <Button key={keyOf(i)} plain label={blank} hover={hover} onPress={ignore} />
-    ),
-  )
-  return (
-    <Box flexDirection="column" flexShrink={0}>
-      {buttons}
-    </Box>
+  return said ? (
+    <Button key={key} plain label={said.label} variant={said.variant} hover={hover} onPress={ignore}>
+      {blank}
+    </Button>
+  ) : (
+    <Button key={key} plain label={blank} hover={hover} onPress={ignore} />
   )
 }
+
+type Zone = ReturnType<typeof zoneCells>
+
+/** A zone's Box, from a Box that stands at the cell (`left`, `top`). */
+export const zoneBox = (zone: Zone, left = 0, top = 0) => ({ position: 'absolute' as const, left: zone.left - left, top: zone.top - top, marginLeft: zone.marginLeft, marginTop: zone.marginTop, width: zone.cols, height: zone.rows })
+
+/** What stands inside a zone on whole cells takes its margins back. */
+const onCells = (zone: Zone) => ({ marginLeft: -zone.marginLeft, marginTop: -zone.marginTop })
 
 function settingsButton(ui: Table, open: boolean, frame: Frame) {
   const { Box, Svg } = ui
@@ -55,58 +54,54 @@ function settingsButton(ui: Table, open: boolean, frame: Frame) {
     <Box key="settings-look" position="absolute" left={at.left} top={at.top} width={at.cols} height={at.rows}>
       <Svg source={shown.source} alt={t(open ? 'settings.close' : 'settings.title')} width={shown.width} height={shown.height} />
     </Box>,
-    <Box key="settings-button" position="absolute" left={zone.left} top={zone.top} width={zone.cols} height={zone.rows}>
+    <Box key="settings-button" {...zoneBox(zone)}>
       {open ? null : (
-        <Box position="absolute" left={at.left - zone.left} top={at.top - zone.top} width={at.cols} height={at.rows} flexDirection="column" display="none" hover={{ display: 'flex' }}>
+        <Box position="absolute" left={at.left - zone.left} top={at.top - zone.top} {...onCells(zone)} width={at.cols} height={at.rows} flexDirection="column" display="none" hover={{ display: 'flex' }}>
           <Svg source={hover.source} alt={t('settings.title')} width={hover.width} height={hover.height} />
         </Box>
       )}
       <Box position="absolute" left={0} top={0} width={zone.cols} height={zone.rows} overflow="hidden">
-        {pressRows(ui, row => `settings-button-${row}`, zone.cols, zone.rows)}
+        {pressButton(ui, 'settings-button-0', zone.cols)}
       </Box>
     </Box>,
   ]
 }
 
-type Zone = ReturnType<typeof zoneCells>
 type Lit = ReturnType<typeof optionSvg>
 
 /** A place of the panel: its look under the pointer, if it has one, then its presses. */
-function panelZone(ui: Table, key: string, pressKey: string, zone: Zone, lit: Lit | null, keyOf: (row: number) => string, panel: PanelCells) {
+function panelZone(ui: Table, key: string, pressKey: string, zone: Zone, lit: Lit | null, button: string, panel: PanelCells) {
   const { Box, Svg } = ui
   return (
-    <Box key={key} position="absolute" left={zone.left - panel.left} top={zone.top - panel.top} width={zone.cols} height={zone.rows}>
+    <Box key={key} {...zoneBox(zone, panel.left, panel.top)}>
       {lit && !panel.bare ? (
-        <Box position="absolute" left={lit.left - zone.left} top={lit.top - zone.top} width={lit.cols} height={lit.rows} flexDirection="column" display="none" hover={{ display: 'flex' }}>
+        <Box position="absolute" left={lit.left - zone.left} top={lit.top - zone.top} {...onCells(zone)} width={lit.cols} height={lit.rows} flexDirection="column" display="none" hover={{ display: 'flex' }}>
           <Svg source={lit.source} alt={t('settings.title')} width={lit.width} height={lit.height} />
         </Box>
       ) : null}
       <Box key={pressKey} position="absolute" left={0} top={0} width={zone.cols} height={zone.rows} overflow="hidden">
-        {pressRows(ui, keyOf, zone.cols, zone.rows)}
+        {pressButton(ui, button, zone.cols)}
       </Box>
     </Box>
   )
 }
 
 function departureZone(ui: Table, id: Departure, chosen: boolean, panel: PanelCells, place: SettingsPlace) {
-  return panelZone(ui, `settings-zone-${id}`, `settings-${id}`, zoneCells(place.options[id]), chosen ? null : optionSvg(id, place), row => `settings-${id}-${row}`, panel)
+  return panelZone(ui, `settings-zone-${id}`, `settings-${id}`, zoneCells(place.options[id]), chosen ? null : optionSvg(id, place), `settings-${id}-0`, panel)
 }
 
-/** The first row of a hearth zone goes by the gesture's own key, the next ones add their row to it. */
-const gestureRow = (name: string) => (row: number) => (row ? `${name}-${row}` : name)
-
 function hearthZone(ui: Table, id: OptionId, name: string, lit: Lit | null, panel: PanelCells, place: SettingsPlace) {
-  return panelZone(ui, `settings-zone-${id}`, `${name}-zone`, zoneCells(place.options[id]), lit, gestureRow(name), panel)
+  return panelZone(ui, `settings-zone-${id}`, `${name}-zone`, zoneCells(place.options[id]), lit, name, panel)
 }
 
 function stepZone(ui: Table, value: CompactBefore, chosen: boolean, panel: PanelCells, place: SettingsPlace) {
   const name = `hearth-compact-${value}`
-  return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.steps[COMPACT_STEPS.indexOf(value)]!), chosen ? null : stepSvg(value, place), gestureRow(name), panel)
+  return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.steps[COMPACT_STEPS.indexOf(value)]!), chosen ? null : stepSvg(value, place), name, panel)
 }
 
 function themeZone(ui: Table, id: RoomTheme, chosen: boolean, panel: PanelCells, place: SettingsPlace) {
   const name = `theme-${id}`
-  return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.themes[ROOM_THEMES.indexOf(id)]!), chosen ? null : themeSvg(id, place), gestureRow(name), panel)
+  return panelZone(ui, `settings-zone-${name}`, `${name}-zone`, zoneCells(place.themes[ROOM_THEMES.indexOf(id)]!), chosen ? null : themeSvg(id, place), name, panel)
 }
 
 /** The sections of the cache and the briefing: the cursor only where it applies. */

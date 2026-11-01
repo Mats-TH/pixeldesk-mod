@@ -451,10 +451,12 @@ export function settingsPlace(width: number, height: number, mode: BriefingMode 
 }
 export type SettingsPlace = ReturnType<typeof settingsPlace>
 
-/** The cells a click zone takes: rounded, so two zones side by side never share one. */
+const thousandth = (n: number) => Math.round(n * 1000) / 1000
+
+/** A click zone to the pixel: a Box stands on whole cells, its margins bring it to the drawing, a margin down in half rows. */
 export function zoneCells(b: Area) {
-  const [left, top] = [Math.round(b.x / CELL_W), Math.round(b.y / CELL_H)]
-  return { left, top, cols: Math.max(1, Math.round((b.x + b.w) / CELL_W) - left), rows: Math.max(1, Math.round((b.y + b.h) / CELL_H) - top) }
+  const [left, top] = [Math.floor(b.x / CELL_W), Math.floor(b.y / CELL_H)]
+  return { left, top, marginLeft: thousandth(b.x / CELL_W - left), marginTop: thousandth((b.y / CELL_H - top) * 2), cols: thousandth(b.w / CELL_W), rows: thousandth(b.h / CELL_H) }
 }
 
 /** The whole cells that hold a drawing, and where it starts in them. */

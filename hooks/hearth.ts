@@ -158,15 +158,9 @@ async function runGesture($: EngineInterface, m: Memory, name: string, surface: 
   }
 }
 
-// A key that ends with a digit of its own: the row of a click zone comes after it.
-const WITH_DIGIT = /^hearth-compact-\d$/
-
-/** The gesture of a key. A click zone of several rows adds `-<row>` to it. */
-export const gestureOf = (element: string) => (WITH_DIGIT.test(element) ? element : element.replace(/-\d$/, ''))
-
 /** A press on a gesture: the Button's own `onPress` does nothing, since the drawing changes under it. */
 export async function pressGesture($: EngineInterface, m: Memory, e: Press) {
-  await guard($, m, 'press', () => runGesture($, m, gestureOf(e.element), e.surface))
+  await guard($, m, 'press', () => runGesture($, m, e.element, e.surface))
   m.wake()
   return { element: e.element }
 }

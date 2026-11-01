@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { PRESS_ZONES, ZONE_ROWS } from './view-settings'
+import { settingsPlace } from './card'
+import { PRESS_ZONES } from './view-settings'
 import { ENGLISH, FRENCH, HOME, LOG_FILE, NOON, SETTINGS_FILE, altOf, appTakes, callTool, command, endTurn, hasKey, keyed, kids, mountPane, onScreen, sendPlan, sourceOf, spawn, start, step, world } from './test-kit'
 
 const NO_BREAK = /^\u00A0+$/
@@ -18,11 +19,11 @@ describe('the button', () => {
     world(on)
     await start($)
     const ui = await mountPane($)
-    expect((await ui.find({ key: 'settings-button' })).props).toMatchObject({ position: 'absolute', left: 1, top: 0, width: 4, height: 2 })
+    expect((await ui.find({ key: 'settings-button' })).props).toMatchObject({ position: 'absolute', left: 1, top: 0, marginLeft: 0.25, marginTop: 0.952, width: 4, height: 1.524 })
     expect((await ui.find({ key: 'settings-look' })).props).toMatchObject({ position: 'absolute', left: 1, top: 0, width: 5, height: 2 })
     expect(await altOf(ui, 'settings-look')).toBe('Réglages')
     const buttons = await ui.findAll({ type: 'Button' })
-    expect(buttons.map((b: any) => b.props.key)).toEqual(['settings-button-0', 'settings-button-1'])
+    expect(buttons.map((b: any) => b.props.key)).toEqual(['settings-button-0'])
     for (const b of buttons) {
       expect(b.props.plain).toBe(true)
       expect(b.props.label).toMatch(NO_BREAK)
@@ -31,14 +32,14 @@ describe('the button', () => {
     expect(await hasKey(ui, 'settings-panel')).toBe(false)
   })
 
-  test('the rows of a zone stack in a column that does not shrink, clipped to the zone', async ($, on) => {
+  test('a zone holds its Button directly, clipped to it, with no look of its own', async ($, on) => {
     world(on)
     await start($)
     const ui = await mountPane($)
     const zone = kids(await ui.find({ key: 'settings-button' })).pop()
-    expect(zone.props).toMatchObject({ position: 'absolute', overflow: 'hidden', width: 4, height: 2 })
-    expect(kids(zone)[0].props).toMatchObject({ flexDirection: 'column', flexShrink: 0 })
-    for (const button of kids(kids(zone)[0])) expect(button.hover).toEqual({ backgroundColor: 'transparent' })
+    expect(zone.props).toMatchObject({ position: 'absolute', overflow: 'hidden', width: 4, height: 1.524 })
+    expect(kids(zone).map((el: any) => el.type)).toEqual(['Button'])
+    expect(kids(zone)[0].hover).toEqual({ backgroundColor: 'transparent' })
   })
 
   test('three looks: the hover one hidden in the zone, gone while the panel is open', async ($, on) => {
@@ -63,7 +64,7 @@ describe('the button', () => {
     await spawn($, w, 'a1')
     const ui = await mountPane($)
     const [source, alt] = [await sourceOf(ui), await altOf(ui)]
-    await press(ui, 'settings-button-1')
+    await press(ui, 'settings-button-0')
     expect(w.state.settings.open).toBe(true)
     expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan, choisi. Au fil de l'eau. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation. Thème. Cosy, choisi.")
     expect([await sourceOf(ui), await altOf(ui)]).toEqual([source, alt])
@@ -76,13 +77,12 @@ describe('the button', () => {
     const w = world(on)
     await start($)
     const ui = await mountPane($)
-    expect(await press(ui, 'settings-button-1')).toEqual({ element: 'settings-button-1' })
+    expect(await press(ui, 'settings-button-0')).toEqual({ element: 'settings-button-0' })
     expect(w.state.settings.open).toBe(true)
-    for (const [key, departure] of [['settings-each-0', 'each'], ['settings-plan-0', 'plan'], ['settings-each-1', 'each'], ['settings-plan-2', 'plan']] as const) {
+    for (const [key, departure] of [['settings-each-0', 'each'], ['settings-plan-0', 'plan'], ['settings-each-0', 'each'], ['settings-plan-0', 'plan']] as const) {
       await press(ui, key)
       expect(w.state.settings.departure).toBe(departure)
     }
-    expect(ZONE_ROWS, 'a hook for six rows of each zone, whatever a pane draws').toBe(6)
     expect(PRESS_ZONES).toEqual(['settings-button', 'settings-plan', 'settings-each'])
   })
 
@@ -109,8 +109,8 @@ describe('the panel', () => {
     const { ui } = await opened($, on)
     const panel = await ui.find({ key: 'settings-panel' })
     expect(panel.props).toMatchObject({ position: 'absolute', left: 1, top: 2 })
-    expect((await ui.find({ key: 'settings-zone-plan' })).props).toMatchObject({ position: 'absolute', left: 2, top: 3, width: 25, height: 3 })
-    expect((await ui.find({ key: 'settings-zone-each' })).props).toMatchObject({ position: 'absolute', left: 2, top: 6, width: 25, height: 2 })
+    expect((await ui.find({ key: 'settings-zone-plan' })).props).toMatchObject({ position: 'absolute' })
+    expect((await ui.find({ key: 'settings-zone-each' })).props).toMatchObject({ position: 'absolute' })
     expect(kids(await ui.find({ key: 'settings-zone-plan' })).map((el: any) => el.props.key)).toEqual(['settings-plan'])
     const [lit, zone] = kids(await ui.find({ key: 'settings-zone-each' }))
     expect(zone.props.key).toBe('settings-each')
@@ -122,14 +122,14 @@ describe('the panel', () => {
   test('an option saves, keeps the other keys, the panel stays, any row answers', async ($, on) => {
     const { w, ui } = await opened($, on, { files: { [SETTINGS_FILE]: '{"theme":"night","hidden":true}' } })
     const [source, alt] = [await sourceOf(ui), await altOf(ui)]
-    await press(ui, 'settings-each-1')
+    await press(ui, 'settings-each-0')
     expect(w.file(SETTINGS_FILE)).toBe('{\n  "theme": "night",\n  "hidden": true,\n  "departure": "each"\n}\n')
     expect(w.state.settings).toEqual({ open: true, departure: 'each', fire: true, briefingMode: 'auto', compactBefore: 2, theme: 'cosy' })
     expect(await altOf(ui, 'settings-panel')).toBe("Réglages. Départ des bureaux. Fin du plan. Au fil de l'eau, choisi. Cache. Garder le cache au chaud, choisi. Passation. Automatique, choisi. Manuel. Compacte 2 fois, puis change de conversation. Thème. Cosy, choisi.")
     expect([await sourceOf(ui), await altOf(ui)]).toEqual([source, alt])
     await press(ui, 'settings-each-0')
     expect(w.json(SETTINGS_FILE).departure, 'the same again').toBe('each')
-    await press(ui, 'settings-plan-2')
+    await press(ui, 'settings-plan-0')
     expect(w.json(SETTINGS_FILE).departure).toBe('plan')
   })
 
@@ -248,18 +248,74 @@ describe('the panel', () => {
   })
 })
 
+describe('a zone falls on its drawing', () => {
+  const WIDE = { bodyColumns: 118, scroll: { offset: 0, bodyRows: 66 } }
+  const pixels = (z: any, at = { x: 0, y: 0 }) => ({ x: at.x + z.left * 8 + (z.marginLeft ?? 0) * 8, y: at.y + z.top * 21 + (z.marginTop ?? 0) * 10.5, w: z.width * 8, h: z.height * 21 })
+
+  function same(zone: { x: number; y: number; w: number; h: number }, art: { x: number; y: number; w: number; h: number }, name: string) {
+    expect(Math.abs(zone.x - art.x), `${name}: left`).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(zone.y - art.y), `${name}: top`).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(zone.w - art.w), `${name}: width`).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(zone.h - art.h), `${name}: height`).toBeLessThanOrEqual(0.5)
+  }
+
+  test('the button and every place of the panel, to the pixel, with one Button that fills its zone', { timeoutMs: 30000 }, async ($, on) => {
+    world(on)
+    await start($)
+    const ui = await mountPane($, 'desktop', WIDE)
+    await press(ui, 'settings-button-0')
+    const at = settingsPlace(120 * 8, 66 * 21)
+    same(pixels((await ui.find({ key: 'settings-button' })).props), at.button, 'button')
+    const panel = (await ui.find({ key: 'settings-panel' })).props
+    const origin = { x: panel.left * 8, y: panel.top * 21 }
+    const places = [
+      ...Object.entries(at.options).map(([id, art]) => [`settings-zone-${id}`, art] as const),
+      ...at.steps.map(art => [`settings-zone-hearth-compact-${art.value}`, art] as const),
+      ...at.themes.map(art => [`settings-zone-theme-${art.id}`, art] as const),
+    ]
+    expect(places).toHaveLength(16)
+    for (const [key, art] of places) {
+      const zone = await ui.find({ key })
+      same(pixels(zone.props, origin), art, key)
+      const press = kids(zone).pop()
+      expect(kids(press).map((el: any) => el.type), `${key}: its Button stands alone, a child of the zone, and stretches to it`).toEqual(['Button'])
+      expect(press.props.flexDirection).toBeUndefined()
+    }
+  })
+
+  test('on the floor too', { timeoutMs: 30000 }, async ($, on) => {
+    const w = world(on, FLOOR)
+    await start($)
+    await w.clock.advance(5000)
+    const ui = await mountPane($, 'desktop', WIDE)
+    expect(await hasKey(ui, 'floor')).toBe(true)
+    same(pixels((await ui.find({ key: 'settings-button' })).props), settingsPlace(120 * 8, 66 * 21).button, 'button')
+  })
+
+  test('what lights up under the pointer stays where it was, whatever moves the zone', { timeoutMs: 30000 }, async ($, on) => {
+    world(on)
+    await start($)
+    const ui = await mountPane($, 'desktop', WIDE)
+    const look = (await ui.find({ key: 'settings-look' })).props
+    const zone = await ui.find({ key: 'settings-button' })
+    const lit = kids(zone)[0].props
+    expect(zone.props.left * 8 + zone.props.marginLeft * 8 + lit.left * 8 + lit.marginLeft * 8).toBe(look.left * 8)
+    expect(zone.props.top * 21 + zone.props.marginTop * 10.5 + lit.top * 21 + lit.marginTop * 10.5).toBe(look.top * 21)
+  })
+})
+
 describe('a drawing the app takes', () => {
   const SLOW = { timeoutMs: 30000 }
   const REAL = { bodyColumns: 187, scroll: { offset: 0, bodyRows: 63 } }
   const THEMES = [['cosy', 'Cosy'], ['japonais', 'Japonais'], ['nature', 'Nature'], ['futuriste', 'Futuriste'], ['geek', 'Geek et jeu'], ['base', 'Base spatiale']] as const
   const planOf = (n: number) => Array.from({ length: n }, (_, i) => step(`Étape ${i + 1} : lire le code du volet et comprendre`, i ? 'pending' : 'in_progress', { detail: 'Une phrase simple sur ce que fait cette étape.', who: 'Claude' }))
 
-  async function loaded($: any, on: any, steps: number, agents: number) {
+  async function loaded($: any, on: any, steps: number, agents: number, props: Record<string, unknown> = REAL) {
     const w = world(on)
     await start($)
     await sendPlan($, planOf(steps), 'Job')
     for (let i = 0; i < agents; i += 1) await spawn($, w, `a${i}`)
-    const ui = await mountPane($, 'desktop', REAL)
+    const ui = await mountPane($, 'desktop', props)
     return { w, ui, shown: onScreen(ui) }
   }
 
@@ -279,6 +335,13 @@ describe('a drawing the app takes', () => {
     const { ui, shown } = await loaded($, on, 4, 0)
     await tour(ui, shown)
   })
+
+  for (const [steps, agents, cols, rows] of [[6, 3, 118, 66], [6, 5, 118, 66], [4, 3, 187, 63], [14, 4, 187, 63]] as const) {
+    test(`${steps} steps and ${agents} desks at work, ${cols} by ${rows}: every theme, twice, then the panel closes`, SLOW, async ($, on) => {
+      const { ui, shown } = await loaded($, on, steps, agents, { bodyColumns: cols, scroll: { offset: 0, bodyRows: rows } })
+      await tour(ui, shown)
+    })
+  }
 
   test('so does a room with a long plan and desks at work', SLOW, async ($, on) => {
     const { ui, shown } = await loaded($, on, 12, 7)

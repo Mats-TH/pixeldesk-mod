@@ -43,7 +43,6 @@ describe('the row above the band', () => {
     expect(change.props.plain).toBe(true)
     expect(change.props.label.trim()).toBe('')
     expect(await altOf(ui, 'briefing-row')).toContain('Déménager')
-    expect(buttons.find((b: any) => b.props.key === 'briefing-change-1'), 'the second row of its cells').toBeDefined()
   })
 
   test('alone, the row eats the edge of the frame, and the band stays against it', async ($, on) => {
@@ -64,9 +63,9 @@ describe('the row above the band', () => {
     await offered($, on)
     const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
     const zone = await ui.find({ key: 'briefing-change-zone' })
-    expect(zone.props).toMatchObject({ overflow: 'hidden', height: 2 })
+    expect(zone.props).toMatchObject({ overflow: 'hidden' })
     expect(svgs(zone)).toEqual([])
-    expect(kids(zone).some((el: any) => el.hover)).toBe(false)
+    expect(kids(zone).map((el: any) => el.type)).toEqual(['Button'])
   })
 
   test('the terminal keeps its words and its buttons, with no drawing', async ($, on) => {
@@ -81,14 +80,6 @@ describe('the row above the band', () => {
     await offered($, on)
     const ui = await mountBand($, 'mobile')
     expect((await textsOf(ui)).join(' ')).toContain('Contexte à 81 %')
-  })
-
-  test('a press on the second row of a button is the same gesture', async ($, on) => {
-    const t = await offered($, on)
-    const ui = await mountBand($, 'desktop', { bodyColumns: 100 })
-    await ui.press({ key: 'briefing-cancel-1' })
-    await t.w.clock.settle()
-    expect(t.w.state.briefing.phase).toBe('idle')
   })
 
   test('while it waits, the count is said to a reader, and the urgent button says so', async ($, on) => {
@@ -132,7 +123,7 @@ describe('the settings', () => {
     const { w, ui } = await opened($, on)
     await ui.press({ key: 'hearth-fire-off' })
     expect(w.json(SETTINGS_FILE).fire).toBe(false)
-    await ui.press({ key: 'hearth-fire-on-2' })
+    await ui.press({ key: 'hearth-fire-on' })
     expect(w.json(SETTINGS_FILE).fire).toBe(true)
   })
 

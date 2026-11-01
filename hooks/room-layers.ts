@@ -295,6 +295,7 @@ export function buttonLit(p: RoomInput, label: string) {
   const c = cut(g, { x: 0, y: 0 }, { x: b.x, y: b.y, w: b.w + 4 * b.k, h: b.h + 4 * b.k })
   const body = `<g transform="translate(${b.x} ${b.y}) scale(${b.k})">${buttonBody(label, true)}</g>`
   const { view: _, ...place } = c
-  return { ...place, source: `<svg xmlns="http://www.w3.org/2000/svg" width="${c.width}" height="${c.height}" viewBox="${c.view}" shape-rendering="crispEdges"><defs>${letterDefs(label)}</defs>${body}</svg>` }
+  const face = { x: b.x * g.k, y: b.y * g.k - g.crop, w: b.w * g.k, h: b.h * g.k }
+  return { ...place, face, source: `<svg xmlns="http://www.w3.org/2000/svg" width="${c.width}" height="${c.height}" viewBox="${c.view}" shape-rendering="crispEdges"><defs>${letterDefs(label)}</defs>${body}</svg>` }
 }
 

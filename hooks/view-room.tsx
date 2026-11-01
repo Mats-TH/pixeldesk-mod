@@ -17,7 +17,7 @@ import type { HearthLook, HearthPanel, RoomDesk, RoomInput } from './room'
 import { buttonLit, crabAsleep, crabLayer, decorLayers, deskLayers, fireLayer, keeperLayer, labelsSvg } from './room-layers'
 import type { Layer } from './room-layers'
 import { CELL_H, CELL_W, cellsOf, hoverZone, lightest, liveBox } from './view-shared'
-import { panelCells, pressRows, settingsElements } from './view-settings'
+import { panelCells, pressButton, settingsElements, zoneBox } from './view-settings'
 import type { PanelCells } from './view-settings'
 import type { Frame, Table } from './view-shared'
 import { packOf } from './pixel/themes'
@@ -199,20 +199,18 @@ function hearthZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells |
 // The height of a button on the briefing's card, as `card-briefing.ts` draws it.
 const CARD_BUTTON_H = 24
 
-/** The first row of a zone goes by the gesture's own key, the next ones add their row to it. */
-const gestureRow = (name: string) => (row: number) => (row ? `${name}-${row}` : name)
-
-/** The button on the stove: the labels show it, this is its look under the pointer, and one blank Button per row, as a press only reaches the engine on a Button. */
+/** The button on the stove: the labels show it, this is its look under the pointer, and a blank Button over it, as a press only reaches the engine on a Button. */
 function changeZone(ui: Table, input: RoomInput, label: string) {
   const { Box, Svg } = ui
   const lit = buttonLit(input, label)
+  const zone = zoneCells(lit.face)
   return (
     <Box key="hearth-change" position="absolute" left={lit.left} top={lit.top} width={lit.cols} height={lit.rows}>
       <Box position="absolute" left={0} top={0} display="none" hover={{ display: 'flex' }}>
         <Svg source={lit.source} alt={label} width={lit.width} height={lit.height} />
       </Box>
-      <Box position="absolute" left={0} top={0} width={lit.cols} height={lit.rows} overflow="hidden">
-        {pressRows(ui, gestureRow('briefing-change'), lit.cols, lit.rows)}
+      <Box {...zoneBox(zone, lit.left, lit.top)} overflow="hidden">
+        {pressButton(ui, 'briefing-change', zone.cols)}
       </Box>
     </Box>
   )
@@ -223,8 +221,8 @@ function cardButton(ui: Table, b: BriefingCard['buttons'][number], k: number) {
   const { Box } = ui
   const zone = zoneCells({ x: b.x * k, y: b.y * k, w: b.w * k, h: CARD_BUTTON_H * k })
   return (
-    <Box key={`zone-${b.key}`} position="absolute" left={zone.left} top={zone.top} width={zone.cols} height={zone.rows} overflow="hidden">
-      {pressRows(ui, gestureRow(b.key), zone.cols, zone.rows)}
+    <Box key={`zone-${b.key}`} {...zoneBox(zone)} overflow="hidden">
+      {pressButton(ui, b.key, zone.cols)}
     </Box>
   )
 }

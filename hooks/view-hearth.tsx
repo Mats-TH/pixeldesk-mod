@@ -10,7 +10,7 @@ import type { TextKey } from './i18n'
 import { cut } from './lines'
 import type { Memory } from './memory'
 import { readBriefing, readHearth } from './state'
-import { pressRows } from './view-settings'
+import { pressButton, zoneBox } from './view-settings'
 import { bandWidth } from './view-shared'
 import type { Table } from './view-shared'
 
@@ -61,14 +61,14 @@ function wordRow(ui: Row, view: Briefing, phase: keyof typeof WORDS, percent: nu
 }
 
 /**
- * A drawn button's press, its whole height, cell by cell as the settings do.
+ * A drawn button's press, its whole height, to the pixel as the settings do.
  * No look under the pointer: above the prompt, the app shows a hover drawing in a bubble of its own, away from the button.
  */
 function buttonZone(ui: Table, b: PlacedButton) {
   const zone = zoneCells(rowArea(b))
   return (
-    <ui.Box key={`${b.key}-zone`} position="absolute" left={zone.left} top={zone.top} width={zone.cols} height={zone.rows} overflow="hidden">
-      {pressRows(ui, row => (row ? `${b.key}-${row}` : b.key), zone.cols, zone.rows)}
+    <ui.Box key={`${b.key}-zone`} {...zoneBox(zone)} overflow="hidden">
+      {pressButton(ui, b.key, zone.cols)}
     </ui.Box>
   )
 }

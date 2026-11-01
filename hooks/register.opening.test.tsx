@@ -2,7 +2,6 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import type { Briefing } from '../types'
 import { briefingButtons } from './card-briefing'
-import { gestureOf } from './hearth'
 import { FIVE, BRIEFING_TEXT, MANUAL, STATE_FILE, answers, claudeRun, hearthWorld, linksOpened, press, saved } from './test-hearth'
 import { ENGLISH, HOME, SESSION, SETTINGS_FILE, command, mountBand, mountPane, start } from './test-kit'
 
@@ -140,14 +139,6 @@ describe('the gestures and the drawings', () => {
     for (const key of ['hearth-mode-manual', 'hearth-fire-off', 'hearth-mode-auto', 'hearth-compact-always', 'hearth-compact-1']) await pane.press({ key })
     expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'night', briefingMode: 'auto', fire: false, compactBefore: 1 })
     expect(w.state.settings).toMatchObject({ fire: false, briefingMode: 'auto', compactBefore: 1 })
-  })
-
-  test('the gesture of a click zone: the row goes, a digit of the key stays', () => {
-    expect(gestureOf('hearth-fire-off-3')).toBe('hearth-fire-off')
-    expect(gestureOf('briefing-now-0')).toBe('briefing-now')
-    expect(gestureOf('hearth-compact-1')).toBe('hearth-compact-1')
-    expect(gestureOf('hearth-compact-1-2')).toBe('hearth-compact-1')
-    expect(gestureOf('hearth-compact-always')).toBe('hearth-compact-always')
   })
 
   test('the open panel holds them, and the band stays as it was', async ($, on) => {
