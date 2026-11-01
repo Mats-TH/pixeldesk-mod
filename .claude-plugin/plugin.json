@@ -1,6 +1,6 @@
 {
   "name": "pixeldesk",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "A pixel art interface to follow your Claude agents live: a desk for every agent, plan and limits on screen, and a cache kept alive to spend fewer tokens.",
   "author": {
     "name": "Mats-TH",

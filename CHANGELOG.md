@@ -4,6 +4,19 @@ All notable changes to PixelDesk Mod are listed here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-11-01
+
+Every desk says whose it is.
+
+### Changed
+
+- The plugin has a new description: it says what the mod does, in plain words.
+- The install section now explains what a normal chat can answer, and why the mod still goes through the Code tab.
+
+### Fixed
+
+- The global view writes the name on the desks in the Japanese and Futuristic themes: Boss or Patron, Manager, or the agent's role. Their plates were empty.
+
 ## [1.3.0] - 2026-11-01
 
 Six rooms, and a panel that no longer freezes.
@@ -87,6 +100,7 @@ First public release.
 - `/pixeldesk`, `/pixeldesk hide`, `/pixeldesk show` and `/pixeldesk departure` commands.
 - French and English, with automatic detection and a `language` option (`auto`, `fr`, `en`).
 
+[1.3.1]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.3.0]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.2.0]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.1.1]: https://github.com/Mats-TH/pixeldesk-mod/releases
