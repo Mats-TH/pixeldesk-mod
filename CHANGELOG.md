@@ -4,6 +4,22 @@ All notable changes to PixelDesk Mod are listed here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-11-01
+
+The plugin directory can now read the whole mod.
+
+### Changed
+
+- Every call to Claude Code is written out in the `session.start` hook, in `hooks/register.tsx`. The rest of the mod goes through what it binds.
+- The mod draws nothing of its own until a session has started.
+- The language now comes from the system locale. The mod starts no program to find it, and keeps nothing in the plugin storage.
+- The README explains how to change the language after install.
+
+### Fixed
+
+- The two demo animations are stored differently again. Every pixel is the same.
+- Test fixtures no longer look like secrets sent to a server.
+
 ## [1.3.2] - 2026-11-01
 
 Ready for the plugin directory, and clearer about what the mod does.
