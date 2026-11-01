@@ -346,7 +346,7 @@ There's no wall to click. To go Manual, set `"briefingMode": "manual"` in `~/.cl
 
 - **Tested** on Windows only so far, with Claude Code 2.1.309. Reports from macOS and Linux are very welcome.
 - **Boss and Manager.** There's one Boss, your main conversation. The conversations it starts are Managers. The app's links are only read on Windows, so elsewhere a sub-conversation reads Boss too.
-- **Language.** The mod follows your Claude Code `language` setting, then your system language, and falls back to English. To force one, use the plugin's `language` option: `auto`, `fr` or `en`.
+- **Language.** The mod follows your Claude Code `language` setting, then your system language, and falls back to English. To force one, use the plugin's `language` option: `auto`, `fr` or `en`. After install, run `/plugin configure` in Claude Code, or `claude plugin configure pixeldesk@pixeldesk-mod --values-stdin` with `{"language":"en"}` as input, then restart Claude Code.
 - **Your files.** The mod writes in `~/.claude/pixeldesk/`, and nowhere else.
 - **Limits.** The gauges show `--` until Claude Code reports a reading.
 - **Global view.** On Windows, it reads the links between conversations from the app. Elsewhere, it groups the conversations of the same project.

@@ -346,7 +346,7 @@ Il n'y a pas de mur à cliquer. Pour passer en Manuel, mets `"briefingMode": "ma
 
 - **Testé** sous Windows seulement pour l'instant, avec Claude Code 2.1.309. Les retours macOS et Linux sont les bienvenus.
 - **Patron et Manager.** Il n'y a qu'un Patron, ta conversation principale. Les conversations qu'elle lance sont des Managers. Les liens de l'application ne sont lus que sous Windows : ailleurs, une sous-conversation s'affiche aussi Patron.
-- **Langue.** Le mod suit le réglage `language` de Claude Code, puis la langue du système, et se rabat sur l'anglais. Pour en imposer une, utilise l'option `language` du plugin : `auto`, `fr` ou `en`.
+- **Langue.** Le mod suit le réglage `language` de Claude Code, puis la langue du système, et se rabat sur l'anglais. Pour en imposer une, utilise l'option `language` du plugin : `auto`, `fr` ou `en`. Après l'installation, lance `/plugin configure` dans Claude Code, ou `claude plugin configure pixeldesk@pixeldesk-mod --values-stdin` avec `{"language":"en"}` en entrée, puis redémarre Claude Code.
 - **Tes fichiers.** Le mod écrit dans `~/.claude/pixeldesk/`, et nulle part ailleurs.
 - **Limites.** Les jauges affichent `--` tant que Claude Code n'a pas donné de relevé.
 - **Vue globale.** Sous Windows, il lit les liens entre conversations dans l'application. Ailleurs, il regroupe les conversations du même projet.
