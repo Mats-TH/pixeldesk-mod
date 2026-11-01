@@ -1,197 +1,326 @@
-[Read in English](README.md)
+<p align="center"><a href="README.md">Read in English</a></p>
 
-![PixelDesk](assets/banner.png)
+<p align="center">
+  <img src="assets/banner.png" alt="PixelDesk Mod : garde ton cache en vie, dans un petit bureau en pixel art">
+</p>
 
-**Tes agents Claude Code au travail, dans un petit bureau en pixel art.**
+<h3 align="center">Dépense moins de tokens dans Claude Code, et vois tout ce qu'il fait.</h3>
 
-Pensé pour l'application de bureau Claude. C'est là que tu profites de la barre pixel, de la pièce en direct et du plan d'étage.
+<p align="center">
+  <img src="https://img.shields.io/badge/Claude_Code-mod-FFC857?style=flat-square&labelColor=2A2036" alt="Un mod pour Claude Code">
+  <img src="https://img.shields.io/badge/th%C3%A8mes-6-E8643C?style=flat-square&labelColor=2A2036" alt="Six thèmes">
+  <img src="https://img.shields.io/badge/licence-MIT-7FB069?style=flat-square&labelColor=2A2036" alt="Licence MIT">
+  <img src="https://img.shields.io/badge/langue-FR_%2F_EN-9DB4FF?style=flat-square&labelColor=2A2036" alt="Français et anglais">
+</p>
 
-![PixelDesk dans l'application de bureau : une conversation avec la barre juste au-dessus de la saisie, et la pièce à côté, où le gardien nourrit le feu](assets/bar.gif)
+<p align="center">
+  <a href="#installer"><b>Installer</b></a> &nbsp;·&nbsp;
+  <a href="#fait-pour-économiser-des-tokens"><b>Économiser</b></a> &nbsp;·&nbsp;
+  <a href="#ce-que-tu-as"><b>Fonctionnalités</b></a> &nbsp;·&nbsp;
+  <a href="#six-pièces-une-commande"><b>Thèmes</b></a> &nbsp;·&nbsp;
+  <a href="#commandes"><b>Commandes</b></a>
+</p>
 
-La barre vit dans ta conversation, juste au-dessus de la saisie. La pièce s'ouvre à côté.
+<p align="center">
+  <img src="assets/demo.gif" alt="Une conversation avec la barre en direct au-dessus de la saisie, et la pièce à côté. Le même moment passe dans les six thèmes : le gardien apporte une bûche et le feu repart." width="880">
+</p>
 
-## Installer dans l'application de bureau
+<p align="center"><sub>Une maquette, dessinée par le code du mod. La barre, la pièce et le gardien sont les vrais dessins.</sub></p>
 
-Colle ceci dans n'importe quel terminal :
+PixelDesk Mod est un plugin gratuit pour l'application de bureau Claude.
+
+Il garde ton cache en vie pendant ton absence, et te fait passer sur une conversation neuve avant que celle-ci soit pleine. Le tout dans un petit bureau en pixel art, à côté du chat.
+
+C'est joli. Ce n'est pas le sujet. Le sujet, c'est d'arrêter de payer pour reconstruire la même conversation.
+
+## Installer
+
+**Dans l'application de bureau Claude, ouvre l'onglet Code et colle ceci dans la conversation :**
 
 ```
+Install the PixelDesk Mod plugin. Run: claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod (if claude is not found, use the path in the CLAUDE_CODE_EXECPATH environment variable instead).
+```
+
+Utilise le bouton de copie : la ligne dépasse du cadre. Claude lance la commande pour toi. Autorise-la quand il te le demande.
+
+Ouvre ensuite une nouvelle conversation dans l'onglet Code. C'est tout.
+
+| Où tu es | Quoi faire |
+| --- | --- |
+| **Onglet Code de l'application** | Colle la ligne ci-dessus. Pas besoin de terminal. |
+| **Une conversation normale** | Elle ne peut pas installer un mod. Un chat ne lance pas de commande sur ton ordinateur, et le mod vit dans l'onglet Code. Passe sur l'onglet Code, puis colle la ligne. |
+| **Un terminal** | Lance la commande ci-dessous. |
+
+<details>
+<summary><b>Les autres façons d'installer</b></summary>
+
+<br>
+
+**Depuis n'importe quel terminal :**
+
+```bash
 claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
 ```
 
-Ouvre ensuite une nouvelle conversation dans l'onglet **Code** de l'application de bureau Claude. C'est tout.
+**Avec les boutons de l'application :** clique sur **+** à côté de la zone de saisie, puis **Plugins**, puis **Add marketplace**. Colle `Mats-TH/pixeldesk-mod`, puis clique sur **Add plugin**.
 
-Pas de commande `claude` sur ta machine ? Passe par l'application. Clique sur **+** à côté de la zone de saisie, puis **Plugins**, puis **Add marketplace**. Colle ceci, puis clique sur **Add plugin** :
-
-```
-Mats-TH/pixeldesk-mod
-```
-
-## À quoi ça sert
-
-Pendant que tu attends, Claude Code abat beaucoup de travail. PixelDesk te le montre.
-
-Ton plan, tes limites d'usage et chaque sous-agent restent à l'écran, en direct, juste à côté du chat.
-
-Il garde aussi ton cache au chaud, et te passe sur une conversation neuve avant que l'ancienne soit pleine.
-
-À savoir : la relance du cache est automatique et active par défaut. Elle consomme des tokens. `/pixeldesk fire off` la coupe.
-
-## Fonctionnalités
-
-- **Barre en pixel art.** 80 px au-dessus de la saisie : ton plan, sa progression, tes limites 5 h et hebdo.
-- **Un bureau par sous-agent.** Chaque agent s'installe dans la pièce, en direct. Survole un bureau pour lire sa carte.
-- **Ton bureau Manager.** La conversation a son propre bureau, en tête de pièce. Elle travaille pendant un tour et fait la sieste entre deux.
-- **Des bureaux bien rangés.** Les bureaux finis partent tout seuls. Choisis quand avec le bouton réglages, sur le mur.
-- **Plan d'étage.** Une conversation qui en pilote d'autres les voit toutes d'un coup d'œil, une pièce pour chacune.
-- **Outil de plan.** Claude annonce ses étapes avec un outil `plan`, et la barre suit.
-- **Une cheminée pour ton cache.** Le feu montre si ton cache est chaud. Un gardien entre avec une bûche pour l'entretenir.
-- **La cendre qui s'entasse.** Le tas devant le feu montre le remplissage de la conversation.
-- **Changement de conversation automatique.** PixelDesk compacte, puis change tout seul, passation déjà lue.
-- **Français et anglais.** Toute l'interface parle les deux.
-
-![La pièce PixelDesk avec le gardien à la cheminée, à côté de la carte de la cheminée](assets/panel.png)
-
-## La cheminée
-
-### Ton cache reste au chaud
-
-Claude garde ta conversation dans un cache, pendant 5 minutes ou 1 heure. Une fois froid, ton message suivant paie pour tout relire.
-
-PixelDesk surveille cette horloge. 45 secondes avant que le cache refroidisse, il envoie une relance, et l'horloge repart.
-
-Une relance, c'est une ligne fixe, `Answer only: ok`, en plus du contexte en cache. Rien d'autre.
-
-Le feu baisse avec le temps restant : plein, moyen, faible, braises, éteint. Après chaque relance, le gardien apporte une bûche et le feu repart à plein.
-
-PixelDesk ne relance jamais un cache que son horloge dit froid. Ce serait le plus cher, pour rien. Si une relance le trouve froid malgré tout, les relances s'arrêtent jusqu'à ton prochain tour.
-
-C'est actif par défaut, et ça consomme des tokens. Lis [Bon à savoir](#bon-à-savoir) pour les plafonds et l'arrêt.
-
-### La cendre montre le remplissage
-
-La cendre s'entasse devant le feu à mesure que la conversation se remplit. Le tas est plein à 80 % du contexte. C'est le moment de changer.
-
-Survole la cheminée pour ouvrir sa carte : ce qu'est le cache, le temps restant, les relances, son état, le pourcentage exact et les compactages.
-
-### Une conversation neuve, toute seule
-
-Quand la cendre est pleine, PixelDesk attend la fin du tour. Puis il compacte, ou il change de conversation.
-
-En mode Automatique, un curseur décide. Tu le trouves dans le panneau des réglages, derrière le bouton sur le mur :
-
-- **0.** Il change de conversation tout de suite.
-- **1, 2 ou 3.** Il compacte ce nombre de fois, puis il change. La valeur par défaut est 2.
-- **Toujours.** Il compacte seulement, et ne change jamais.
-
-Les compactages faits par Claude Code comptent aussi. Avant chaque compactage, PixelDesk note les fichiers, décisions et demandes qu'il trouve : la passation finale ne résume donc jamais un résumé.
-
-**Il attend tes agents.** Les agents et les conversations de l'étage finissent d'abord, pour que leurs résultats entrent dans la passation. Pressé ? `Changer maintenant` reste disponible.
-
-**Il ouvre dans le même dossier.** La nouvelle conversation démarre dans le dossier exact de la session, worktree compris, message déjà envoyé.
-
-**Il a besoin de la commande `claude`.** Sans elle, ou sous Linux, le texte est prêt dans la nouvelle conversation et tu appuies sur Entrée.
-
-Tu préfères décider ? Passe en mode **Manuel** dans le panneau des réglages. PixelDesk ne compacte plus et ne change plus tout seul. Un bouton `Changer` apparaît sur la cheminée une fois la cendre pleine, et rien ne bouge avant ton clic. Une fois la passation prête, clique sur `Nouvelle conversation`.
-
-## Dans le terminal
-
-PixelDesk tourne aussi dans une session terminal, en version texte plus simple : une barre en caractères et la liste des agents. Le pixel art reste dans l'application de bureau.
-
-Les relances du cache y tournent aussi, sans la cheminée. `/pixeldesk fire off` y marche pareil.
-
-Pas de mur à cliquer dans le terminal. Pour passer en Manuel, mets `"briefingMode": "manual"` dans `~/.claude/pixeldesk/settings.json`.
-
-Pour l'installer depuis une session terminal ouverte :
+**Depuis une session terminal ouverte :**
 
 ```
 /plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
 ```
 
-Réponds `y` pour ajouter la marketplace, puis choisis un scope.
+Réponds `y` pour ajouter la marketplace, puis choisis une portée.
 
-## Utilisation
+**Pour imposer une langue :**
 
-Rien à régler. Une fois installé, PixelDesk tourne tout seul.
-
-La barre est toujours là. Le panneau s'ouvre avec la session dans l'application de bureau, et avec ton premier agent dans le terminal.
-
-| Commande | Ce qu'elle fait |
-| --- | --- |
-| `/pixeldesk` | Ouvre le panneau, et lève le masquage s'il y en avait un. |
-| `/pixeldesk hide` | Ferme le panneau dans toutes les conversations et l'empêche de s'ouvrir tout seul. La barre reste. Le suivi, les relances et le changement automatique continuent. |
-| `/pixeldesk show` | Ouvre le panneau ici et le laisse de nouveau s'ouvrir tout seul. |
-| `/pixeldesk departure` | Te dit quand partent les bureaux finis. |
-| `/pixeldesk departure plan` | Les bureaux finis restent jusqu'à la fin du plan, puis partent ensemble. C'est le réglage par défaut. |
-| `/pixeldesk departure each` | Chaque bureau part 30 secondes après la fin de son agent. |
-| `/pixeldesk fire` | Te dit où en sont les relances : en marche ou coupées, temps restant, combien, et pourquoi elles se sont arrêtées. |
-| `/pixeldesk fire on` | Met les relances en marche dans toutes les conversations. C'est le réglage par défaut. |
-| `/pixeldesk fire off` | Coupe les relances dans toutes les conversations, et rien d'autre. Le feu suit alors simplement le cache. |
-| `/pixeldesk move` | Écrit une passation tout de suite, ou dès que les travaux en cours sont finis. Clique sur `Nouvelle conversation` quand elle est prête. |
-| `/pixeldesk compact` | Compacte tout de suite, comme le mode Automatique, une fois le tour fini. Il compte dans le curseur. |
-
-Pour retirer aussi la barre, désactive le plugin avec `/plugin`.
-
-Dans l'application de bureau, le bouton sur le mur de la pièce ouvre le panneau des réglages. Tout est là :
-
-- **Bureaux.** Quand partent les bureaux finis.
-- **Cache.** L'interrupteur des relances.
-- **Passation.** Automatique ou Manuel, et le curseur en mode Automatique.
-
-Ton choix vaut pour toutes les conversations.
-
-## Langue
-
-PixelDesk choisit sa langue tout seul. Il suit le réglage `language` de Claude Code, puis la langue de ton système, et se rabat sur l'anglais.
-
-Pour en imposer une, utilise l'option `language` : `auto` (par défaut), `fr` ou `en`. Change-la dans les options du plugin, ou fixe-la à l'installation :
-
-```
+```bash
 claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod --config language=fr
 ```
 
+Il te faut Git sur ta machine : le plugin est récupéré depuis GitHub.
+
+</details>
+
+## Fait pour économiser des tokens
+
+**C'est ton cache qui rend le retour dans une conversation peu coûteux.**
+
+Claude garde ta conversation dans un cache, pendant 5 minutes ou 1 heure. Tant qu'il vit, la relire coûte [une fraction du prix normal](https://platform.claude.com/docs/en/about-claude/pricing#prompt-caching).
+
+Une fois expiré, ton message suivant paie pour tout relire et tout réécrire. Sur une longue conversation, ça se sent.
+
+**PixelDesk Mod surveille cette horloge pour toi.**
+
+45 secondes avant que le cache refroidisse, il envoie une ligne, `Answer only: ok`. Claude relit la conversation depuis le cache, et l'horloge repart.
+
+Quand tu reviens, ton cache est encore là.
+
+**Il évite aussi aux conversations de devenir chères.**
+
+Plus la conversation est pleine, plus chaque message a de choses à lire. Donc à 80 % du contexte, PixelDesk Mod compacte, puis te fait passer sur une conversation neuve, briefing déjà lu.
+
+> **Pour être franc.** Les relances consomment des tokens, et elles comptent dans tes limites. Elles sont rentables si tu reviens. Sinon, elles ont été dépensées pour rien.
+>
+> L'économie dépend de la taille de ta conversation et de ta façon de travailler. Elle n'a pas été mesurée, donc aucun chiffre ici.
+>
+> **Tu n'en veux pas ? `/pixeldesk fire off`.** Une commande, et les relances s'arrêtent partout.
+
+## Ce que tu as
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <img src="assets/feature-cache.png" alt="Le poêle et le gardien qui apporte une bûche">
+      <br><b>Un cache qui reste en vie</b>
+      <br>Des relances automatiques, juste avant qu'il refroidisse. Le feu montre le temps restant, et un gardien apporte une bûche.
+    </td>
+    <td width="33%" valign="top">
+      <img src="assets/feature-move.png" alt="Un tas de cendre plein, et une plaque qui dit que le briefing est prêt">
+      <br><b>Une conversation neuve, toute seule</b>
+      <br>La cendre montre le remplissage. Quand elle est pleine, le mod compacte, puis change avec un briefing.
+    </td>
+    <td width="33%" valign="top">
+      <img src="assets/feature-band.png" alt="La barre au-dessus de la saisie, avec le plan et les deux limites">
+      <br><b>Tes limites, toujours sous les yeux</b>
+      <br>Une barre au-dessus de la saisie avec ton plan et tes limites 5 h et hebdo, en direct.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <img src="assets/feature-agents.png" alt="Des bureaux avec le patron et deux agents au travail">
+      <br><b>Un bureau par agent</b>
+      <br>Chaque sous-agent a son bureau, en direct. Survole-le pour lire ce qu'il fait. La conversation, c'est le Patron.
+    </td>
+    <td width="33%" valign="top">
+      <img src="assets/feature-plan.png" alt="Le plan sur un tableau, dans le thème Base spatiale">
+      <br><b>Un plan qu'on peut suivre</b>
+      <br>Claude annonce ses étapes, et elles restent au mur. Survole une étape pour son détail et qui s'en charge.
+    </td>
+    <td width="33%" valign="top">
+      <img src="assets/feature-floor.png" alt="Un plan d'étage avec quatre conversations, en camps dans une forêt">
+      <br><b>Un plan d'étage</b>
+      <br>Une conversation qui en pilote d'autres les voit toutes d'un coup d'œil, une pièce pour chacune.
+    </td>
+  </tr>
+</table>
+
+### Tout seul
+
+Rien à régler. Une fois installé, ça tourne.
+
+<table>
+  <tr>
+    <td><b>Relances</b></td>
+    <td>Avant que le cache refroidisse, seulement quand ça vaut le coup. Plafonds plus bas.</td>
+  </tr>
+  <tr>
+    <td><b>Compactage</b></td>
+    <td>À 80 % du contexte, deux fois par défaut. Ceux de Claude Code comptent aussi.</td>
+  </tr>
+  <tr>
+    <td><b>Nouvelle conversation</b></td>
+    <td>Dans le même dossier, worktree compris, avec son premier message déjà envoyé.</td>
+  </tr>
+  <tr>
+    <td><b>Attente des agents</b></td>
+    <td>Les agents finissent d'abord, pour que leurs résultats arrivent dans le briefing.</td>
+  </tr>
+  <tr>
+    <td><b>Tes notes</b></td>
+    <td>Fichiers, décisions et demandes sont gardés avant chaque compactage : un briefing ne résume jamais un résumé.</td>
+  </tr>
+</table>
+
+Tu préfères décider ? Choisis **Manuel** dans les réglages. Rien ne bouge tant que tu ne cliques pas.
+
+### Et les petits détails
+
+- **Survole le feu** pour le temps restant, les relances et le pourcentage exact.
+- **Des bureaux rangés.** Les bureaux finis partent seuls, à la fin du plan ou un par un.
+- **Les tokens et le coût** au mur de chaque pièce.
+- **Un panneau de réglages** derrière le bouton sur le mur, pour tout.
+- **Un crabe.** Il vit là. Il fait la sieste.
+- **Français et anglais.** Toute l'interface parle les deux, et choisit toute seule.
+- **Une version terminal.** Une barre en texte et une liste d'agents. Les relances y tournent aussi.
+
+<p align="center">
+  <img src="assets/panel.png" alt="La carte de la cheminée à côté de la pièce, avec le gardien au poêle" width="880">
+</p>
+
+## Six pièces, une commande
+
+<p align="center">
+  <img src="assets/themes.png" alt="Les six thèmes : Cosy, Japonais, Nature, Futuriste, Geek et jeu, Base spatiale" width="880">
+</p>
+
+**Cosy, Japonais, Nature, Futuriste, Geek et jeu, Base spatiale.** Chacun a ses meubles, son poêle et son plan d'étage.
+
+Choisis-en un dans les réglages, ou tape :
+
+```
+/pixeldesk theme nature
+```
+
+Les noms sont `cosy`, `japonais`, `nature`, `futuriste`, `geek` et `base`.
+
+## Commandes
+
+| Commande | Ce qu'elle fait |
+| --- | --- |
+| `/pixeldesk` | Ouvre le panneau. |
+| `/pixeldesk theme <nom>` | Change la pièce. |
+| `/pixeldesk fire off` | Arrête les relances, dans toutes les conversations. `on` les relance. |
+| `/pixeldesk fire` | Dit où en sont les relances. |
+| `/pixeldesk move` | Écrit un briefing maintenant, ou dès que le travail en cours est fini. |
+| `/pixeldesk compact` | Compacte maintenant, une fois le tour fini. |
+
+<details>
+<summary><b>Toutes les commandes</b></summary>
+
+<br>
+
+| Commande | Ce qu'elle fait |
+| --- | --- |
+| `/pixeldesk` | Ouvre le panneau, et cesse de le masquer s'il l'était. |
+| `/pixeldesk hide` | Ferme le panneau dans toutes les conversations et l'empêche de s'ouvrir seul. La barre reste. Le suivi, les relances et le changement automatique continuent. |
+| `/pixeldesk show` | Ouvre le panneau ici et le laisse de nouveau s'ouvrir seul. |
+| `/pixeldesk theme` | Dit le thème actuel et les noms. |
+| `/pixeldesk theme <nom>` | Change le thème, dans toutes les conversations. |
+| `/pixeldesk departure` | Dit quand partent les bureaux finis. |
+| `/pixeldesk departure plan` | Les bureaux finis restent jusqu'à la fin du plan, puis partent ensemble. C'est le réglage par défaut. |
+| `/pixeldesk departure each` | Chaque bureau part 30 secondes après la fin de son agent. |
+| `/pixeldesk fire` | Dit où en sont les relances : actives ou non, temps restant, combien, et pourquoi elles se sont arrêtées. |
+| `/pixeldesk fire on` | Active les relances dans toutes les conversations. C'est le réglage par défaut. |
+| `/pixeldesk fire off` | Coupe les relances dans toutes les conversations, et rien d'autre. Le feu suit simplement le cache. |
+| `/pixeldesk move` | Écrit un briefing maintenant, ou dès que le travail en cours est fini. Clique sur `Nouvelle conversation` quand il est prêt. |
+| `/pixeldesk compact` | Compacte maintenant, comme le mode Automatique, une fois le tour fini. Ça compte pour le curseur. |
+
+Pour retirer aussi la barre, désactive le plugin avec `/plugin`.
+
+</details>
+
 ## Bon à savoir
 
-### La relance automatique est active par défaut
+<details>
+<summary><b>Ce que coûtent les relances, et leurs limites</b></summary>
 
-**Chaque relance envoie une ligne, `Answer only: ok`, en plus de ton contexte en cache. Ça consomme des tokens, et ça compte dans tes limites.**
+<br>
 
-Plus la conversation est grosse, plus il y a à relire. Chaque relance est notée dans `~/.claude/pixeldesk/logs/pixeldesk.log`, avec les tokens lus et écrits.
+**Chaque relance envoie une ligne, `Answer only: ok`, par-dessus ton contexte en cache. Elle consomme des tokens et compte dans tes limites.**
 
-- **Conversation inactive.** 30 relances ou 2 h au plus une fois la conversation au repos, puis le feu s'éteint.
+Une conversation plus grosse a plus à relire. Chaque relance est écrite dans `~/.claude/pixeldesk/logs/pixeldesk.log`, avec les tokens lus et écrits.
+
+- **Conversation inactive.** 30 relances ou 2 heures au plus une fois qu'elle se tait, puis le feu s'éteint.
 - **Conversation au travail.** Tant qu'un tour, un agent ou une conversation de l'étage tourne, elle reste chaude, sans plafond.
-- **Étapes du plan.** Une étape en cours ne compte comme travail que 15 minutes après la dernière activité. Ensuite, les plafonds d'inactivité s'appliquent.
-- **Plusieurs conversations.** Chacune compte de son côté. Il n'y a pas de plafond commun, donc elles s'additionnent.
-- **Durée du cache inconnue.** Aucune relance. Tes tours normaux prouvent la durée, gratuitement. Une très grosse conversation peut attendre un moment cette preuve.
+- **Étapes de plan.** Une étape en cours ne compte comme du travail que 15 minutes après la dernière activité.
+- **Plusieurs conversations.** Chacune compte pour elle-même. Il n'y a pas de plafond commun, elles s'additionnent.
+- **Durée de cache inconnue.** Aucune relance. Tes tours normaux prouvent la durée, gratuitement.
+- **Cache froid.** PixelDesk Mod ne relance jamais un cache que son horloge dit froid. Ce serait le plus cher, pour rien.
+- **Échecs.** Trois de suite arrêtent les relances jusqu'à ton prochain tour.
 
-**Pour arrêter les relances, tape `/pixeldesk fire off`.** Ça vaut pour toutes les conversations, et ça n'arrête que les relances.
+`/pixeldesk hide` ferme seulement le panneau : les relances continuent.
 
-**Pour arrêter le compactage et le changement automatiques, choisis Manuel.** C'est un réglage à part, dans le panneau des réglages.
+</details>
 
-`/pixeldesk hide` ferme seulement le panneau : les relances continuent. Trois échecs de suite les arrêtent jusqu'à ton prochain tour.
+<details>
+<summary><b>Le changement automatique de conversation</b></summary>
 
-### Les passations
+<br>
 
-- **En clair.** Les passations sont écrites en clair dans `~/.claude/pixeldesk/briefings/`, un fichier par passation, avec les notes de compactage. Les 20 plus récents de chaque sorte sont gardés. Les formats de secrets connus sont retirés, mais relis un fichier avant de le partager.
-- **Des tokens aussi.** Rédiger une passation, compacter et démarrer la nouvelle conversation comptent dans tes limites.
-- **Cache froid.** Si le cache est déjà froid quand la cendre est pleine, PixelDesk te demande d'abord, avec le bouton `Changer`.
+Quand la cendre est pleine, PixelDesk Mod attend la fin du tour. Puis il compacte, ou il change de conversation.
 
-### Le reste
+En mode Automatique, un curseur décide, dans les réglages :
 
+- **0.** Il change de conversation tout de suite.
+- **1, 2 ou 3.** Il compacte autant de fois, puis change. La valeur par défaut est 2.
+- **Toujours.** Il compacte seulement, et ne change jamais.
+
+Pressé ? `Changer maintenant` reste disponible.
+
+En mode Manuel, un bouton `Changer` apparaît sur la cheminée une fois la cendre pleine. Quand le briefing est prêt, clique sur `Nouvelle conversation`.
+
+- **Des tokens aussi.** Écrire un briefing, compacter et démarrer la nouvelle conversation consomment tes limites.
+- **Il lui faut la commande `claude`.** Sans elle, ou sous Linux, le texte attend dans la nouvelle conversation et tu appuies sur Entrée.
+- **Cache froid.** Si le cache est déjà froid quand la cendre se remplit, PixelDesk Mod te demande d'abord.
+- **En clair.** Les briefings sont écrits en clair dans `~/.claude/pixeldesk/briefings/`, avec les notes de compactage. Les 20 derniers de chaque sont gardés. Les formats de secrets connus sont retirés, mais relis un fichier avant de le partager.
+
+</details>
+
+<details>
+<summary><b>La version terminal</b></summary>
+
+<br>
+
+PixelDesk Mod tourne aussi dans une session terminal, en version texte plus simple : une barre en caractères et une liste d'agents. Le pixel art reste dans l'application de bureau.
+
+Les relances y tournent aussi, sans la cheminée. `/pixeldesk fire off` marche de la même façon.
+
+Il n'y a pas de mur à cliquer dans le terminal. Pour passer en Manuel, mets `"briefingMode": "manual"` dans `~/.claude/pixeldesk/settings.json`.
+
+</details>
+
+<details>
+<summary><b>Le reste</b></summary>
+
+<br>
+
+- **Testé** sous Windows seulement pour l'instant, avec Claude Code 2.1.309. Les retours macOS et Linux sont les bienvenus.
+- **Langue.** Il suit le réglage `language` de Claude Code, puis la langue du système, et se rabat sur l'anglais. Pour en imposer une, utilise l'option `language` : `auto`, `fr` ou `en`.
+- **Tes fichiers.** PixelDesk Mod écrit dans `~/.claude/pixeldesk/`. Une exception : sous Windows, quand aucune langue n'est réglée nulle part, il demande une fois la langue du système à PowerShell et la garde dans le stockage de plugin de Claude Code.
+- **Limites.** Les jauges affichent `--` tant que Claude Code n'a pas donné de relevé.
+- **Plan d'étage.** Sous Windows, il lit les liens entre conversations dans l'application de bureau. Ailleurs, il regroupe les conversations du même projet.
+- **Usage.** Pour garder la barre à jour, PixelDesk Mod ajoute une courte instruction au prompt de Claude et à celui de chaque sous-agent, plus un court rappel après certains appels d'outils. Tant que le panneau est ouvert, les résumés des bureaux en langage simple viennent de petits appels à Haiku.
 - **Limite connue.** Un plugin ne peut pas retirer la marge intérieure du panneau ni sa gouttière de défilement.
-- **Testé sur** Claude Code 2.1.309, Windows. Il faut une version récente de Claude Code, qui charge les modules de hooks.
-- **Tes fichiers.** PixelDesk écrit dans `~/.claude/pixeldesk/`. Une exception : sous Windows, si aucune langue n'est réglée nulle part, il demande une fois la langue du système à PowerShell et la garde dans le stockage des plugins de Claude Code.
-- **Limites.** Les jauges affichent `--` tant que Claude Code n'a rien transmis.
-- **Plan d'étage.** Sous Windows, il lit les liens entre conversations dans l'application de bureau. Ailleurs, il regroupe les conversations d'un même projet.
-- **Consommation.** Pour tenir la barre à jour, PixelDesk ajoute une courte consigne au prompt de Claude et à celui de chaque sous-agent, plus un court rappel après certains appels d'outils. Panneau ouvert, les résumés en langage simple des bureaux viennent de petits appels à Haiku.
 
-## Crédits
+</details>
+
+## Crédits et licence
 
 La police pixel est Jersey 10. Voir [CREDITS.md](CREDITS.md).
 
-## Licence
-
-MIT. Voir [LICENSE](LICENSE).
+MIT. Voir [LICENSE](LICENSE). Gratuit, sans compte, sans télémétrie.
 
 ---
 
-PixelDesk est un projet communautaire, non affilié à Anthropic et non approuvé par Anthropic. Claude et Claude Code sont des marques d'Anthropic.
+<sub>PixelDesk Mod est un projet communautaire. Il n'est ni affilié à Anthropic ni approuvé par Anthropic. Claude et Claude Code sont des marques d'Anthropic.</sub>

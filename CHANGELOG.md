@@ -1,8 +1,32 @@
 # Changelog
 
-All notable changes to PixelDesk are listed here.
+All notable changes to PixelDesk Mod are listed here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.3.0] - 2026-11-01
+
+Six rooms, and a panel that no longer freezes.
+
+### Added
+
+- Six room themes: Cosy, Japanese, Nature, Futuristic, Geek and games, Space base. Each one has its own furniture, stove and floor plan.
+- `/pixeldesk theme <name>`, and a Theme column in the settings. Your choice goes for every conversation.
+- The crab now has a life of its own in every theme, and naps on his bed.
+- A plate over the token screen with the cost of the conversation, once Claude Code reports it.
+- The settings button and panel on the floor plan too.
+
+### Changed
+
+- The conversation's desk now reads Boss in English and Patron in French.
+- The boss stays at the desk in every theme, and sleeps there at rest.
+
+### Fixed
+
+- The panel no longer freezes on a theme change or with a long plan. The room now thins itself to stay under what the desktop app accepts.
+- Buttons and hover zones now match their drawing to the pixel.
+- The floor plan no longer replays the arrival of its camps at each redraw.
+- The main camp's fire keeps burning on the Nature floor plan.
 
 ## [1.2.0] - 2026-10-31
 
@@ -63,6 +87,7 @@ First public release.
 - `/pixeldesk`, `/pixeldesk hide`, `/pixeldesk show` and `/pixeldesk departure` commands.
 - French and English, with automatic detection and a `language` option (`auto`, `fr`, `en`).
 
+[1.3.0]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.2.0]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.1.1]: https://github.com/Mats-TH/pixeldesk-mod/releases
 [1.1.0]: https://github.com/Mats-TH/pixeldesk-mod/releases
