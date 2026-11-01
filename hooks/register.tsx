@@ -69,8 +69,8 @@ function hostOf($: EngineInterface): Host {
     fs: { exists: path => $.fs.exists(path), list: path => $.fs.list(path), read: path => $.fs.read(path), write: (path, text) => $.fs.write(path, text) },
     model: { complete: args => $.model.complete(args), fork: args => $.model.fork(args) },
     process: {
-      // The `=` of `--allowedTools=Read` stays: apart, the flag swallows the message.
-      claude: (message, id, cwd) => $.process.run(['claude', '-p', message, '--session-id', id, '--allowedTools=Read'], { cwd, timeoutMs: FIRST_READ_MS }),
+      // `--tools=` leaves this first message no tool at all: nothing to allow, nothing to wait on. The `=` keeps the flag from swallowing what follows.
+      claude: (message, id, cwd) => $.process.run(['claude', '-p', message, '--session-id', id, '--tools='], { cwd, timeoutMs: FIRST_READ_MS }),
       open: (system: System, target) => {
         if (system === 'windows') return $.process.run(['rundll32', 'url.dll,FileProtocolHandler', target])
         if (system === 'mac') return $.process.run(['open', target])

@@ -1,10 +1,11 @@
 import type { Host, System } from './host'
 
-import { log, reason } from './disk'
+import { log, readText, reason } from './disk'
 import { t } from './i18n'
 import type { Memory } from './memory'
 
-// How far a link may carry the sentence. The briefing itself never rides in an address.
+// How far each way may carry the briefing: a command line stops near 32,000 characters, and a link earlier.
+const MESSAGE_TEXT_MAX = 28_000
 const LINK_TEXT_MAX = 14_336
 
 /** How the new conversation opened: read and resumed, waiting for Enter, not at all, or nowhere to open it. */
@@ -14,6 +15,9 @@ const systemOf = (home: string): System => (/^[A-Za-z]:/.test(home) ? 'windows' 
 
 /** A path as the system spells it. */
 const native = (path: string, system: System) => (system === 'windows' ? path.replace(/\//g, '\\') : path)
+
+/** The briefing as a message can carry it. Past `max`, the message says where the rest lies, and that is all. */
+const carried = (text: string, max: number, path: string) => (text.length <= max ? text : `${text.slice(0, max)}\n\n${t('briefing.cut', { file: path })}`)
 
 /** Hands a link or a file to the system. Windows says 0 whatever came of it. */
 async function opened($: Host, m: Memory, system: System, target: string) {
@@ -32,7 +36,7 @@ async function sessionFolder($: Host, m: Memory, system: System) {
 }
 
 /**
- * Starts the conversation before showing it: its first message is sent, and only the Read tool is open to it.
+ * Starts the conversation before showing it: its first message carries the briefing and has no tool, so it never waits for an answer.
  */
 async function startedHeadless($: Host, m: Memory, id: string, message: string, cwd: string) {
   try {
@@ -51,11 +55,13 @@ export async function openConversation($: Host, m: Memory, file: string): Promis
   const folder = await sessionFolder($, m, system)
   if (!folder) return 'no-folder'
   const path = native(file, system)
+  const text = await readText($, file)
+  if (text === undefined) return 'failed'
   if (system !== 'linux') {
     const id = crypto.randomUUID()
-    if ((await startedHeadless($, m, id, t('briefing.message', { file: path }), folder)) && (await opened($, m, system, `claude://resume?session=${id}`))) return 'resumed'
+    if ((await startedHeadless($, m, id, t('briefing.message', { text: carried(text, MESSAGE_TEXT_MAX, path) }), folder)) && (await opened($, m, system, `claude://resume?session=${id}`))) return 'resumed'
   }
-  const sentence = t('briefing.pasted', { file: path }).slice(0, LINK_TEXT_MAX)
+  const sentence = t('briefing.pasted', { text: carried(text, LINK_TEXT_MAX, path) })
   const link = `claude://code/new?q=${encodeURIComponent(sentence)}&folder=${encodeURIComponent(folder)}`
   return (await opened($, m, system, link)) ? 'pasted' : 'failed'
 }

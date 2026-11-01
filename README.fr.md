@@ -364,7 +364,7 @@ PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits 
 - **Pas de serveur, pas de compte, pas d'analytics, pas de télémétrie.** Le mod ne fait aucun appel réseau de son côté.
 - **Les appels au modèle** passent par Claude Code vers Anthropic, sur ton propre compte. Ils comptent dans tes limites.
 - **Aucun identifiant.** Le mod ne lit ni clé d'API ni jeton de connexion, et il n'en demande aucun.
-- **Aucune décision de permission.** Il n'autorise, ne refuse et ne réécrit jamais l'appel d'un autre outil. Il laisse les sous-agents et les réglages tels quels. Une exception annoncée : le lancement sans fenêtre décrit dans « Ce qu'il lance » ouvre l'outil Read pour ce lancement.
+- **Aucune décision de permission.** Il n'autorise, ne refuse et ne réécrit jamais l'appel d'un autre outil. Il laisse les sous-agents et les réglages tels quels.
 
 ### Ce qu'il lit
 
@@ -393,7 +393,7 @@ Tout va dans `~/.claude/pixeldesk/` et dans le stockage de plugin de Claude Code
 
 Le mod ne touche ni à tes réglages, ni à ton `CLAUDE.md`, ni à tes hooks, ni aux fichiers de tes projets. Il n'écrit rien qu'un outil exécute.
 
-Un fichier est suivi par un modèle : une nouvelle conversation lit sa passation et reprend le travail à partir d'elle. Une passation vient de ta conversation, alors relis-la si cette conversation contenait un texte dont tu te méfies.
+Une passation est suivie par un modèle : la nouvelle conversation la reçoit dans son premier message et reprend le travail à partir d'elle. Une passation vient de ta conversation, alors relis-la si cette conversation contenait un texte dont tu te méfies. Une passation très longue est coupée, et le message dit quel fichier contient la suite.
 
 ### Ce qu'il lance
 
@@ -401,8 +401,8 @@ Chaque programme démarre avec ses arguments en liste, sans shell.
 
 | Programme | Quand | Pourquoi |
 | --- | --- | --- |
-| `claude -p <phrase> --session-id <id> --allowedTools=Read` | À chaque changement de conversation, sous Windows et macOS | Démarre la nouvelle conversation dans le dossier de la session. La phrase lui demande de lire sa passation. Read est le seul outil que ce lancement ouvre sans demander. Il consomme tes limites. |
-| `rundll32 url.dll,FileProtocolHandler`, `open` ou `xdg-open` | À un changement de conversation, ou quand tu ouvres une passation | Confie un lien `claude://` ou un fichier de passation à ton système. Le lien contient une phrase et le dossier, jamais la passation. |
+| `claude -p <passation> --session-id <id> --tools=` | À chaque changement de conversation, sous Windows et macOS | Démarre la nouvelle conversation dans le dossier de la session. Le message contient la passation et demande une confirmation en une phrase. Ce premier lancement n'a aucun outil : il n'autorise rien et n'attend rien. Il consomme tes limites. |
+| `rundll32 url.dll,FileProtocolHandler`, `open` ou `xdg-open` | À un changement de conversation, ou quand tu ouvres une passation | Confie un lien `claude://` ou un fichier de passation à ton système. Le lien de nouvelle conversation contient la passation, jusqu'à environ 14 000 caractères, et le dossier. |
 | `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | Sous Windows, une fois, si aucune langue n'est réglée nulle part | Lit la langue du système. Il affiche cette langue et rien d'autre. Pour l'éviter, règle l'option `language` du plugin sur `fr` ou `en`. |
 
 Le mod lance aussi une commande de Claude Code tout seul : `/compact`, avec ses propres instructions, quand le contexte atteint ton seuil et que l'app n'offre pas d'autre moyen de compacter. Les Réglages permettent de choisir Manuel : il t'attend alors.

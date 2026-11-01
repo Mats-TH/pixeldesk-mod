@@ -145,10 +145,11 @@ describe('auto: compact under the cursor, change past it', () => {
     const run = claudeRun(w)
     const id = run.argv[4]
     expect(run.argv.slice(0, 2)).toEqual(['claude', '-p'])
-    expect(run.argv[2]).toContain(saved(w)[0].slice(1).replace(/\//g, '\\').replace(/^Users/, 'Users'))
+    expect(run.argv[2]).toContain(w.files.get(saved(w)[0]) ?? '')
+    expect(run.argv[2]).not.toContain('.md')
     expect(run.argv[3]).toBe('--session-id')
     expect(id).toMatch(UUID)
-    expect(run.argv[5], 'the = stays').toBe('--allowedTools=Read')
+    expect(run.argv[5], 'no tool, and no tool allowed: the = stays').toBe('--tools=')
     expect(run.argv).toHaveLength(6)
     expect(run.init.cwd, 'the exact folder, worktree included').toBe(h.cwd)
     expect(linksOpened(w)).toEqual([`claude://resume?session=${id}`])

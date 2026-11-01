@@ -162,8 +162,9 @@ export const hearthFr = {
   'briefing.toolDescription': 'Lance un déménagement : une passation de toute cette conversation, puis une nouvelle conversation. À utiliser quand l’utilisateur veut déménager, passer la main, ou continuer ailleurs. La rédaction démarre à la fin de ton tour, et attend les agents en cours.',
   'briefing.toolOk': 'La passation démarre à la fin de ce tour. Préviens l’utilisateur en une ligne, puis termine ton tour.',
   'briefing.toolAgent': 'Le déménagement n’est disponible que dans la conversation principale. Continue sans.',
-  'briefing.message': 'Lis le fichier de passation {file} avec l’outil Read, puis confirme en une phrase que tu es prêt à reprendre ce travail. Ne fais rien d’autre pour l’instant.',
-  'briefing.pasted': 'Lis le fichier de passation {file}, puis reprends le travail qu’il décrit.',
+  'briefing.message': 'Voici la passation de la conversation précédente. Confirme en une phrase que tu es prêt à reprendre ce travail. Ne fais rien d’autre pour l’instant.\n\n{text}',
+  'briefing.pasted': 'Voici la passation de la conversation précédente. Reprends le travail qu’elle décrit.\n\n{text}',
+  'briefing.cut': 'La suite de cette passation est dans {file}.',
   'briefing.compactBrief': 'Garde l’objectif, toutes les demandes et leur état, les décisions et leurs raisons, les règles de l’utilisateur, les fichiers à rouvrir, les agents et conversations en cours et le plan, puis les prochaines étapes. Des notes complètes sont enregistrées dans {file}.',
   'briefing.prompt': `Écris un document de reprise pour une nouvelle session Claude Code qui part d'un contexte vide et ne voit pas cette conversation. Elle peut ouvrir les fichiers de cette machine, et elle charge seule CLAUDE.md, AGENTS.md et sa mémoire : ne les répète pas. N'utilise aucun outil. Rends uniquement le document, sans introduction et sans bloc de code.
 
@@ -339,8 +340,9 @@ export const hearthEn: Record<keyof typeof hearthFr, string> = {
   'briefing.toolDescription': 'Starts a move: a briefing of this whole conversation, then a new conversation. Use it when the user wants to move, pass the work on, or carry on elsewhere. Writing starts when your turn ends, and waits for the agents still running.',
   'briefing.toolOk': 'The briefing starts when this turn ends. Tell the user in one line, then end your turn.',
   'briefing.toolAgent': 'A move is only available in the main conversation. Carry on without it.',
-  'briefing.message': 'Read the briefing file {file} with the Read tool, then confirm in one sentence that you are ready to pick up this work. Do nothing else for now.',
-  'briefing.pasted': 'Read the briefing file {file}, then pick up the work it describes.',
+  'briefing.message': 'Here is the briefing from the previous conversation. Confirm in one sentence that you are ready to pick up this work. Do nothing else for now.\n\n{text}',
+  'briefing.pasted': 'Here is the briefing from the previous conversation. Pick up the work it describes.\n\n{text}',
+  'briefing.cut': 'The rest of this briefing is in {file}.',
   'briefing.compactBrief': 'Keep the goal, every request and where it stands, the decisions and why, the user\'s rules, the files to reopen, the agents and conversations in progress and the plan, then the next steps. Full notes are saved in {file}.',
   'briefing.prompt': `Write a takeover document for a new Claude Code session that starts with an empty context and cannot see this conversation. It can open files on this machine and loads CLAUDE.md, AGENTS.md and its memory by itself, so do not repeat those. Use no tools. Return only the document, with no introduction and no code block around it.
 

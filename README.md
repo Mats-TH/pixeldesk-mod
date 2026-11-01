@@ -364,7 +364,7 @@ PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights.
 - **No server, no account, no analytics, no telemetry.** The mod makes no network call of its own.
 - **Model calls** go through Claude Code to Anthropic, on your own account. They count toward your limits.
 - **No credentials.** The mod doesn't read API keys or login tokens, and it asks for none.
-- **No permission decisions.** It never allows, refuses or rewrites a call of another tool, and it leaves subagents and settings as they are. One disclosed exception: the headless start listed under "What it runs" opens the Read tool for that run.
+- **No permission decisions.** It never allows, refuses or rewrites a call of another tool, and it leaves subagents and settings as they are.
 
 ### What it reads
 
@@ -393,7 +393,7 @@ Everything goes in `~/.claude/pixeldesk/` and in Claude Code's plugin storage, a
 
 The mod doesn't touch your settings, your `CLAUDE.md`, your hooks or your project files. It writes nothing that a tool runs.
 
-One file is followed by a model: a new conversation reads its briefing and picks up the work from it. A briefing comes from your conversation, so check it if that conversation held text you don't trust.
+A briefing is followed by a model: the new conversation receives it in its first message and picks up the work from it. A briefing comes from your conversation, so check it if that conversation held text you don't trust. A very long briefing is cut, and the message says which file holds the rest.
 
 ### What it runs
 
@@ -401,8 +401,8 @@ Each program is started with its arguments as a list, without a shell.
 
 | Program | When | Why |
 | --- | --- | --- |
-| `claude -p <sentence> --session-id <id> --allowedTools=Read` | At each change of conversation, on Windows and macOS | Starts the new conversation in the session's folder. The sentence asks it to read its briefing. Read is the only tool this run opens without asking. It uses your limits. |
-| `rundll32 url.dll,FileProtocolHandler`, `open` or `xdg-open` | At a change of conversation, or when you open a briefing | Hands a `claude://` link or a briefing file to your system. The link holds one sentence and the folder, never the briefing. |
+| `claude -p <briefing> --session-id <id> --tools=` | At each change of conversation, on Windows and macOS | Starts the new conversation in the session's folder. The message holds the briefing and asks for a one-sentence confirmation. This first run has no tools, so it allows nothing and waits for nothing. It uses your limits. |
+| `rundll32 url.dll,FileProtocolHandler`, `open` or `xdg-open` | At a change of conversation, or when you open a briefing | Hands a `claude://` link or a briefing file to your system. The new-conversation link holds the briefing, up to about 14,000 characters, and the folder. |
 | `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | On Windows, once, if no language is set anywhere | Reads the system language. It prints that language and nothing else. To skip it, set the plugin's `language` option to `fr` or `en`. |
 
 The mod also runs one Claude Code command by itself: `/compact`, with its own instructions, when the context reaches your threshold and the app has no direct way to compact. The Settings let you choose Manual, and then it waits for you.

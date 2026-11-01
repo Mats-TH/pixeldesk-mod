@@ -23,9 +23,54 @@ describe('the new conversation', () => {
     const [link] = linksOpened(t.w) as [string]
     const [, q, folder] = link.match(NEW)!
     expect(decodeURIComponent(folder!)).toBe(t.h.cwd)
-    expect(decodeURIComponent(q!)).toContain('Lis le fichier de passation')
-    expect(decodeURIComponent(q!)).not.toContain('Prochaines étapes')
+    expect(decodeURIComponent(q!)).toContain('Voici la passation')
+    expect(decodeURIComponent(q!)).toContain('Prochaines étapes')
     expect(t.w.toasts.at(-1)).toBe('Nouvelle conversation ouverte. Appuie sur Entrée pour la lancer.')
+  })
+
+  test('the message holds the briefing, asks for no tool and allows none', async ($, on) => {
+    const t = hearthWorld(on, { files: MANUAL })
+    await ready($, t)
+    await press($, 'briefing-start')
+    const run = claudeRun(t.w)
+    expect(run.argv[2]).toContain('Voici la passation')
+    expect(run.argv[2]).toContain(t.w.file(saved(t.w)[0]))
+    expect(run.argv[2]).not.toContain('Read')
+    expect(run.argv.join(' ')).not.toContain('allowedTools')
+    expect(run.argv.at(-1)).toBe('--tools=')
+  })
+
+  test('a first message that never ends is cut off by the time limit, and the link takes over', async ($, on) => {
+    const t = hearthWorld(on, { files: MANUAL })
+    t.w.answerRun = e => (e.argv[0] === 'claude' ? { deny: 'timed out' } : { value: { exitCode: 0, stdout: '', stderr: '' } })
+    await ready($, t)
+    await press($, 'briefing-start')
+    expect(claudeRun(t.w).init.timeoutMs).toBe(180_000)
+    expect(linksOpened(t.w)[0]).toMatch(NEW)
+    expect(t.w.state.briefing.phase).toBe('idle')
+  })
+
+  test('a very long briefing is cut, and the message names the file of the rest', async ($, on) => {
+    const t = hearthWorld(on, { files: MANUAL })
+    t.w.answerRun = e => (e.argv[0] === 'claude' ? { deny: 'not found' } : { value: { exitCode: 0, stdout: '', stderr: '' } })
+    await ready($, t)
+    const file = saved(t.w)[0]
+    t.w.files.set(file, 'x'.repeat(40_000))
+    await press($, 'briefing-start')
+    const message = claudeRun(t.w).argv[2]
+    expect(message.length < 30_000).toBe(true)
+    expect(message).toContain('La suite de cette passation est dans')
+    const [, q] = (linksOpened(t.w)[0] as string).match(NEW)!
+    expect(decodeURIComponent(q!).length < 15_000).toBe(true)
+  })
+
+  test('a briefing that cannot be read opens nothing', async ($, on) => {
+    const t = hearthWorld(on, { files: MANUAL })
+    await ready($, t)
+    t.w.files.delete(saved(t.w)[0])
+    await press($, 'briefing-start')
+    expect(claudeRun(t.w)).toBeUndefined()
+    expect(linksOpened(t.w)).toEqual([])
   })
 
   test('the click shows at once: the row says so while claude runs', async ($, on) => {
