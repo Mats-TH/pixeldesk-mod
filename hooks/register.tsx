@@ -69,8 +69,8 @@ function hostOf($: EngineInterface): Host {
     fs: { exists: path => $.fs.exists(path), list: path => $.fs.list(path), read: path => $.fs.read(path), write: (path, text) => $.fs.write(path, text) },
     model: { complete: args => $.model.complete(args), fork: args => $.model.fork(args) },
     process: {
-      // No tool is opened: `-p` never waits on a prompt, what is not allowed is refused. `--tools=` would send every connector's tool in full, and leave no cache to reuse.
-      claude: (message, id, cwd, title) => $.process.run(['claude', '-p', message, '--session-id', id, `--name=${title}`], { cwd, timeoutMs: FIRST_READ_MS }),
+      // This first answer has no tool at all, built-in or connector: it can write nothing, run nothing and wait for nothing. `--tools=` alone sends every connector's tool in full.
+      claude: (message, id, cwd, title) => $.process.run(['claude', '-p', message, '--session-id', id, `--name=${title}`, '--tools=', '--strict-mcp-config'], { cwd, timeoutMs: FIRST_READ_MS }),
       open: (system: System, target) => {
         if (system === 'windows') return $.process.run(['rundll32', 'url.dll,FileProtocolHandler', target])
         if (system === 'mac') return $.process.run(['open', target])

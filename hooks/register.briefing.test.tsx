@@ -150,7 +150,7 @@ describe('auto: compact under the cursor, change past it', () => {
     expect(run.argv[3]).toBe('--session-id')
     expect(id).toMatch(UUID)
     expect(run.argv[5]).toMatch(/^--name=.+/)
-    expect(run.argv).toHaveLength(6)
+    expect(run.argv).toHaveLength(8)
     expect(run.init.cwd, 'the exact folder, worktree included').toBe(h.cwd)
     expect(linksOpened(w)).toEqual([`claude://resume?session=${id}`])
     expect(w.runs.at(-1).argv.slice(0, 2)).toEqual(['rundll32', 'url.dll,FileProtocolHandler'])

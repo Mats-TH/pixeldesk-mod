@@ -37,8 +37,8 @@ describe('the new conversation', () => {
     expect(run.argv[2]).toContain(t.w.file(saved(t.w)[0]))
     expect(run.argv[2]).not.toContain('Read')
     expect(run.argv.join(' ')).not.toContain('allowedTools')
-    expect(run.argv.join(' ')).not.toContain('--tools')
-    expect(run.argv).toHaveLength(6)
+    expect(run.argv.slice(6), 'no tool, and no connector').toEqual(['--tools=', '--strict-mcp-config'])
+    expect(run.argv).toHaveLength(8)
   })
 
   test('the new conversation takes the title of the briefing', async ($, on) => {
