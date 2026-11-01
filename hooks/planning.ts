@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import type { AgentRecord, PlanStep } from '../types'
 import { clearDesks, known, pacePoll, publish, settle } from './agents'
@@ -17,12 +17,12 @@ const MIRRORS: readonly string[] = ['TodoWrite', 'TaskCreate', 'TaskUpdate']
 
 export const isMirror = (tool: string) => MIRRORS.includes(tool)
 
-async function nowIso($: EngineInterface) {
+async function nowIso($: Host) {
   return new Date(await $.clock.now()).toISOString()
 }
 
 /** The shimmer only moves while a step is in progress. */
-function paceShimmer($: EngineInterface, m: Memory) {
+function paceShimmer($: Host, m: Memory) {
   const live = m.plan?.steps.some(st => st.status === 'in_progress') ?? false
   if (live && !m.shimmer) {
     m.shimmer = $.clock.every(SHIMMER_MS, () => {
@@ -36,7 +36,7 @@ function paceShimmer($: EngineInterface, m: Memory) {
 }
 
 /** To the drawings: the zoom's balance first, so that the new plan does not replay an arrival. */
-async function showPlan($: EngineInterface, m: Memory) {
+async function showPlan($: Host, m: Memory) {
   if (!m.plan) return
   await settle($, m)
   await writePlan($, drawnPlan(m.plan))
@@ -44,12 +44,12 @@ async function showPlan($: EngineInterface, m: Memory) {
   pacePoll($, m)
 }
 
-async function savePlan($: EngineInterface, m: Memory) {
+async function savePlan($: Host, m: Memory) {
   if (m.plan && onDisk(m)) await guard($, m, 'plan file', () => $.fs.write(planPath(m), planFile(m.plan!)))
 }
 
 /** A step just finished says so; the last one speaks for the whole list. */
-function announce($: EngineInterface, m: Memory, steps: readonly PlanStep[], finished: readonly string[]) {
+function announce($: Host, m: Memory, steps: readonly PlanStep[], finished: readonly string[]) {
   if (!finished.length) return
   if (allDone(steps)) toast($, m, plural('toast.allDone', steps.length, { n: steps.length }))
   else toast($, m, t('toast.stepDone', { list: finished.join(', ') }))
@@ -63,7 +63,7 @@ function isNewJob(plan: Plan | null, sent: readonly PlanStep[], title: string) {
 }
 
 /** A new list for the main conversation, whoever sent it: everything downstream of the plan goes through here. */
-async function commit($: EngineInterface, m: Memory, sent: PlanStep[], title = '') {
+async function commit($: Host, m: Memory, sent: PlanStep[], title = '') {
   const old = m.plan?.steps ?? []
   const fresh = startsOver(old, sent)
   if (isNewJob(m.plan, sent, title)) await clearDesks($, m)
@@ -77,7 +77,7 @@ async function commit($: EngineInterface, m: Memory, sent: PlanStep[], title = '
 }
 
 /** A list for an agent's desk: it stays there, with no file and no toast. */
-async function commitDesk($: EngineInterface, m: Memory, a: AgentRecord, sent: PlanStep[]) {
+async function commitDesk($: Host, m: Memory, a: AgentRecord, sent: PlanStep[]) {
   const old = a.plan ?? []
   a.plan = reconcile(startsOver(old, sent) ? [] : old, sent, await nowIso($)).steps
   await publish($, m)
@@ -86,7 +86,7 @@ async function commitDesk($: EngineInterface, m: Memory, a: AgentRecord, sent: P
 const answer = (text: string) => ({ result: text })
 
 /** The `plan` tool. The mod answers it alone, and the same words to the main conversation and to an agent. */
-export async function answerPlan($: EngineInterface, m: Memory, input: Record<string, unknown>, agentId: string | undefined) {
+export async function answerPlan($: Host, m: Memory, input: Record<string, unknown>, agentId: string | undefined) {
   // A call counts as a plan on its way, whether it is sound or not.
   if (agentId === undefined) m.turn = { ...m.turn, planSeen: true }
   try {
@@ -113,7 +113,7 @@ function mirrored(tool: string, steps: readonly PlanStep[], input: Record<string
 }
 
 /** A list tool that ran: its result feeds the plan of whoever called it. */
-export async function applyMirror($: EngineInterface, m: Memory, tool: string, input: Record<string, unknown>, result: unknown, agentId: string | undefined) {
+export async function applyMirror($: Host, m: Memory, tool: string, input: Record<string, unknown>, result: unknown, agentId: string | undefined) {
   if (agentId === undefined) {
     const next = mirrored(tool, m.plan?.steps ?? [], input, result)
     if (next) await commit($, m, next)
@@ -145,7 +145,7 @@ export function noteFor(m: Memory) {
 }
 
 /** Takes the plan back at the start of a session: from its file, else from what the host still holds. */
-export async function restorePlan($: EngineInterface, m: Memory) {
+export async function restorePlan($: Host, m: Memory) {
   if (m.plan) return
   const text = onDisk(m) ? await readText($, planPath(m)) : undefined
   if (text !== undefined) {

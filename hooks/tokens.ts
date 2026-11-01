@@ -1,4 +1,5 @@
-import type { EngineInterface, ModelUsage } from 'claude-code'
+import type { ModelUsage } from 'claude-code'
+import type { Host } from './host'
 
 import type { Memory } from './memory'
 import { readTokens, writeTokens } from './state'
@@ -12,7 +13,7 @@ const present = (m: Memory) => m.agents.reduce((sum, a) => sum + a.tokens + a.li
 export const totalOf = (m: Memory) => m.mainTokens + present(m) + m.goneTokens
 
 /** The screen moves on the export's beat, and only for a new number. */
-export async function showTokens($: EngineInterface, m: Memory) {
+export async function showTokens($: Host, m: Memory) {
   const total = totalOf(m)
   if (total === m.shownTokens) return
   m.shownTokens = total
@@ -20,7 +21,7 @@ export async function showTokens($: EngineInterface, m: Memory) {
 }
 
 /** After a restart the count picks up from what was saved, with nothing counted twice and nothing lost. */
-export async function restoreTokens($: EngineInterface, m: Memory, saved: unknown) {
+export async function restoreTokens($: Host, m: Memory, saved: unknown) {
   const count = typeof saved === 'number' ? saved : await readTokens($)
   if (!count) return
   m.mainTokens = Math.max(0, count - present(m) - m.goneTokens)

@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { listed, onDisk, readText } from './disk'
 import { settleLength } from './heat'
@@ -36,7 +36,7 @@ export function lengthIn(transcript: string): CacheLength | null {
 }
 
 /** Where the transcript lies: the engine's word when it gave it, else a look through the project folders. */
-async function transcriptPath($: EngineInterface, m: Memory) {
+async function transcriptPath($: Host, m: Memory) {
   if (m.heat.transcript) return m.heat.transcript
   const projects = `${m.home}/.claude/projects`
   for (const entry of await listed($, projects)) {
@@ -54,7 +54,7 @@ async function transcriptPath($: EngineInterface, m: Memory) {
  * `$.fs.read` takes a file whole, up to 4 MiB. Past that the transcript says nothing, what was known stays, and the
  * person's own requests are left to prove it (`heat.ts`). Until then no relaunch goes out.
  */
-export async function readLength($: EngineInterface, m: Memory) {
+export async function readLength($: Host, m: Memory) {
   const h = m.heat
   const now = await $.clock.now()
   if (!onDisk(m) || (h.lengthReadAt && now - h.lengthReadAt < READ_EVERY_MS)) return

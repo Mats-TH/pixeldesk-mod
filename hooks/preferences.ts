@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import type { CompactBefore, Departure, BriefingMode, RoomTheme, SettingsView } from '../types'
 import { sweep } from './agents'
@@ -14,7 +14,7 @@ type SettingsFile = Record<string, unknown>
 const isObject = (v: unknown): v is SettingsFile => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 /** What the file holds. No file, or valid JSON of another shape: the defaults. Unreadable or broken: undefined, and nothing changes. */
-async function readFile($: EngineInterface, m: Memory): Promise<SettingsFile | undefined> {
+async function readFile($: Host, m: Memory): Promise<SettingsFile | undefined> {
   const path = settingsPath(m)
   let text: string
   try {
@@ -33,7 +33,7 @@ async function readFile($: EngineInterface, m: Memory): Promise<SettingsFile | u
 export { ROOM_THEMES }
 
 /** One setting changes and every other key stays. A failure goes to the log: the change still holds here, until the next read. */
-async function save($: EngineInterface, m: Memory, change: (settings: SettingsFile) => SettingsFile) {
+async function save($: Host, m: Memory, change: (settings: SettingsFile) => SettingsFile) {
   if (!onDisk(m)) return
   try {
     const settings = change((await readFile($, m)) ?? {})
@@ -53,15 +53,15 @@ const themeOf = (settings: SettingsFile): RoomTheme => (isTheme(settings.theme) 
 
 const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme })
 
-function closePane($: EngineInterface, m: Memory) {
+function closePane($: Host, m: Memory) {
   return guard($, m, 'close pane', () => $.ui.close({ id: PANE }))
 }
 
-async function isOpen($: EngineInterface) {
+async function isOpen($: Host) {
   return (await readSettings($))?.open ?? false
 }
 
-async function applyHearth($: EngineInterface, m: Memory, fire: boolean, briefingMode: BriefingMode, compactBefore: CompactBefore) {
+async function applyHearth($: Host, m: Memory, fire: boolean, briefingMode: BriefingMode, compactBefore: CompactBefore) {
   m.fire = fire
   m.briefingMode = briefingMode
   m.compactBefore = compactBefore
@@ -69,56 +69,56 @@ async function applyHearth($: EngineInterface, m: Memory, fire: boolean, briefin
   m.wake()
 }
 
-async function applyTheme($: EngineInterface, m: Memory, theme: RoomTheme) {
+async function applyTheme($: Host, m: Memory, theme: RoomTheme) {
   m.theme = theme
   await writeSettings($, viewOf(m, await isOpen($)))
 }
 
-async function applyDeparture($: EngineInterface, m: Memory, departure: Departure) {
+async function applyDeparture($: Host, m: Memory, departure: Departure) {
   m.departure = departure
   await writeSettings($, viewOf(m, await isOpen($)))
   await sweep($, m)
 }
 
 /** The panel's choice, or the command's: for every conversation, and at once for the desks already due. */
-export async function setDeparture($: EngineInterface, m: Memory, departure: Departure) {
+export async function setDeparture($: Host, m: Memory, departure: Departure) {
   await save($, m, settings => ({ ...settings, departure }))
   await applyDeparture($, m, departure)
 }
 
 /** The world of the rooms, for every conversation, at any time. */
-export async function setTheme($: EngineInterface, m: Memory, theme: RoomTheme) {
+export async function setTheme($: Host, m: Memory, theme: RoomTheme) {
   await save($, m, settings => ({ ...settings, theme }))
   await applyTheme($, m, theme)
 }
 
 /** Hiding is about the pane alone: the band and the tracking go on. */
-export async function setHidden($: EngineInterface, m: Memory, hidden: boolean) {
+export async function setHidden($: Host, m: Memory, hidden: boolean) {
   await save($, m, ({ hidden: _old, ...others }) => (hidden ? { ...others, hidden } : others))
   m.hidden = hidden
   if (hidden) await closePane($, m)
 }
 
 /** The relaunches, on or off, for every conversation. */
-export async function setFire($: EngineInterface, m: Memory, fire: boolean) {
+export async function setFire($: Host, m: Memory, fire: boolean) {
   await save($, m, settings => ({ ...settings, fire }))
   await applyHearth($, m, fire, m.briefingMode, m.compactBefore)
 }
 
 /** How a conversation changes, for every conversation. */
-export async function setBriefingMode($: EngineInterface, m: Memory, briefingMode: BriefingMode) {
+export async function setBriefingMode($: Host, m: Memory, briefingMode: BriefingMode) {
   await save($, m, settings => ({ ...settings, briefingMode }))
   await applyHearth($, m, m.fire, briefingMode, m.compactBefore)
 }
 
 /** How many compactions before a change, for every conversation. */
-export async function setCompactBefore($: EngineInterface, m: Memory, compactBefore: CompactBefore) {
+export async function setCompactBefore($: Host, m: Memory, compactBefore: CompactBefore) {
   await save($, m, settings => ({ ...settings, compactBefore }))
   await applyHearth($, m, m.fire, m.briefingMode, compactBefore)
 }
 
 /** One read for every setting. A conversation that sees the mod come back waits for the next agents to reopen its pane. */
-export async function followSettings($: EngineInterface, m: Memory) {
+export async function followSettings($: Host, m: Memory) {
   if (!onDisk(m)) return
   const settings = await readFile($, m)
   if (!settings) return
@@ -136,17 +136,17 @@ export async function followSettings($: EngineInterface, m: Memory) {
 }
 
 /** Each start closes the settings panel: its state never reaches the disk. */
-export function closeSettings($: EngineInterface, m: Memory) {
+export function closeSettings($: Host, m: Memory) {
   return writeSettings($, viewOf(m, false))
 }
 
 /** The button: the only way to close the panel it opens. */
-export async function toggleSettings($: EngineInterface, m: Memory) {
+export async function toggleSettings($: Host, m: Memory) {
   await writeSettings($, viewOf(m, !(await isOpen($))))
 }
 
 /** A press in the settings: the row of the button or of an option, whichever line of it the pointer fell on. */
-export async function pressSettings($: EngineInterface, m: Memory, element: string) {
+export async function pressSettings($: Host, m: Memory, element: string) {
   await guard($, m, 'settings press', () => {
     if (element.startsWith('settings-button')) return toggleSettings($, m)
     return setDeparture($, m, element.startsWith('settings-plan') ? 'plan' : 'each')

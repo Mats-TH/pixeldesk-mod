@@ -1,4 +1,5 @@
-import type { Elements, EngineInterface, RenderInput } from 'claude-code'
+import type { Elements, RenderInput } from 'claude-code'
+import type { Host } from './host'
 
 import type { Briefing } from '../types'
 import { zoneCells } from './card'
@@ -86,7 +87,7 @@ function drawnRow(ui: Table, view: Briefing, width: number, top: number) {
 }
 
 /** What the band adds above itself, or null: it only speaks when a briefing is under way, and the band itself never moves for it. */
-export async function hearthRows($: EngineInterface, m: Memory, e: Band, top: number) {
+export async function hearthRows($: Host, m: Memory, e: Band, top: number) {
   const view = await readBriefing($)
   if (!view || view.phase === 'idle') return null
   if (e.surface === 'desktop' || e.surface === 'vscode') return drawnRow($.ui.resolve(e) as unknown as Table, view, ROW_PAST + bandWidth(e.props.bodyColumns), top)

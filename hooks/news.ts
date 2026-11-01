@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { isMail, isOwner, isPeer } from './desks'
 import { guard } from './disk'
@@ -9,12 +9,12 @@ import { readNews, writeNews } from './state'
 // Past this many envelopes in the air, a burst lands at once.
 const MAX_FLYING = 3
 
-function showNews($: EngineInterface, m: Memory) {
+function showNews($: Host, m: Memory) {
   return writeNews($, m.news)
 }
 
 /** One envelope at a time, for as long as some are still on their way. */
-export function fly($: EngineInterface, m: Memory) {
+export function fly($: Host, m: Memory) {
   if (m.flight || m.news.shown >= m.news.count) return
   m.flight = $.clock.after(FLIGHT_MS, () => {
     m.flight = null
@@ -25,14 +25,14 @@ export function fly($: EngineInterface, m: Memory) {
   })
 }
 
-async function add($: EngineInterface, m: Memory) {
+async function add($: Host, m: Memory) {
   m.news = { ...m.news, count: m.news.count + 1 }
   await showNews($, m)
   fly($, m)
 }
 
 /** The person wrote: the count is over, and no envelope lands after that. */
-async function clear($: EngineInterface, m: Memory) {
+async function clear($: Host, m: Memory) {
   m.flight?.cancel()
   m.flight = null
   m.arrivals = []
@@ -43,7 +43,7 @@ async function clear($: EngineInterface, m: Memory) {
 }
 
 /** A delivery for the main conversation. It counts now if it reads as mail, and is awaited at the prompt. */
-export async function received($: EngineInterface, m: Memory, kind: string, text: string) {
+export async function received($: Host, m: Memory, kind: string, text: string) {
   if (!isPeer(kind)) return
   const mail = isMail(kind, text)
   m.arrivals.push(mail)
@@ -51,7 +51,7 @@ export async function received($: EngineInterface, m: Memory, kind: string, text
 }
 
 /** A prompt of the main conversation: what the arrival saw is checked against what it became. */
-export async function entered($: EngineInterface, m: Memory, kind: string, text: string, isMeta: boolean) {
+export async function entered($: Host, m: Memory, kind: string, text: string, isMeta: boolean) {
   if (isOwner(kind) && !isMeta) return clear($, m)
   if (!isPeer(kind)) return undefined
   const counted = m.arrivals.shift() ?? false
@@ -67,7 +67,7 @@ export async function entered($: EngineInterface, m: Memory, kind: string, text:
 }
 
 /** After a restart the count comes from the file; after a hot reload the host still holds it, envelope included. */
-export async function restoreNews($: EngineInterface, m: Memory, saved: unknown) {
+export async function restoreNews($: Host, m: Memory, saved: unknown) {
   const held = await readNews($)
   if (held?.count) m.news = held
   else if (typeof saved === 'number' && saved > 0) {

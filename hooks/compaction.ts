@@ -1,4 +1,5 @@
-import type { EngineInterface, SessionCompactInput, SessionCompactResult, SessionMessage } from 'claude-code'
+import type { SessionCompactInput, SessionCompactResult, SessionMessage } from 'claude-code'
+import type { Host } from './host'
 
 import { guard, log, reason, toast } from './disk'
 import { pruneBriefings, saveHearth, addNotes, notesPath } from './briefing-disk'
@@ -13,7 +14,7 @@ const HEADLESS = /headless/i
 const section = (title: string, lines: readonly string[]) => (lines.length ? `### ${title}\n${lines.map(line => `- ${line}`).join('\n')}\n` : '')
 
 /** The files, decisions and requests of what is about to be compacted, while the words are still there. */
-export async function writeNotes($: EngineInterface, m: Memory, messages: readonly SessionMessage[]) {
+export async function writeNotes($: Host, m: Memory, messages: readonly SessionMessage[]) {
   const found = gather(messages, m.home)
   const date = new Date(await $.clock.now()).toISOString().slice(0, 16).replace('T', ' ')
   const title = t('notes.title', { n: m.heat.compactions + 1, date })
@@ -23,7 +24,7 @@ export async function writeNotes($: EngineInterface, m: Memory, messages: readon
 }
 
 /** One compaction more for this conversation, whoever ran it. The cached prefix is gone with the old messages. */
-async function counted($: EngineInterface, m: Memory) {
+async function counted($: Host, m: Memory) {
   const h = m.heat
   h.compactions += 1
   h.at = 0
@@ -32,7 +33,7 @@ async function counted($: EngineInterface, m: Memory) {
 }
 
 /** Every compaction of the main conversation goes through here: the person's, the engine's and the mod's own. */
-export async function onCompact($: EngineInterface, m: Memory, e: SessionCompactInput, next: (e: SessionCompactInput) => Promise<SessionCompactResult>) {
+export async function onCompact($: Host, m: Memory, e: SessionCompactInput, next: (e: SessionCompactInput) => Promise<SessionCompactResult>) {
   if (e.agentId !== undefined || e.trigger === 'precompute') return next(e)
   const h = m.heat
   const raised = Array.isArray(e.messages) ? e : { ...e, messages: await $.session.messages() }
@@ -52,19 +53,19 @@ export async function onCompact($: EngineInterface, m: Memory, e: SessionCompact
  * A session the app runs has no `$.session.compact`: there a compaction only runs as the command, queued for when
  * the session is idle, and only `onCompact` knows that it stood.
  */
-async function compacted($: EngineInterface, m: Memory, brief: string): Promise<{ skip?: string }> {
+async function compacted($: Host, m: Memory, brief: string): Promise<{ skip?: string }> {
   try {
     return await $.session.compact({ instructions: brief })
   } catch (err) {
     if (!HEADLESS.test(reason(err))) throw err
   }
   const before = m.heat.compactions
-  await $.command.run({ command: 'compact', args: brief })
+  await $.command.compact(brief)
   return m.heat.compactions === before ? { skip: 'the command compacted nothing' } : {}
 }
 
 /** The mod compacts, between two turns, with the instructions of a briefing. A hook's refusal or a turn in the way is logged, and answers false. */
-export async function compactNow($: EngineInterface, m: Memory) {
+export async function compactNow($: Host, m: Memory) {
   const h = m.heat
   const before = h.compactions
   h.ownCompact = true

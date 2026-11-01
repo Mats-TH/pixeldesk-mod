@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import type { DrawnPlan, FloorSeat } from '../types'
 import { lastAction, isWorking } from './agents'
@@ -33,7 +33,7 @@ const chatLines = (rooms: readonly FloorSeat[]) => rooms.map(r => `${r.title} : 
 const planLines = (plan: DrawnPlan | null) => (plan?.steps ?? []).map(st => `${t(STEP_WORD[st.status] ?? 'briefing.running.todo')} : ${st.text}`)
 
 /** What still runs: never left to the model, and always in the document, even empty. */
-export async function runningSection($: EngineInterface, m: Memory, carryOn: boolean) {
+export async function runningSection($: Host, m: Memory, carryOn: boolean) {
   const rooms = ((await readFloorRooms($)) ?? []).slice(1).map(keptRoom)
   const agents = agentLines(m)
   const plan = m.plan ? drawnPlan(m.plan) : null
@@ -62,7 +62,7 @@ function draftOf(cwd: string, found: Found, notes: string, running: string) {
 }
 
 /** Only the files still on the disk, the most used first. */
-async function onDiskOnly($: EngineInterface, files: readonly string[]) {
+async function onDiskOnly($: Host, files: readonly string[]) {
   const kept: string[] = []
   for (const path of files) {
     if (kept.length >= MOST_FILES) break
@@ -71,7 +71,7 @@ async function onDiskOnly($: EngineInterface, files: readonly string[]) {
   return kept
 }
 
-async function askModel($: EngineInterface, m: Memory, prompt: string) {
+async function askModel($: Host, m: Memory, prompt: string) {
   m.heat.forks.add(prompt)
   try {
     const reply = await $.model.fork({ prompt })
@@ -84,7 +84,7 @@ async function askModel($: EngineInterface, m: Memory, prompt: string) {
   }
 }
 
-async function saveChecked($: EngineInterface, path: string, text: string) {
+async function saveChecked($: Host, path: string, text: string) {
   await $.fs.write(path, text)
   if ((await $.fs.read(path)) !== text) throw new Stopped(t('briefing.errMismatch'))
 }
@@ -94,7 +94,7 @@ async function saveChecked($: EngineInterface, path: string, text: string) {
  * called, so that a failure leaves something; a failure of the model never costs a second call.
  * `signal` stops it at the next step, so nothing is saved after it: the engine cannot cut a fork on its way.
  */
-export async function writeBriefingFile($: EngineInterface, m: Memory, carryOn: boolean, signal: AbortSignal, at: (step: number) => Promise<void>): Promise<Written> {
+export async function writeBriefingFile($: Host, m: Memory, carryOn: boolean, signal: AbortSignal, at: (step: number) => Promise<void>): Promise<Written> {
   let step = 0
   let draft: string | null = null
   let draftText = ''

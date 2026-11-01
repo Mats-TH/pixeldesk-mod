@@ -357,7 +357,7 @@ There's no wall to click. To go Manual, set `"briefingMode": "manual"` in `~/.cl
 
 ## What PixelDesk Mod reads, writes, runs and sends
 
-PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights. This section lists all it does on your machine. The source is in `hooks/`, readable and not minified.
+PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights. This section lists all it does on your machine. The source is in `hooks/`, readable and not minified. Every call to Claude Code is written out in `hostOf`, in `hooks/register.tsx`, and the rest of the mod goes through it. Test files use fictional values only.
 
 ### Quick view
 

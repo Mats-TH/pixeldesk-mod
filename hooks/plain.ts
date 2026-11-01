@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import type { AgentPhase } from '../types'
 import { t } from './i18n'
@@ -21,7 +21,7 @@ export function summaryPrompt(agent: Source) {
 }
 
 /** A sentence for the card, or null: a failed summary leaves the rule line in place. */
-export async function summarize($: EngineInterface, agent: Source): Promise<string | null> {
+export async function summarize($: Host, agent: Source): Promise<string | null> {
   try {
     const r = await $.model.complete({ model: 'haiku', system: t('summary.system'), prompt: summaryPrompt(agent), maxTokens: 120 })
     const text = r.isAnswered ? r.text.trim() : ''

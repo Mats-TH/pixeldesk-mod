@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { cut, slashed } from './lines'
 import type { Memory } from './memory'
@@ -8,9 +8,9 @@ const LOG_KEEP = 256 * 1024
 const TOAST_MAX = 140
 
 /** The home folder, with forward slashes and no slash at the end; empty when the environment does not say. */
-export async function readHome($: EngineInterface) {
+export async function readHome($: Host) {
   try {
-    const home = (await $.env.get('USERPROFILE')) || (await $.env.get('HOME')) || ''
+    const home = (await $.env.userProfile()) || (await $.env.home()) || ''
     return slashed(home).replace(/\/+$/, '')
   } catch {
     return ''
@@ -33,7 +33,7 @@ export const onDisk = (m: Memory) => m.home !== '' && m.sessionId !== ''
 export const reason = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /** One line in the log; the failure of a log line is nobody's problem. Lines are written one after the other. */
-export function log($: EngineInterface, m: Memory, message: string) {
+export function log($: Host, m: Memory, message: string) {
   if (!onDisk(m)) return Promise.resolve()
   m.logs = m.logs.then(async () => {
     try {
@@ -49,7 +49,7 @@ export function log($: EngineInterface, m: Memory, message: string) {
 }
 
 /** A line on screen, held to what a toast shows; its failure goes to the log. */
-export function toast($: EngineInterface, m: Memory, text: string) {
+export function toast($: Host, m: Memory, text: string) {
   try {
     $.ui.toast(cut(text, TOAST_MAX))
   } catch (err) {
@@ -58,7 +58,7 @@ export function toast($: EngineInterface, m: Memory, text: string) {
 }
 
 /** Runs what must not break the conversation: a failure becomes a line in the log. */
-export async function guard<T>($: EngineInterface, m: Memory, what: string, work: () => Promise<T> | T): Promise<T | undefined> {
+export async function guard<T>($: Host, m: Memory, what: string, work: () => Promise<T> | T): Promise<T | undefined> {
   try {
     return await work()
   } catch (err) {
@@ -68,12 +68,12 @@ export async function guard<T>($: EngineInterface, m: Memory, what: string, work
 }
 
 /** A file's text, or undefined when it cannot be read. */
-export function readText($: EngineInterface, path: string) {
+export function readText($: Host, path: string) {
   return $.fs.read(path).catch(() => undefined)
 }
 
 /** A folder's entries. A folder that is not there is empty; any other failure is the caller's. */
-export async function listed($: EngineInterface, path: string) {
+export async function listed($: Host, path: string) {
   try {
     return await $.fs.list(path)
   } catch (err) {

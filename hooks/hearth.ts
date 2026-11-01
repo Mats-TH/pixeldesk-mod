@@ -1,4 +1,5 @@
-import type { EngineInterface, RenderSurface } from 'claude-code'
+import type { RenderSurface } from 'claude-code'
+import type { Host } from './host'
 
 import { readLength } from './cachelength'
 import { askChange, canCompact, cancelChange, closeChange, copyBriefing, forceChange, openBriefing, restoreChange, retryChange, settleChange, startConversation } from './change'
@@ -23,7 +24,7 @@ function nextMoment(m: Memory, now: number) {
 }
 
 /** One alarm, for the next moment: a long wait costs nothing, and a machine that slept wakes on a cold cache. */
-async function arm($: EngineInterface, m: Memory) {
+async function arm($: Host, m: Memory) {
   const h = m.heat
   h.alarm?.cancel()
   h.alarm = null
@@ -33,7 +34,7 @@ async function arm($: EngineInterface, m: Memory) {
 }
 
 /** One pass of everything that follows the cache and the context. One at a time: a wake meanwhile asks for another. */
-export async function pulse($: EngineInterface, m: Memory) {
+export async function pulse($: Host, m: Memory) {
   const h = m.heat
   if (h.pulsing) {
     h.again = true
@@ -52,14 +53,14 @@ export async function pulse($: EngineInterface, m: Memory) {
 }
 
 /** What the end of a turn of the main conversation sets going. */
-export async function afterTurn($: EngineInterface, m: Memory) {
+export async function afterTurn($: Host, m: Memory) {
   await turnEnded($, m)
   void guard($, m, 'cache length', () => readLength($, m))
   m.wake()
 }
 
 /** Everything a start needs. What the host still holds comes first, then what the last run saved. */
-export async function startHearth($: EngineInterface, m: Memory, first: boolean) {
+export async function startHearth($: Host, m: Memory, first: boolean) {
   m.wake = () => void pulse($, m)
   if (first) {
     const held = await guard($, m, 'hearth', () => restoreHeat($, m))
@@ -76,7 +77,7 @@ export function clearHearth(m: Memory) {
 }
 
 /** The tool of the model: it asks, and the writing waits for the end of the turn. An agent gets no say. */
-export async function answerMove($: EngineInterface, m: Memory, agentId: string | undefined) {
+export async function answerMove($: Host, m: Memory, agentId: string | undefined) {
   if (agentId !== undefined) return { result: t('briefing.toolAgent') }
   await askChange($, m)
   m.wake()
@@ -84,14 +85,14 @@ export async function answerMove($: EngineInterface, m: Memory, agentId: string 
 }
 
 /** `/pixeldesk move`: the same request as the button. */
-export async function runMove($: EngineInterface, m: Memory) {
+export async function runMove($: Host, m: Memory) {
   if (!(await askChange($, m))) return { text: t('briefing.busy') }
   await pulse($, m)
   return { text: t(m.change.phase === 'writing' ? 'briefing.running' : 'briefing.queued') }
 }
 
 /** `/pixeldesk compact`: the compaction of the automatic mode, now, and it counts as one. */
-export async function runCompact($: EngineInterface, m: Memory) {
+export async function runCompact($: Host, m: Memory) {
   if (!(await canCompact($, m))) return { text: t('briefing.compactBusy') }
   void compactNow($, m).then(done => {
     if (!done) toast($, m, t('briefing.compactFailed'))
@@ -118,7 +119,7 @@ function stateWords(m: Memory, now: number) {
 }
 
 /** `/pixeldesk fire`: says where the relaunches stand, or turns them on or off. */
-export async function runFire($: EngineInterface, m: Memory, value: string | undefined) {
+export async function runFire($: Host, m: Memory, value: string | undefined) {
   if (value === undefined) return { text: m.fire ? t('fire.isOn', { state: stateWords(m, await $.clock.now()) }) : t('fire.isOff') }
   if (value !== 'on' && value !== 'off') return { text: t('fire.usage') }
   if (value === 'on') Object.assign(m.heat, { stop: null, failures: 0, retryAt: 0 })
@@ -129,7 +130,7 @@ export async function runFire($: EngineInterface, m: Memory, value: string | und
 type Press = { element: string; surface: RenderSurface }
 
 /** Runs a gesture by the key of its Button. The engine follows `$` only through plain calls, hence no table. */
-async function runGesture($: EngineInterface, m: Memory, name: string, surface: RenderSurface) {
+async function runGesture($: Host, m: Memory, name: string, surface: RenderSurface) {
   switch (name) {
     case 'briefing-change': return askChange($, m)
     case 'briefing-cancel': return cancelChange($, m)
@@ -159,7 +160,7 @@ async function runGesture($: EngineInterface, m: Memory, name: string, surface: 
 }
 
 /** A press on a gesture: the Button's own `onPress` does nothing, since the drawing changes under it. */
-export async function pressGesture($: EngineInterface, m: Memory, e: Press) {
+export async function pressGesture($: Host, m: Memory, e: Press) {
   await guard($, m, 'press', () => runGesture($, m, e.element, e.surface))
   m.wake()
   return { element: e.element }

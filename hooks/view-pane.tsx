@@ -1,4 +1,5 @@
-import type { Elements, EngineInterface } from 'claude-code'
+import type { Elements } from 'claude-code'
+import type { Host } from './host'
 
 import type { AgentPhase, AgentRecord, ChatTurn, DrawnPlan } from '../types'
 import { healed, sayOf, seated, summaryOf } from './agents'
@@ -56,7 +57,7 @@ function listView(ui: Words, width: number, agents: readonly AgentRecord[], summ
 }
 
 /** The pane: the floor when this conversation leads others, else its room, else the same in words. */
-export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
+export async function drawPane($: Host, m: Memory, e: Pane) {
   await followLanguage($, m)
   const summaries = (await readSummaries($)) ?? {}
   const plan = (await readPlan($)) ?? null

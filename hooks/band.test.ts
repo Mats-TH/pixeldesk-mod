@@ -4,7 +4,7 @@ import { bandAlt, bandSvg, idleAlt, idleSvg, overviewAlt, overviewLine, overview
 import type { BandInput, IdleInput, OverviewInput } from './band'
 import type { Gauge } from './limits'
 
-const on = (used: number, mark: number): Gauge => ({ label: '5 H', used, mark, percent: `${used}%`, at: '12:40' })
+const on = (used: number, mark: number): Gauge => ({ label: '5 H', used, mark, percent: String(used) + '%', at: '12:40' })
 const none: Gauge = { label: '7 J', used: null, mark: null, percent: '--', at: '--:--' }
 const steps = (done: number, total: number) =>
   Array.from({ length: total }, (_, i) => ({ text: `Étape ${i + 1}`, status: i < done ? 'completed' : i === done ? 'in_progress' : 'pending' }) as BandInput['steps'][number])

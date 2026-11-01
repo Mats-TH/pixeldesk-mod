@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { guard, log, reason } from './disk'
 import { setLanguage } from './i18n'
@@ -7,7 +7,6 @@ import type { Memory } from './memory'
 import { readLanguage, writeLanguage } from './state'
 
 const CULTURE_KEY = 'systemCulture'
-const CULTURE_TIMEOUT = 3000
 
 /** What a setting, a locale or a culture means, or null when it names neither language. */
 export function recognize(value: unknown): Language | null {
@@ -21,8 +20,8 @@ export function recognize(value: unknown): Language | null {
 /** The `language` option: only `fr` and `en` are orders, `auto` and the rest leave the choice open. */
 export const forcedBy = (option: unknown): Language | null => (option === 'fr' || option === 'en' ? option : null)
 
-async function fromLocale($: EngineInterface) {
-  const readers = [() => $.env.get('LC_ALL'), () => $.env.get('LC_MESSAGES'), () => $.env.get('LANG'), async () => (await $.env.get('LANGUAGE'))?.split(':')[0]]
+async function fromLocale($: Host) {
+  const readers = [$.env.lcAll, $.env.lcMessages, $.env.lang, async () => (await $.env.language())?.split(':')[0]]
   for (const read of readers) {
     const found = recognize(await read())
     if (found) return found
@@ -31,10 +30,10 @@ async function fromLocale($: EngineInterface) {
 }
 
 /** Asked of PowerShell once on a machine: a failure is not kept, so the next session asks again. */
-async function systemCulture($: EngineInterface) {
+async function systemCulture($: Host) {
   const kept = await $.store.get(CULTURE_KEY)
   if (typeof kept === 'string' && kept) return kept
-  const { exitCode, stdout } = await $.process.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name'], { timeoutMs: CULTURE_TIMEOUT })
+  const { exitCode, stdout } = await $.process.systemCulture()
   const culture = stdout.trim()
   if (exitCode !== 0 || !culture) return null
   await $.store.set(CULTURE_KEY, culture)
@@ -42,7 +41,7 @@ async function systemCulture($: EngineInterface) {
 }
 
 /** Each step of the chain falls through to the next, whatever goes wrong in it. */
-async function step($: EngineInterface, m: Memory, name: string, work: () => Promise<Language | null>) {
+async function step($: Host, m: Memory, name: string, work: () => Promise<Language | null>) {
   try {
     return await work()
   } catch (err) {
@@ -51,8 +50,8 @@ async function step($: EngineInterface, m: Memory, name: string, work: () => Pro
   }
 }
 
-async function chain($: EngineInterface, m: Memory): Promise<Language> {
-  const setting = await step($, m, 'settings', async () => recognize(await $.settings.read({ key: 'language' })))
+async function chain($: Host, m: Memory): Promise<Language> {
+  const setting = await step($, m, 'settings', async () => recognize(await $.settings.language()))
   if (setting) return setting
   const locale = await step($, m, 'locale', () => fromLocale($))
   if (locale) return locale
@@ -65,7 +64,7 @@ async function chain($: EngineInterface, m: Memory): Promise<Language> {
 }
 
 /** Settles the session's language: the option, else what the host still holds, else the chain. */
-export async function settleLanguage($: EngineInterface, m: Memory) {
+export async function settleLanguage($: Host, m: Memory) {
   const held = await guard($, m, 'language, state', () => readLanguage($))
   const language = m.forced ?? recognize(held) ?? (await chain($, m))
   setLanguage(language)

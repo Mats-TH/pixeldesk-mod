@@ -1,4 +1,5 @@
-import type { EngineInterface, RenderElement } from 'claude-code'
+import type { RenderElement } from 'claude-code'
+import type { Host } from './host'
 
 import type { AgentRecord, ChatTurn, DrawnPlan, Briefing, Hearth, Seen, SettingsView } from '../types'
 import { desk, metaOf, sayOf, summaryOf } from './agents'
@@ -251,7 +252,7 @@ function briefingZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells
 }
 
 /** The room as a drawing, as thin as the app needs it; null when not even one image holds it, and the list takes over. */
-export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: Frame, view: RoomView, mobile: boolean, list: readonly RenderElement[] | null) {
+export async function roomView($: Host, m: Memory, ui: Table, frame: Frame, view: RoomView, mobile: boolean, list: readonly RenderElement[] | null) {
   const { Box, Svg } = ui
   const desks: RoomDesk[] = view.agents.map(desk)
   const steps = (view.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))

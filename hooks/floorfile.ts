@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { paneOpen } from './agents'
 import { floorIds, floorRooms, parseSession, subOf } from './desks'
@@ -30,7 +30,7 @@ async function parsedFile(path: string, read: (path: string) => Promise<string |
 }
 
 /** The session files under a folder, at most three folders down. */
-async function sessionFiles($: EngineInterface, dir: string, depth: number): Promise<string[]> {
+async function sessionFiles($: Host, dir: string, depth: number): Promise<string[]> {
   const found: string[] = []
   for (const entry of await listed($, dir)) {
     const path = `${dir}/${entry.name}`
@@ -41,8 +41,8 @@ async function sessionFiles($: EngineInterface, dir: string, depth: number): Pro
 }
 
 /** What the desktop app knows of who spawned whom. Only Windows has it where the mod can look. */
-async function readLinks($: EngineInterface) {
-  const local = await $.env.get('LOCALAPPDATA')
+async function readLinks($: Host) {
+  const local = await $.env.localAppData()
   if (!local) return []
   const root = `${slashed(local).replace(/\/+$/, '')}/Claude-Data`
   const links: SessionLink[] = []
@@ -57,14 +57,14 @@ async function readLinks($: EngineInterface) {
 }
 
 /** At the first pass, then at most once a minute. A failure keeps the links known so far. */
-async function linksNow($: EngineInterface, m: Memory, now: number) {
+async function linksNow($: Host, m: Memory, now: number) {
   if (m.linksAt && now - m.linksAt < LINKS_MS) return m.links
   m.linksAt = now
   m.links = (await guard($, m, 'session links', () => readLinks($))) ?? m.links
   return m.links
 }
 
-async function readExports($: EngineInterface, m: Memory, links: readonly SessionLink[]) {
+async function readExports($: Host, m: Memory, links: readonly SessionLink[]) {
   const ids = floorIds(m.sessionId, links)
   const names = ids ? ids.map(id => deskPath(m, id)) : (await listed($, stateDir(m))).filter(e => /^desk-.+\.json$/.test(e.name)).map(e => `${stateDir(m)}/${e.name}`)
   const files = await Promise.all(names.map(path => parsedFile(path, p => readText($, p))))
@@ -72,7 +72,7 @@ async function readExports($: EngineInterface, m: Memory, links: readonly Sessio
 }
 
 /** Reads the floor, unless the pane is closed and a plan holds the band: then nobody would see it. */
-export async function readFloor($: EngineInterface, m: Memory) {
+export async function readFloor($: Host, m: Memory) {
   if (!onDisk(m)) return
   if (isOpen(m.plan) && m.change.phase !== 'waiting' && !(await paneOpen($))) return
   const now = await $.clock.now()

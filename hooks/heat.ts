@@ -1,4 +1,5 @@
-import type { EngineInterface, ModelForkResult, ModelUsage } from 'claude-code'
+import type { ModelForkResult, ModelUsage } from 'claude-code'
+import type { Host } from './host'
 
 import type { Ash, Fire, Hearth } from '../types'
 import { isWorking } from './agents'
@@ -68,7 +69,7 @@ export const fireMoments = (h: Heat) => (h.at ? FIRE_SHARES.map(([share]) => h.a
 export const relaunchMoment = (h: Heat) => (h.at && h.known ? Math.max(h.at + h.lengthMs - LEAD_MS, h.retryAt) : null)
 
 /** How many agents, and how many conversations of the floor, are at work. */
-export async function workNow($: EngineInterface, m: Memory) {
+export async function workNow($: Host, m: Memory) {
   const rooms = ((await readFloorRooms($)) ?? []).slice(1).map(keptRoom)
   return { agents: m.agents.filter(isWorking).length, chats: rooms.filter(r => r.state === 'working').length }
 }
@@ -80,13 +81,13 @@ const lastActivity = (m: Memory) => Math.max(m.chatTurn.since, m.chatTurn.ended,
 const planAlive = (m: Memory, now: number) => (m.plan?.steps.some(st => st.status === 'in_progress') ?? false) && now - lastActivity(m) < PLAN_ALIVE_MS
 
 /** A session stays active while a turn, an agent or a conversation of the floor works, or a plan was moving not long ago. */
-export async function isActive($: EngineInterface, m: Memory) {
+export async function isActive($: Host, m: Memory) {
   const { agents, chats } = await workNow($, m)
   return m.chatTurn.working || agents > 0 || chats > 0 || planAlive(m, await $.clock.now())
 }
 
 /** The context as the status line has it. The call is free, and a failure keeps what was known. */
-export async function readContext($: EngineInterface, m: Memory) {
+export async function readContext($: Host, m: Memory) {
   const usage = await $.session.usage().catch(() => null)
   if (!usage) return
   const { context } = usage
@@ -96,20 +97,20 @@ export async function readContext($: EngineInterface, m: Memory) {
 }
 
 /** The clock moves on to the moment a request left, never backwards. */
-async function reached($: EngineInterface, m: Memory, at: number) {
+async function reached($: Host, m: Memory, at: number) {
   const h = m.heat
   h.at = Math.max(h.at, at)
   h.model = await $.session.model().catch(() => h.model)
 }
 
 /** A request of the main loop leaves. The API counts the cache's time from here, not from the reply. */
-export function stepLeaves($: EngineInterface, m: Memory) {
+export function stepLeaves($: Host, m: Memory) {
   m.heat.requests += 1
   return $.clock.now()
 }
 
 /** A request of the person's own says what the length is. A change of model rewrites the cache whatever its length. */
-async function learnLength($: EngineInterface, m: Memory, sentAt: number, usage: ModelUsage) {
+async function learnLength($: Host, m: Memory, sentAt: number, usage: ModelUsage) {
   const h = m.heat
   if (h.known || !h.at || (await $.session.model().catch(() => '')) !== h.model) return
   const proven = lengthProven(sentAt - h.at, usage)
@@ -117,7 +118,7 @@ async function learnLength($: EngineInterface, m: Memory, sentAt: number, usage:
 }
 
 /** That request came back; with no usage it never reached the cache. */
-export async function stepBack($: EngineInterface, m: Memory, sentAt: number, usage: ModelUsage | null) {
+export async function stepBack($: Host, m: Memory, sentAt: number, usage: ModelUsage | null) {
   const h = m.heat
   h.requests = Math.max(0, h.requests - 1)
   if (usage) {
@@ -128,7 +129,7 @@ export async function stepBack($: EngineInterface, m: Memory, sentAt: number, us
 }
 
 /** A turn of the main loop is over: the counters start afresh, and whatever stopped the relaunches is forgotten. */
-export async function turnEnded($: EngineInterface, m: Memory) {
+export async function turnEnded($: Host, m: Memory) {
   const h = m.heat
   const now = await $.clock.now()
   Object.assign(h, { requests: 0, endedAt: now, relaunches: 0, since: now, failures: 0, retryAt: 0, stop: null, error: '' })
@@ -143,7 +144,7 @@ export function isForkTurn(m: Memory, text: string, turnId: string) {
 }
 
 /** The moment the mod itself reached the cache, for a fork that read it. */
-export async function stokedBy($: EngineInterface, m: Memory, at: number) {
+export async function stokedBy($: Host, m: Memory, at: number) {
   await reached($, m, at)
 }
 
@@ -173,7 +174,7 @@ function isDue(m: Memory, now: number) {
   return cools > now && cools - now <= LEAD_MS && now >= h.retryAt
 }
 
-function failed($: EngineInterface, m: Memory, text: string, now: number) {
+function failed($: Host, m: Memory, text: string, now: number) {
   const h = m.heat
   h.relaunches += 1
   h.failures += 1
@@ -192,7 +193,7 @@ function read(h: Heat, usage: ModelUsage) {
   if (usage.cache_creation_input_tokens > usage.cache_read_input_tokens) h.stop = 'cold'
 }
 
-async function landed($: EngineInterface, m: Memory, sentAt: number, r: ModelForkResult) {
+async function landed($: Host, m: Memory, sentAt: number, r: ModelForkResult) {
   const h = m.heat
   const now = await $.clock.now()
   if (r.isAnswered || r.reason === 'empty-reply') {
@@ -209,7 +210,7 @@ async function landed($: EngineInterface, m: Memory, sentAt: number, r: ModelFor
 }
 
 /** One relaunch. It runs on its own: nothing waits for it, and its outcome wakes the mod. */
-async function relaunch($: EngineInterface, m: Memory, sentAt: number) {
+async function relaunch($: Host, m: Memory, sentAt: number) {
   const h = m.heat
   h.forks.add(PING)
   try {
@@ -224,7 +225,7 @@ async function relaunch($: EngineInterface, m: Memory, sentAt: number) {
 }
 
 /** The caps, then a relaunch if one is due. A change of model leaves a cache nothing can read cheaply. */
-export async function heatPass($: EngineInterface, m: Memory) {
+export async function heatPass($: Host, m: Memory) {
   const h = m.heat
   const now = await $.clock.now()
   if (h.keeper && now >= h.keeperUntil) h.keeper = null
@@ -240,7 +241,7 @@ export async function heatPass($: EngineInterface, m: Memory) {
 }
 
 /** What the drawings read. Written only when something moved: the fire changes four times in a cycle. */
-export async function publishHearth($: EngineInterface, m: Memory) {
+export async function publishHearth($: Host, m: Memory) {
   const h = m.heat
   const now = await $.clock.now()
   const coolsAt = coolsAtOf(h)
@@ -275,7 +276,7 @@ export async function publishHearth($: EngineInterface, m: Memory) {
 }
 
 /** A reload keeps the clock the host holds. A relaunch in flight did not survive it, and neither did its count. */
-export async function restoreHeat($: EngineInterface, m: Memory) {
+export async function restoreHeat($: Host, m: Memory) {
   const held = await readHearth($)
   if (!held) return false
   const h = m.heat

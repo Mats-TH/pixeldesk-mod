@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import type { ChatTurn, DrawnPlan } from '../types'
 import { t } from './i18n'
@@ -9,30 +9,30 @@ import { actionPhrase } from './words'
 
 const MINUTE_MS = 60_000
 
-function show($: EngineInterface, m: Memory, turn: ChatTurn) {
+function show($: Host, m: Memory, turn: ChatTurn) {
   m.chatTurn = turn
   return writeChat($, turn)
 }
 
 /** A turn of the main loop opens, whatever started it. */
-export async function openTurn($: EngineInterface, m: Memory) {
+export async function openTurn($: Host, m: Memory) {
   m.chat = 'working'
   await show($, m, { ...m.chatTurn, working: true, since: await $.clock.now(), count: 0, now: '' })
 }
 
 /** The turn is over, however it ended. */
-export async function closeTurn($: EngineInterface, m: Memory, failed: boolean) {
+export async function closeTurn($: Host, m: Memory, failed: boolean) {
   m.chat = failed ? 'failed' : 'done'
   await show($, m, { ...m.chatTurn, working: false, ended: await $.clock.now(), now: '' })
 }
 
 /** A call of the main loop, while a turn runs. */
-export async function noteCall($: EngineInterface, m: Memory, tool: string, input: Record<string, unknown>) {
+export async function noteCall($: Host, m: Memory, tool: string, input: Record<string, unknown>) {
   if (m.chatTurn.working) await show($, m, { ...m.chatTurn, count: m.chatTurn.count + 1, now: actionPhrase(tool, input, m.connectors) })
 }
 
 /** After a reload the host still holds the turn: one in progress ends the usual way. */
-export async function restoreChat($: EngineInterface, m: Memory) {
+export async function restoreChat($: Host, m: Memory) {
   const held = await readChat($)
   if (!held) return
   m.chatTurn = { ...NO_TURN, ...held }

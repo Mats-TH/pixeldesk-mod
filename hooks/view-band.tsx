@@ -1,4 +1,5 @@
-import type { Elements, EngineInterface, RenderChildren, RenderElement, RenderInput } from 'claude-code'
+import type { Elements, RenderChildren, RenderElement, RenderInput } from 'claude-code'
+import type { Host } from './host'
 
 import type { DrawnPlan, Limit } from '../types'
 import { BAND_H, bandAlt, bandSvg, idleAlt, idleSvg, kidColors, overviewAlt, overviewLine, overviewSvg } from './band'
@@ -139,7 +140,7 @@ function terminalIdle(ui: TerminalTable, gauges: Gauges, width: number) {
 }
 
 /** The band in cells, for the terminal. */
-async function terminalBand($: EngineInterface, e: Band, plan: DrawnPlan | null, open: boolean, view: OverviewInput | null, gauges: Gauges) {
+async function terminalBand($: Host, e: Band, plan: DrawnPlan | null, open: boolean, view: OverviewInput | null, gauges: Gauges) {
   const ui = $.ui.resolve(e) as unknown as TerminalTable
   const width = e.props.bodyColumns || TERMINAL_COLS
   if (open && plan) return terminalPlan(ui, plan, gauges, width, (await readShimmer($)) ?? 0)
@@ -186,7 +187,7 @@ async function beneath(pass: () => Promise<RenderElement>) {
   }
 }
 
-async function overviewOf($: EngineInterface, news: number, gauges: Gauges): Promise<OverviewInput | null> {
+async function overviewOf($: Host, news: number, gauges: Gauges): Promise<OverviewInput | null> {
   const kids = ((await readFloorRooms($)) ?? []).slice(1).map(keptRoom)
   if (!kids.length) return null
   const states = kids.map(kid => kid.state ?? 'idle')
@@ -194,7 +195,7 @@ async function overviewOf($: EngineInterface, news: number, gauges: Gauges): Pro
 }
 
 /** The band above the prompt: an open plan, else the overview, else a finished plan, else the world at rest. */
-export async function drawBand($: EngineInterface, m: Memory, e: Band, pass: () => Promise<RenderElement>) {
+export async function drawBand($: Host, m: Memory, e: Band, pass: () => Promise<RenderElement>) {
   if (e.props.hasSurvey) return pass()
   await followLanguage($, m)
   const plan = (await readPlan($)) ?? null

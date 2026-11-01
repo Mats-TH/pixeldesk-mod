@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import type { AgentRecord, AgentPhase } from '../types'
 import { leaveAhead, leavers, LEAVE_MS, roleOf } from './desks'
@@ -77,17 +77,17 @@ export function summaryOf(list: readonly AgentRecord[]) {
 export const isWorking = (a: AgentRecord) => a.phase === 'working'
 
 /** Whether the pane is up; a failure to tell counts as closed. */
-export function paneOpen($: EngineInterface) {
+export function paneOpen($: Host) {
   return $.ui.panes().then(list => list.some(pane => pane.id === PANE), () => false)
 }
 
 /** Opens the pane; a refusal goes to the log. */
-export function openPane($: EngineInterface, m: Memory) {
+export function openPane($: Host, m: Memory) {
   return guard($, m, 'open pane', () => $.ui.open({ id: PANE, title: t('brand') }))
 }
 
 /** The summaries that are due. The mark goes on before the call: two summaries of one agent never run at once. */
-async function freshen($: EngineInterface, m: Memory) {
+async function freshen($: Host, m: Memory) {
   if (!(await paneOpen($))) return
   const now = await $.clock.now()
   for (const a of m.agents) {
@@ -109,7 +109,7 @@ function planOver(m: Memory) {
 }
 
 /** The 2 s pass runs while anyone works, or while a finished desk has its departure ahead; never otherwise. */
-export function pacePoll($: EngineInterface, m: Memory) {
+export function pacePoll($: Host, m: Memory) {
   const needed = m.agents.some(isWorking) || leaveAhead(m.agents, m.departure, planOver(m))
   if (needed && !m.poll) m.poll = $.clock.every(POLL_MS, () => void pass($, m))
   else if (!needed && m.poll) {
@@ -119,14 +119,14 @@ export function pacePoll($: EngineInterface, m: Memory) {
 }
 
 /** Every change of a record ends here: the state gets a copy. */
-export async function publish($: EngineInterface, m: Memory) {
+export async function publish($: Host, m: Memory) {
   await writeAgents($, m.agents.map(a => ({ ...a })))
   pacePoll($, m)
   await guard($, m, 'summaries', () => freshen($, m))
 }
 
 /** The room is settled: whatever comes next starts its zoom from a fresh mark. */
-export async function settle($: EngineInterface, m: Memory) {
+export async function settle($: Host, m: Memory) {
   const n = seated(m.agents).length
   m.seen = { shown: n, previous: n }
   m.roomPair = zoomAgain(m.roomPair)
@@ -146,7 +146,7 @@ function nextHue(m: Memory) {
 }
 
 /** A record for an agent seen for the first time; the pane opens for the first one at work. */
-async function enrol($: EngineInterface, m: Memory, id: string, from: Newcomer) {
+async function enrol($: Host, m: Memory, id: string, from: Newcomer) {
   const startedAt = await $.clock.now()
   // The clock took a moment: a parallel call may have enrolled it meanwhile.
   const held = m.agents.find(a => a.id === id)
@@ -186,7 +186,7 @@ function revive(a: AgentRecord) {
 }
 
 /** `agent.spawn` named an agent. A new run of an id brings it back, even after it left. */
-export async function arrive($: EngineInterface, m: Memory, id: string, from: Newcomer) {
+export async function arrive($: Host, m: Memory, id: string, from: Newcomer) {
   m.gone.delete(id)
   m.strangers.delete(id)
   const known = m.agents.find(a => a.id === id)
@@ -199,7 +199,7 @@ export async function arrive($: EngineInterface, m: Memory, id: string, from: Ne
 }
 
 /** The record of an id, adopted from the list if it is new. An id the list does not name is never looked for again. */
-export async function known($: EngineInterface, m: Memory, id: string) {
+export async function known($: Host, m: Memory, id: string) {
   const held = m.agents.find(a => a.id === id)
   if (held) return held
   if (m.gone.has(id) || m.strangers.has(id)) return null
@@ -212,7 +212,7 @@ export async function known($: EngineInterface, m: Memory, id: string) {
 }
 
 /** One tool call of an agent. */
-export async function act($: EngineInterface, m: Memory, id: string, tool: string, input: Record<string, unknown>) {
+export async function act($: Host, m: Memory, id: string, tool: string, input: Record<string, unknown>) {
   const a = await known($, m, id)
   if (!a) return
   if (!isWorking(a)) revive(a)
@@ -221,7 +221,7 @@ export async function act($: EngineInterface, m: Memory, id: string, tool: strin
   await publish($, m)
 }
 
-async function finish($: EngineInterface, a: AgentRecord, phase: AgentPhase) {
+async function finish($: Host, a: AgentRecord, phase: AgentPhase) {
   a.phase = phase
   a.endedAt = await $.clock.now()
   if (phase === 'failed') a.errored = true
@@ -236,7 +236,7 @@ export function leave(m: Memory, a: AgentRecord) {
 }
 
 /** Every desk due leaves in one go, with one publication: no zoom, and nothing at all when none is due. */
-export async function sweep($: EngineInterface, m: Memory) {
+export async function sweep($: Host, m: Memory) {
   const due = leavers(m.agents, { mode: m.departure, now: await $.clock.now(), planOver: planOver(m) })
   if (due.length) {
     for (const a of due) leave(m, a)
@@ -246,7 +246,7 @@ export async function sweep($: EngineInterface, m: Memory) {
 }
 
 /** A new plan clears the room at once: what the last one finished or stopped leaves without waiting. */
-export async function clearDesks($: EngineInterface, m: Memory) {
+export async function clearDesks($: Host, m: Memory) {
   const over = m.agents.filter(a => !isWorking(a))
   if (!over.length) return
   for (const a of over) leave(m, a)
@@ -255,7 +255,7 @@ export async function clearDesks($: EngineInterface, m: Memory) {
 }
 
 /** Reads the list: only an agent at work can change. */
-async function readList($: EngineInterface, m: Memory) {
+async function readList($: Host, m: Memory) {
   await guard($, m, 'agent list', async () => {
     if (!m.agents.some(isWorking)) return
     let moved = false
@@ -279,7 +279,7 @@ async function readList($: EngineInterface, m: Memory) {
 }
 
 /** The 2 s pass. One at a time: a slow list does not stack passes up. */
-async function pass($: EngineInterface, m: Memory) {
+async function pass($: Host, m: Memory) {
   if (m.polling) return
   m.polling = true
   await readList($, m)
@@ -288,7 +288,7 @@ async function pass($: EngineInterface, m: Memory) {
 }
 
 /** The end of an agent's turn. The turn's sum takes over from the steps; an aborted turn never lowers the total. */
-export async function endTurn($: EngineInterface, m: Memory, id: string, end: { isAborted: boolean; reason: string; spent: number | null }) {
+export async function endTurn($: Host, m: Memory, id: string, end: { isAborted: boolean; reason: string; spent: number | null }) {
   const a = m.agents.find(other => other.id === id)
   if (!a) return
   const counted = end.spent ?? a.liveTokens
@@ -301,7 +301,7 @@ export async function endTurn($: EngineInterface, m: Memory, id: string, end: { 
 }
 
 /** Takes the copy the host kept. A desk stopped by an interruption, from an older version, does not stay, nor one finished long ago. */
-export async function restoreAgents($: EngineInterface, m: Memory) {
+export async function restoreAgents($: Host, m: Memory) {
   const saved = await readAgents($)
   if (m.agents.length || !saved?.length) return
   const now = await $.clock.now()

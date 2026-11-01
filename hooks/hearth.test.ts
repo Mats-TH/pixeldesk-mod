@@ -77,10 +77,10 @@ describe('what is read off a conversation', () => {
   })
 
   test('links: no local one, no final mark, no double, the latest 20', () => {
-    const many = Array.from({ length: 25 }, (_, i) => `https://a.dev/${i}`).join(' ')
-    const found = gather([said('user', `voir https://b.dev/x. et http://localhost:3000 et https://example.com/a`), said('assistant', many)], HOME)
+    const many = Array.from({ length: 25 }, (_, i) => `https://sample.org/${i}`).join(' ')
+    const found = gather([said('user', `voir https://b.dev/x. et http://localhost:3000 et https://sample.org/a`), said('assistant', many)], HOME)
     expect(found.links).toHaveLength(20)
-    expect(found.links.at(-1)).toBe('https://a.dev/24')
+    expect(found.links.at(-1)).toBe('https://sample.org/24')
     expect(gather([said('user', 'voir https://b.dev/x. http://localhost:3000')], HOME).links).toEqual(['https://b.dev/x'])
   })
 
@@ -173,8 +173,8 @@ describe('compacting in a session the app runs', () => {
         messages: async () => [],
       },
       command: {
-        run: async (call: { command: string; args: string }) => {
-          calls.push(call)
+        compact: async (brief: string) => {
+          calls.push({ command: 'compact', args: brief })
           runs(m)
         },
       },

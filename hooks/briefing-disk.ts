@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { guard, briefingsDir, hearthPath, listed, onDisk, readText } from './disk'
 import type { Memory } from './memory'
@@ -16,34 +16,34 @@ export const notesPath = (m: Memory) => `${briefingsDir(m)}/notes-${m.sessionId}
  * Keeps the latest of a kind. `$.fs` cannot delete and no command may, so what falls out of the list is emptied:
  * the text is gone from the disk, and an empty file no longer counts.
  */
-async function keepLatest($: EngineInterface, m: Memory, name: RegExp) {
+async function keepLatest($: Host, m: Memory, name: RegExp) {
   const entries = (await listed($, briefingsDir(m))).filter(entry => entry.kind === 'file' && entry.size > 0 && name.test(entry.name))
   const newestFirst = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs || b.name.localeCompare(a.name))
   for (const entry of newestFirst.slice(KEEP)) await $.fs.write(`${briefingsDir(m)}/${entry.name}`, '')
 }
 
 /** One pass for each kind of file the folder holds. A failure leaves one file too many, nothing worse. */
-export async function pruneBriefings($: EngineInterface, m: Memory) {
+export async function pruneBriefings($: Host, m: Memory) {
   for (const name of [BRIEFING_NAME, NOTES_NAME, DRAFT_NAME]) await guard($, m, 'briefing files', () => keepLatest($, m, name))
 }
 
 /** What this conversation's compactions left. */
-export async function readNotes($: EngineInterface, m: Memory) {
+export async function readNotes($: Host, m: Memory) {
   return (onDisk(m) ? await readText($, notesPath(m)) : undefined) ?? ''
 }
 
 /** The notes of a compaction join the earlier ones, in one file for the conversation. */
-export async function addNotes($: EngineInterface, m: Memory, text: string) {
+export async function addNotes($: Host, m: Memory, text: string) {
   if (!onDisk(m)) return
   await $.fs.write(notesPath(m), `${await readNotes($, m)}${text}\n`.slice(-NOTES_KEEP))
 }
 
 /** What must outlive a restart: how many compactions, and the point under which no offer comes back. */
-export async function saveHearth($: EngineInterface, m: Memory) {
+export async function saveHearth($: Host, m: Memory) {
   if (onDisk(m)) await $.fs.write(hearthPath(m), JSON.stringify({ compactions: m.heat.compactions, snooze: m.change.snooze }))
 }
 
-export async function restoreHearth($: EngineInterface, m: Memory) {
+export async function restoreHearth($: Host, m: Memory) {
   const text = onDisk(m) ? await readText($, hearthPath(m)) : undefined
   if (text === undefined) return
   const saved = JSON.parse(text) as { compactions?: unknown; snooze?: unknown }

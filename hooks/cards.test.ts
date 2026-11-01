@@ -234,9 +234,9 @@ describe('the words', () => {
   test('every visible text has its letters in the font', () => {
     const prefixes = /^(briefing\.(row|card|chip|jobs|after|carryOn|step|button)|hearth\.|fire\.(stopped|lengthUnknown))/
     for (const dictionary of Object.values(dictionaries)) {
-      for (const [key, text] of Object.entries(dictionary)) {
-        if (!prefixes.test(key)) continue
-        for (const ch of text.replace(/\{\w+\}/g, '')) expect(ch === ' ' || !!GLYPHS[ch], `${key}: ${ch}`).toBe(true)
+      for (const [name, text] of Object.entries(dictionary)) {
+        if (!prefixes.test(name)) continue
+        for (const ch of text.replace(/\{\w+\}/g, '')) expect(ch === ' ' || !!GLYPHS[ch], `${name}: ${ch}`).toBe(true)
       }
     }
   })

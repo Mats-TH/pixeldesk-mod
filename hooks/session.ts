@@ -1,4 +1,5 @@
-import type { EngineInterface, SessionStartInput } from 'claude-code'
+import type { SessionStartInput } from 'claude-code'
+import type { Host } from './host'
 
 import type { Departure } from '../types'
 import { openPane, restoreAgents } from './agents'
@@ -47,14 +48,14 @@ function planSpec() {
 /** The tool that starts a briefing: it takes nothing, and the model sees it from the start. */
 const moveSpec = () => ({ name: 'move', description: t('briefing.toolDescription'), inputSchema: { type: 'object', properties: {} }, isDeferred: false })
 
-async function registerAll($: EngineInterface, m: Memory) {
+async function registerAll($: Host, m: Memory) {
   await guard($, m, 'command', () => $.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|fire on|off|theme <name>|move|compact]', immediate: true }))
   await guard($, m, 'plan tool', () => $.tool.register(planSpec()))
   await guard($, m, 'move tool', () => $.tool.register(moveSpec()))
 }
 
 /** The five-second beat. One at a time: a slow disk does not stack passes up. */
-async function tick($: EngineInterface, m: Memory) {
+async function tick($: Host, m: Memory) {
   if (m.ticking) return
   m.ticking = true
   await guard($, m, 'tokens', () => showTokens($, m))
@@ -66,13 +67,13 @@ async function tick($: EngineInterface, m: Memory) {
 }
 
 /** A hover calls no hook: while the fire burns the pane redraws on a beat, so that an open card keeps its time. */
-async function tickCard($: EngineInterface) {
+async function tickCard($: Host) {
   const hearth = await readHearth($)
   const now = await $.clock.now()
   if (hearth?.coolsAt && hearth.lengthMs && now < hearth.coolsAt) await writeCardClock($, Math.floor(now / TICK_MS))
 }
 
-function startTimers($: EngineInterface, m: Memory) {
+function startTimers($: Host, m: Memory) {
   let minute = 0
   $.clock.every(TICK_MS, () => void tick($, m))
   $.clock.every(SETTINGS_MS, () => void guard($, m, 'settings', () => followSettings($, m)))
@@ -82,7 +83,7 @@ function startTimers($: EngineInterface, m: Memory) {
   })
 }
 
-async function readLimits($: EngineInterface, m: Memory) {
+async function readLimits($: Host, m: Memory) {
   await guard($, m, 'limits', async () => {
     const { rateLimits } = await $.session.usage()
     if (rateLimits.length) await writeLimits($, rateLimits)
@@ -90,7 +91,7 @@ async function readLimits($: EngineInterface, m: Memory) {
 }
 
 /** What a reload or a restart left: the host's copy of the agents, the plan, and, the first time, the saved counts. */
-async function restore($: EngineInterface, m: Memory, first: boolean) {
+async function restore($: Host, m: Memory, first: boolean) {
   await guard($, m, 'turn', () => restoreChat($, m))
   await guard($, m, 'agents', () => restoreAgents($, m))
   await guard($, m, 'plan', () => restorePlan($, m))
@@ -101,7 +102,7 @@ async function restore($: EngineInterface, m: Memory, first: boolean) {
 }
 
 /** Everything `session.start` sets up. A repeat of it, on a resume or a compaction, doubles nothing. */
-export async function startSession($: EngineInterface, m: Memory, e: SessionStartInput) {
+export async function startSession($: Host, m: Memory, e: SessionStartInput) {
   const first = !m.started
   m.started = true
   m.home = await readHome($)
@@ -124,7 +125,7 @@ export async function startSession($: EngineInterface, m: Memory, e: SessionStar
 const OPTION_NAMES: Record<Departure, TextKey> = { plan: 'settings.plan.name', each: 'settings.each.name' }
 
 /** `/pixeldesk departure`: says how desks leave, or changes it. */
-async function runDeparture($: EngineInterface, m: Memory, value: string | undefined) {
+async function runDeparture($: Host, m: Memory, value: string | undefined) {
   if (value === undefined) return { text: t('cmd.departure.current', { name: t(OPTION_NAMES[m.departure]), value: m.departure }) }
   if (value !== 'plan' && value !== 'each') return { text: t('cmd.departure.usage') }
   await setDeparture($, m, value)
@@ -132,7 +133,7 @@ async function runDeparture($: EngineInterface, m: Memory, value: string | undef
 }
 
 /** `/pixeldesk theme`: says which world the rooms stand in, or changes it. */
-async function runTheme($: EngineInterface, m: Memory, value: string | undefined) {
+async function runTheme($: Host, m: Memory, value: string | undefined) {
   const names = ROOM_THEMES.join(', ')
   if (value === undefined) return { text: t('cmd.theme.current', { name: t(`theme.${m.theme}`), names }) }
   if (!isTheme(value)) return { text: t('cmd.theme.usage', { names }) }
@@ -141,7 +142,7 @@ async function runTheme($: EngineInterface, m: Memory, value: string | undefined
 }
 
 /** `/pixeldesk`, with `hide`, `show`, `departure`, `fire`, `theme`, `move`, `compact` or nothing. */
-export async function runCommand($: EngineInterface, m: Memory, args: string) {
+export async function runCommand($: Host, m: Memory, args: string) {
   const word = args.trim().toLowerCase()
   const [head, value, extra] = word.split(/\s+/)
   if (head === 'departure' && extra === undefined) return runDeparture($, m, value)

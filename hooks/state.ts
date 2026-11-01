@@ -1,168 +1,150 @@
-import type { EngineInterface, PluginState } from 'claude-code'
+import type { PluginState } from 'claude-code'
+
+import type { Host } from './host'
 
 type Values = PluginState['pixeldesk']
 
-// The engine reads each reference off the source of the file that uses it: this file is the one that does.
-const AGENTS = { plugin: 'pixeldesk', key: 'agents' } as const
-const CHAT = { plugin: 'pixeldesk', key: 'chat' } as const
-const SETTINGS = { plugin: 'pixeldesk', key: 'settings' } as const
-const LANGUAGE = { plugin: 'pixeldesk', key: 'language' } as const
-const PLAN = { plugin: 'pixeldesk', key: 'plan' } as const
-const SHIMMER = { plugin: 'pixeldesk', key: 'shimmer' } as const
-const LIMITS = { plugin: 'pixeldesk', key: 'limits' } as const
-const MINUTE = { plugin: 'pixeldesk', key: 'minute' } as const
-const CARD_CLOCK = { plugin: 'pixeldesk', key: 'cardClock' } as const
-const SUMMARIES = { plugin: 'pixeldesk', key: 'summaries' } as const
-const SEEN = { plugin: 'pixeldesk', key: 'seen' } as const
-const FLOOR = { plugin: 'pixeldesk', key: 'floor' } as const
-const SUB = { plugin: 'pixeldesk', key: 'sub' } as const
-const TOKENS = { plugin: 'pixeldesk', key: 'tokens' } as const
-const COST = { plugin: 'pixeldesk', key: 'cost' } as const
-const NEWS = { plugin: 'pixeldesk', key: 'news' } as const
-const HEARTH = { plugin: 'pixeldesk', key: 'hearth' } as const
-const BRIEFING = { plugin: 'pixeldesk', key: 'briefing' } as const
-
 // What the host keeps for the session: it outlives a reload, and a read while drawing subscribes the drawing.
-export async function readAgents($: EngineInterface) {
-  return (await $.state.get(AGENTS)).value
+export async function readAgents(host: Host) {
+  return host.values.agents.get()
 }
 
-export function writeAgents($: EngineInterface, value: Values['agents']) {
-  return $.state.set(AGENTS, value)
+export function writeAgents(host: Host, value: Values['agents']) {
+  return host.values.agents.set(value)
 }
 
-export async function readChat($: EngineInterface) {
-  return (await $.state.get(CHAT)).value
+export async function readChat(host: Host) {
+  return host.values.chat.get()
 }
 
-export function writeChat($: EngineInterface, value: Values['chat']) {
-  return $.state.set(CHAT, value)
+export function writeChat(host: Host, value: Values['chat']) {
+  return host.values.chat.set(value)
 }
 
-export async function readSettings($: EngineInterface) {
-  return (await $.state.get(SETTINGS)).value
+export async function readSettings(host: Host) {
+  return host.values.settings.get()
 }
 
-export function writeSettings($: EngineInterface, value: Values['settings']) {
-  return $.state.set(SETTINGS, value)
+export function writeSettings(host: Host, value: Values['settings']) {
+  return host.values.settings.set(value)
 }
 
-export async function readLanguage($: EngineInterface) {
-  return (await $.state.get(LANGUAGE)).value
+export async function readLanguage(host: Host) {
+  return host.values.language.get()
 }
 
-export function writeLanguage($: EngineInterface, value: Values['language']) {
-  return $.state.set(LANGUAGE, value)
+export function writeLanguage(host: Host, value: Values['language']) {
+  return host.values.language.set(value)
 }
 
-export async function readPlan($: EngineInterface) {
-  return (await $.state.get(PLAN)).value
+export async function readPlan(host: Host) {
+  return host.values.plan.get()
 }
 
-export function writePlan($: EngineInterface, value: Values['plan']) {
-  return $.state.set(PLAN, value)
+export function writePlan(host: Host, value: Values['plan']) {
+  return host.values.plan.set(value)
 }
 
-export async function readShimmer($: EngineInterface) {
-  return (await $.state.get(SHIMMER)).value
+export async function readShimmer(host: Host) {
+  return host.values.shimmer.get()
 }
 
-export function writeShimmer($: EngineInterface, value: number) {
-  return $.state.set(SHIMMER, value)
+export function writeShimmer(host: Host, value: number) {
+  return host.values.shimmer.set(value)
 }
 
-export async function readLimits($: EngineInterface) {
-  return (await $.state.get(LIMITS)).value
+export async function readLimits(host: Host) {
+  return host.values.limits.get()
 }
 
-export function writeLimits($: EngineInterface, value: Values['limits']) {
-  return $.state.set(LIMITS, value)
+export function writeLimits(host: Host, value: Values['limits']) {
+  return host.values.limits.set(value)
 }
 
-export async function readMinute($: EngineInterface) {
-  return (await $.state.get(MINUTE)).value
+export async function readMinute(host: Host) {
+  return host.values.minute.get()
 }
 
-export async function readCardClock($: EngineInterface) {
-  return (await $.state.get(CARD_CLOCK)).value
+export async function readCardClock(host: Host) {
+  return host.values.cardClock.get()
 }
 
-export function writeCardClock($: EngineInterface, value: number) {
-  return $.state.set(CARD_CLOCK, value)
+export function writeCardClock(host: Host, value: number) {
+  return host.values.cardClock.set(value)
 }
 
-export function writeMinute($: EngineInterface, value: number) {
-  return $.state.set(MINUTE, value)
+export function writeMinute(host: Host, value: number) {
+  return host.values.minute.set(value)
 }
 
-export async function readSummaries($: EngineInterface) {
-  return (await $.state.get(SUMMARIES)).value
+export async function readSummaries(host: Host) {
+  return host.values.summaries.get()
 }
 
-export function writeSummaries($: EngineInterface, value: Values['summaries']) {
-  return $.state.set(SUMMARIES, value)
+export function writeSummaries(host: Host, value: Values['summaries']) {
+  return host.values.summaries.set(value)
 }
 
-export async function readSeen($: EngineInterface) {
-  return (await $.state.get(SEEN)).value
+export async function readSeen(host: Host) {
+  return host.values.seen.get()
 }
 
-export function writeSeen($: EngineInterface, value: Values['seen']) {
-  return $.state.set(SEEN, value)
+export function writeSeen(host: Host, value: Values['seen']) {
+  return host.values.seen.set(value)
 }
 
-export async function readFloorRooms($: EngineInterface) {
-  return (await $.state.get(FLOOR)).value
+export async function readFloorRooms(host: Host) {
+  return host.values.floor.get()
 }
 
-export function writeFloorRooms($: EngineInterface, value: Values['floor']) {
-  return $.state.set(FLOOR, value)
+export function writeFloorRooms(host: Host, value: Values['floor']) {
+  return host.values.floor.set(value)
 }
 
-export async function readSub($: EngineInterface) {
-  return (await $.state.get(SUB)).value
+export async function readSub(host: Host) {
+  return host.values.sub.get()
 }
 
-export function writeSub($: EngineInterface, value: boolean) {
-  return $.state.set(SUB, value)
+export function writeSub(host: Host, value: boolean) {
+  return host.values.sub.set(value)
 }
 
-export async function readTokens($: EngineInterface) {
-  return (await $.state.get(TOKENS)).value
+export async function readTokens(host: Host) {
+  return host.values.tokens.get()
 }
 
-export function writeTokens($: EngineInterface, value: number) {
-  return $.state.set(TOKENS, value)
+export function writeTokens(host: Host, value: number) {
+  return host.values.tokens.set(value)
 }
 
-export async function readCost($: EngineInterface) {
-  return (await $.state.get(COST)).value
+export async function readCost(host: Host) {
+  return host.values.cost.get()
 }
 
-export function writeCost($: EngineInterface, value: number) {
-  return $.state.set(COST, value)
+export function writeCost(host: Host, value: number) {
+  return host.values.cost.set(value)
 }
 
-export async function readNews($: EngineInterface) {
-  return (await $.state.get(NEWS)).value
+export async function readNews(host: Host) {
+  return host.values.news.get()
 }
 
-export function writeNews($: EngineInterface, value: Values['news']) {
-  return $.state.set(NEWS, value)
+export function writeNews(host: Host, value: Values['news']) {
+  return host.values.news.set(value)
 }
 
-export async function readHearth($: EngineInterface) {
-  return (await $.state.get(HEARTH)).value
+export async function readHearth(host: Host) {
+  return host.values.hearth.get()
 }
 
-export function writeHearth($: EngineInterface, value: Values['hearth']) {
-  return $.state.set(HEARTH, value)
+export function writeHearth(host: Host, value: Values['hearth']) {
+  return host.values.hearth.set(value)
 }
 
-export async function readBriefing($: EngineInterface) {
-  return (await $.state.get(BRIEFING)).value
+export async function readBriefing(host: Host) {
+  return host.values.briefing.get()
 }
 
-export function writeBriefing($: EngineInterface, value: Values['briefing']) {
-  return $.state.set(BRIEFING, value)
+export function writeBriefing(host: Host, value: Values['briefing']) {
+  return host.values.briefing.set(value)
 }

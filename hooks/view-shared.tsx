@@ -1,4 +1,5 @@
-import type { Elements, EngineInterface, RenderInput } from 'claude-code'
+import type { Elements, RenderInput } from 'claude-code'
+import type { Host } from './host'
 
 import { cardPlace } from './card'
 import type { CardDrawing, CardZone } from './card'
@@ -82,7 +83,7 @@ export function liveBox({ Box, Svg }: Table, l: Layer) {
 }
 
 /** A drawing keeps the session's language through a reload that never ran `session.start`. */
-export async function followLanguage($: EngineInterface, m: Memory) {
+export async function followLanguage($: Host, m: Memory) {
   const language = await readLanguage($)
   if (language && !m.forced) setLanguage(language)
 }

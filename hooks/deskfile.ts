@@ -1,4 +1,4 @@
-import type { EngineInterface } from 'claude-code'
+import type { Host } from './host'
 
 import { desk, isWorking, lastAction, seated } from './agents'
 import { chatSummary } from './chat'
@@ -17,7 +17,7 @@ function summaryOf(m: Memory, summaries: Readonly<Record<string, string>>) {
 }
 
 /** The conversation as the others read it. `updatedAt` stays out: it would change the content every time. */
-async function exported($: EngineInterface, m: Memory) {
+async function exported($: Host, m: Memory) {
   const summaries = (await readSummaries($)) ?? {}
   const working = m.agents.filter(isWorking)
   const steps = (m.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))
@@ -39,7 +39,7 @@ async function exported($: EngineInterface, m: Memory) {
 }
 
 /** Writes the file when something changed. A busy conversation still writes once a minute, not to pass for dead. */
-export async function writeDesk($: EngineInterface, m: Memory) {
+export async function writeDesk($: Host, m: Memory) {
   if (!onDisk(m)) return
   const body = await exported($, m)
   const content = JSON.stringify(body)
@@ -52,7 +52,7 @@ export async function writeDesk($: EngineInterface, m: Memory) {
 }
 
 /** The saved file of this conversation, for what survives a restart; empty when it is missing or broken. */
-export async function readOwnDesk($: EngineInterface, m: Memory): Promise<{ tokens?: unknown; news?: unknown }> {
+export async function readOwnDesk($: Host, m: Memory): Promise<{ tokens?: unknown; news?: unknown }> {
   const text = onDisk(m) ? await readText($, deskPath(m, m.sessionId)) : undefined
   if (text === undefined) return {}
   const json = await guard($, m, 'desk file', (): unknown => JSON.parse(text))
