@@ -25,10 +25,10 @@
 </p>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Une conversation avec la barre en direct au-dessus de la saisie, et la pièce à côté. Le même moment passe dans les six thèmes : le gardien apporte une bûche et le feu repart." width="880">
+  <img src="assets/hero.png" alt="Les six thèmes de PixelDesk Mod en colonnes obliques : Cosy, Japonais, Nature, Futuriste, Geek et Base, chacun avec son décor, son feu et un bureau" width="880">
 </p>
 
-<p align="center"><sub>Une maquette, dessinée par le code du mod. La barre, la pièce et le gardien sont les vrais dessins.</sub></p>
+<p align="center"><sub>Les six thèmes réunis dans un montage, à partir des vrais dessins du mod.</sub></p>
 
 PixelDesk Mod ajoute à Claude Code une interface en pixel art, sous la forme d'un petit bureau.
 
@@ -88,6 +88,12 @@ Il te faut Git sur ta machine : le plugin est récupéré depuis GitHub.
 </details>
 
 ## Ce que PixelDesk Mod affiche à l'écran
+
+<p align="center">
+  <img src="assets/demo.gif" alt="Une conversation avec la barre en direct au-dessus de la saisie, et la pièce à côté. Le même moment passe dans les six thèmes : le gardien apporte une bûche et le feu repart." width="880">
+</p>
+
+<p align="center"><sub>Une maquette, dessinée par le code du mod. La barre, la pièce et le gardien sont les vrais dessins.</sub></p>
 
 <table>
   <tr>
