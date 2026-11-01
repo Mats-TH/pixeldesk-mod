@@ -675,7 +675,7 @@ export const geekMap: MapPack = {
       const atWork = r.people[0]?.hue === 0
       const crew = atWork ? r.people.slice(1) : r.people
       const seat = atWork ? 'working' : 'rest'
-      const name = t('role.manager')
+      const name = r.post
       const nameX = Math.round(60 - textWidth(name, 16) / 2)
       const manager = `<g transform="translate(244 100)">${useAt(need('gkS', ART.chaise), 0, 0)}${useAt(need('gkPCorail', () => person('Corail')), 44, -4)}${useAt(need(`gkD${seat}`, () => bureau(seat)), 0, 0)}${atWork ? '' : `<path fill="${CR}" d="${ZZ}"/>`}${rail()}${write(name, nameX, 61, 16, '#1B1730')}</g>`
       const pile = Math.min(v.news.shown, 3)

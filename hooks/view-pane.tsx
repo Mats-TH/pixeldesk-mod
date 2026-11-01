@@ -5,10 +5,10 @@ import { healed, sayOf, seated, summaryOf } from './agents'
 import { managerSay } from './chat'
 import { keptRoom } from './desks'
 import type { FloorRoom } from './desks'
-import { t } from './i18n'
+import { postName, t } from './i18n'
 import { NO_TURN } from './memory'
 import type { Memory } from './memory'
-import { readAgents, readCardClock, readChat, readFloorRooms, readBriefing, readHearth, readMinute, readNews, readPlan, readSeen, readSettings, readSummaries, readTokens, readCost } from './state'
+import { readAgents, readCardClock, readChat, readFloorRooms, readBriefing, readHearth, readMinute, readNews, readPlan, readSeen, readSettings, readSub, readSummaries, readTokens, readCost } from './state'
 import { floorView } from './view-floor'
 import { roomView } from './view-room'
 import type { RoomView } from './view-room'
@@ -22,11 +22,11 @@ const HEADER_COLOR = '#eab308'
 const LINE = 'truncate-end'
 
 /** The manager's line, whatever else the list holds. */
-function managerRow({ Box, Text }: Words, chat: ChatTurn, plan: DrawnPlan | null) {
+function managerRow({ Box, Text }: Words, chat: ChatTurn, plan: DrawnPlan | null, sub: boolean) {
   const [mark, say] = chat.working ? ['●', managerSay(chat, plan)] : ['○', t('state.rest')]
   return (
     <Box key="row-manager">
-      <Text wrap={LINE}>{t('pane.rowAgent', { mark, description: t('role.manager'), say })}</Text>
+      <Text wrap={LINE}>{t('pane.rowAgent', { mark, description: postName(sub), say })}</Text>
     </Box>
   )
 }
@@ -40,7 +40,7 @@ function roomRows({ Text }: Words, rooms: readonly FloorRoom[]) {
 }
 
 /** The pane in words, for a surface with no drawing and for a room too large to draw. */
-function listView(ui: Words, width: number, agents: readonly AgentRecord[], summaries: Readonly<Record<string, string>>, rooms: readonly FloorRoom[], chat: ChatTurn, plan: DrawnPlan | null) {
+function listView(ui: Words, width: number, agents: readonly AgentRecord[], summaries: Readonly<Record<string, string>>, rooms: readonly FloorRoom[], chat: ChatTurn, plan: DrawnPlan | null, sub: boolean) {
   const { Box, Text } = ui
   return (
     <Box flexDirection="column" width={width}>
@@ -48,7 +48,7 @@ function listView(ui: Words, width: number, agents: readonly AgentRecord[], summ
         <Text bold>{t('pane.header')}</Text>
         <Text color={HEADER_COLOR}>{summaryOf(agents)}</Text>
       </Box>
-      {managerRow(ui, chat, plan)}
+      {managerRow(ui, chat, plan, sub)}
       {agentRows(ui, agents, summaries)}
       {roomRows(ui, rooms)}
     </Box>
@@ -68,7 +68,8 @@ export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
   const agents = seated(((await readAgents($)) ?? []).map(healed))
   const rooms = ((await readFloorRooms($)) ?? []).map(keptRoom)
   const chat = (await readChat($)) ?? NO_TURN
-  const words = () => listView($.ui.resolve(e) as unknown as Words, Math.max(1, e.props.bodyColumns || 0), agents, summaries, rooms, chat, plan)
+  const sub = (await readSub($)) ?? false
+  const words = () => listView($.ui.resolve(e) as unknown as Words, Math.max(1, e.props.bodyColumns || 0), agents, summaries, rooms, chat, plan, sub)
   if (e.surface === 'terminal') return words()
   const ui = $.ui.resolve(e) as unknown as Table
   const frame = frameOf(e)
@@ -77,8 +78,8 @@ export async function drawPane($: EngineInterface, m: Memory, e: Pane) {
   const settings = (await readSettings($)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme }
   if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile, settings)
   const seen = (await readSeen($)) ?? { shown: agents.length, previous: agents.length }
-  const view: RoomView = { agents, summaries, plan, seen, tokens, cost, now, chat, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
+  const view: RoomView = { agents, summaries, plan, seen, tokens, cost, now, chat, sub, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
   const list = $.ui.resolve(e) as unknown as Words
-  const rows = mobile ? [managerRow(list, chat, plan), ...agentRows(list, agents, summaries)] : null
+  const rows = mobile ? [managerRow(list, chat, plan, sub), ...agentRows(list, agents, summaries)] : null
   return (await roomView($, m, ui, frame, view, mobile, rows)) ?? words()
 }

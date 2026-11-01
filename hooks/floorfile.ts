@@ -1,14 +1,14 @@
 import type { EngineInterface } from 'claude-code'
 
 import { paneOpen } from './agents'
-import { floorIds, floorRooms, parseSession } from './desks'
+import { floorIds, floorRooms, parseSession, subOf } from './desks'
 import type { DeskExport, FloorRoom, SessionLink } from './desks'
 import { deskPath, guard, listed, onDisk, readText, stateDir } from './disk'
 import { slashed } from './lines'
 import type { Memory } from './memory'
 import { isOpen } from './plan'
 import { zoomAgain } from './room'
-import { readFloorRooms, writeFloorRooms } from './state'
+import { readFloorRooms, readSub, writeFloorRooms, writeSub } from './state'
 
 const LINKS_MS = 60_000
 const MAX_DEPTH = 3
@@ -77,6 +77,9 @@ export async function readFloor($: EngineInterface, m: Memory) {
   if (isOpen(m.plan) && m.change.phase !== 'waiting' && !(await paneOpen($))) return
   const now = await $.clock.now()
   const links = await linksNow($, m, now)
+  // Links that do not hold this conversation say nothing of it: what was known stays.
+  const sub = subOf(m.sessionId, links)
+  if (sub !== null && sub !== (await readSub($))) await writeSub($, sub)
   const rooms: FloorRoom[] = floorRooms(m.sessionId, links, await readExports($, m, links), now)
   const before = (await readFloorRooms($)) ?? []
   m.floorBefore = before.length

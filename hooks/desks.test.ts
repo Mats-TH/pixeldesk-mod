@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STALE_MS, floorIds, floorRooms, isMail, isOwner, keptRoom, parseSession, projectRoot, roleOf, LEAVE_MS, departureOf, leaveAhead, leavers, managerOf } from './desks'
+import { STALE_MS, floorIds, floorRooms, isMail, isOwner, keptRoom, parseSession, projectRoot, roleOf, LEAVE_MS, departureOf, leaveAhead, leavers, managerOf, subOf } from './desks'
 import type { DeskExport, FloorRoom, SessionLink } from './desks'
 
 const NOW = 1_000_000
@@ -144,6 +144,25 @@ test('the person writes at the keyboard, remotely or from the app', async () => 
 })
 
 const exported = (over: Partial<DeskExport>): DeskExport => ({ sessionId: 'kid', title: '', agents: 0, working: 0, summary: '', updatedAt: 1_000_000, cwd: '/p', desks: [], steps: [], tokens: 0, ...over })
+test('a room knows if its conversation was started from another', async () => {
+  const links = [link('top', null), link('m', 'local_top'), link('a', 'local_m')]
+  expect(floorRooms('m', links, [], NOW).map(r => r.sub), 'a parent of its own, and its child').toEqual([true, true])
+  expect(floorRooms('top', links, [], NOW).map(r => r.sub), 'no parent, then its child').toEqual([false, true])
+})
+
+test('with no links only the first room can be the main one: the others are told apart from it', async () => {
+  const rooms = floorRooms('m', [], [ex('m', 1), ex('a', 1)], NOW)
+  expect(rooms.map(r => r.sub)).toEqual([false, true])
+})
+
+test('the links say if a conversation has a parent, and say nothing of one they do not hold', async () => {
+  const links = [link('top', null), link('m', 'local_top')]
+  expect(subOf('m', links), 'started from another').toBe(true)
+  expect(subOf('top', links), 'the main one').toBe(false)
+  expect(subOf('autre', links), 'missing from the links').toBeNull()
+  expect(subOf('m', []), 'no links').toBeNull()
+})
+
 const kidState = (over: Partial<DeskExport>, now = 1_000_000) => floorRooms('me', [{ cli: 'me', local: 'lme', title: 'M', parent: null, archived: false }, { cli: 'kid', local: 'lk', title: 'K', parent: 'lme', archived: false }], [exported(over)], now)[1]!.state
 
 test('the state of a sub-conversation comes from its latest export', async () => {

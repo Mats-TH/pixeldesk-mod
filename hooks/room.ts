@@ -1,7 +1,7 @@
 import type { ManagerDesk, PlanLine, PlanStatus, RoomTheme } from '../types'
 import { drawRoom, seedOf } from './draw'
 import type { Box, DrawnRoom } from './draw'
-import { getLanguage, t } from './i18n'
+import { getLanguage, postName, t } from './i18n'
 import type { Canvas } from './pixel/canvas'
 import { bulle, caseEtape } from './pixel/decor'
 import { fit, textWidth } from './pixel/font'
@@ -30,7 +30,7 @@ export type HearthPanel = { title: string; sub: string; letter: EnvelopeState; b
 export type HearthLook = { fire: FireLevel; ash: AshLevel; letter: EnvelopeState | null; panel: HearthPanel | null }
 export const COLD_HEARTH: HearthLook = { fire: 'out', ash: 'none', letter: null, panel: null }
 /** `desks`: the agents, the manager apart: he is no arrival and his desk never leaves. `settings`: the button stands in the corner. */
-export type RoomInput = { sessionId: string; desks: RoomDesk[]; manager: ManagerDesk; previous: number; steps: PlanLine[]; tokens: number; width: number; height: number; settings?: boolean; hearth?: HearthLook; theme?: RoomTheme; cost?: number | null }
+export type RoomInput = { sessionId: string; desks: RoomDesk[]; manager: ManagerDesk; sub?: boolean; previous: number; steps: PlanLine[]; tokens: number; width: number; height: number; settings?: boolean; hearth?: HearthLook; theme?: RoomTheme; cost?: number | null }
 /** What of a room moves on its own, for the layers: the lights on the wall as one path each, what its theme sets moving, and the floor the crab has. */
 export type SceneLife = { lights: { odd: string; even: string; box: Box | null }; moving: Moving[]; ground: Ground }
 /** A room ready to be placed: its body, the definitions it needs, by id, the letters it writes, and what its CSS adds. */
@@ -359,8 +359,8 @@ export function work(d: RoomDesk, i: number, lean: boolean) {
 const RAIL_RECT = `<rect x="8" y="52" width="104" height="8" fill="${RAIL_BACK}"/>`
 
 /** The manager as a desk: at work he shows his plan, at rest his desk stays closed. */
-export const managerSeat = (m: ManagerDesk): RoomDesk =>
-  m.working ? { title: t('role.manager'), state: 'working', hue: 0, done: m.done ?? 0, total: m.total ?? 0, live: m.live ?? false } : { title: t('role.manager'), state: 'done', hue: 0, rest: true }
+export const managerSeat = (m: ManagerDesk, sub?: boolean): RoomDesk =>
+  m.working ? { title: postName(sub), state: 'working', hue: 0, done: m.done ?? 0, total: m.total ?? 0, live: m.live ?? false } : { title: postName(sub), state: 'done', hue: 0, rest: true }
 export const deskId = (d: RoomDesk) => `desk-${d.rest ? 'rest' : d.state}`
 
 /**
@@ -622,7 +622,7 @@ export function roomScene(p: RoomInput, o: SceneOptions = {}): Scene {
   const n = p.desks.length
   // A state saved by an older version may still seat an agent in the manager's colours.
   const agents = p.desks.map(d => ({ ...d, hue: agentHue(d.hue) }))
-  const boss = managerSeat(p.manager)
+  const boss = managerSeat(p.manager, p.sub)
   const pack = packOf(p.theme)
   const seed = seedOf(p.sessionId)
   const v = sized(n, p.width, p.height, p.theme)

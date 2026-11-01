@@ -966,7 +966,7 @@ function chiefHouse(room: MapRoom, v: MapView, need: (id: string) => void) {
   else if (board.h < 160 && v.detail < 4) at('bn', 42, 290)
   parts.push(board.svg)
   at('bx', 222, 252)
-  const manager = t('role.manager')
+  const manager = room.post
   const plate = `<rect x="152" y="186" width="100" height="19" fill="#3B2318"/><rect x="154" y="188" width="96" height="15" fill="${CR}"/>`
   const title = fit(room.title, 18, 252)
   const more = moreOf(team.length)

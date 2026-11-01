@@ -1,8 +1,10 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { RoomTheme } from '../types'
+import { roomCard } from './card'
 import { floorBoxes, floorCountSvg, floorSvg, shownRooms } from './floor'
 import type { FloorRoom } from './desks'
+import { setLanguage } from './i18n'
 import { packOf } from './pixel/themes'
 
 const THEMES: RoomTheme[] = ['cosy', 'japonais', 'nature', 'futuriste', 'geek', 'base']
@@ -21,6 +23,31 @@ test('the world keeps the one that leads, then those at work first', async () =>
 
 test('past eleven, the world says how many it leaves out', async () => {
   expect(floorSvg(floor('cosy', rooms(11))).length).toBeLessThan(floorSvg(floor('cosy', rooms(14))).length)
+})
+
+// The themes that write the name on the desk of the conversation that leads.
+for (const theme of ['cosy', 'nature', 'geek'] as const) {
+  test(`${theme}: the name on the desk that leads is its conversation's`, async () => {
+    const letters = (sub: boolean) => floorSvg(floor(theme, [{ ...room(0, 0), sub }, { ...room(1, 0), sub: true }]))
+    for (const [language, first] of [['fr', '#P'], ['en', '#B']] as const) {
+      setLanguage(language)
+      expect(letters(false), `${language}: the main one`).toContain(`href="${first}"`)
+      expect(letters(false), `${language}: the main one`).not.toContain('href="#M"')
+      expect(letters(true), `${language}: started from another`).toContain('href="#M"')
+      expect(letters(true), `${language}: started from another`).not.toContain(`href="${first}"`)
+    }
+    setLanguage('fr')
+  })
+}
+
+test('on a floor each conversation says its own name, in both languages', async () => {
+  const kid = { ...room(1, 0), manager: { working: true }, sub: true }
+  expect(roomCard({ ...kid, sub: false }, 0).meta, 'the one main conversation').toBe('Patron au travail')
+  expect(roomCard(kid, 0).meta, 'a sub-conversation').toBe('Manager au travail')
+  setLanguage('en')
+  expect(roomCard({ ...kid, sub: false }, 0).meta).toBe('Boss working')
+  expect(roomCard(kid, 0).meta).toBe('Manager working')
+  setLanguage('fr')
 })
 
 for (const theme of THEMES) {

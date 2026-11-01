@@ -80,7 +80,8 @@ export const fr = {
   'room.decimal': ',',
   // The posts of the desks.
   'role.researcher': 'Chercheur',
-  'role.manager': 'Patron',
+  'role.boss': 'Patron',
+  'role.manager': 'Manager',
   'role.reviewer': 'Relecteur',
   'role.tester': 'Testeur',
   'role.designer': 'Designer',
@@ -117,8 +118,10 @@ export const fr = {
   'manager.waiting': 'Attend ta prochaine demande.',
   'manager.thinking': 'Réfléchit à la suite',
   'manager.lastWork': 'Dernier travail il y a {m} min',
-  'manager.working': 'Patron au travail',
-  'manager.resting': 'Patron au repos',
+  'boss.working': 'Patron au travail',
+  'boss.resting': 'Patron au repos',
+  'manager.working': 'Manager au travail',
+  'manager.resting': 'Manager au repos',
   'desk.chatWorking': 'Travaille',
   // The settings panel.
   'floor.more': 'et {n} de plus',
@@ -268,7 +271,8 @@ export const en: Record<TextKey, string> = {
   'room.decimal': '.',
   // The posts of the desks.
   'role.researcher': 'Researcher',
-  'role.manager': 'Boss',
+  'role.boss': 'Boss',
+  'role.manager': 'Manager',
   'role.reviewer': 'Reviewer',
   'role.tester': 'Tester',
   'role.designer': 'Designer',
@@ -305,8 +309,10 @@ export const en: Record<TextKey, string> = {
   'manager.waiting': 'Waiting for your next request.',
   'manager.thinking': 'Thinking about what comes next',
   'manager.lastWork': 'Last worked {m} min ago',
-  'manager.working': 'Boss working',
-  'manager.resting': 'Boss at rest',
+  'boss.working': 'Boss working',
+  'boss.resting': 'Boss at rest',
+  'manager.working': 'Manager working',
+  'manager.resting': 'Manager at rest',
   'desk.chatWorking': 'Working',
   // The settings panel.
   'floor.more': 'and {n} more',
@@ -400,6 +406,12 @@ const filled = (text: string, values: Values) =>
 
 /** The text under `key` in the current language, `{name}` holes filled from `values`. */
 export const t = (key: TextKey, values: Values = {}) => filled(dictionaries[current][key], values)
+
+/** The name at a conversation's own desk: the boss is the main one, a conversation started from another a manager. */
+export const postName = (sub?: boolean) => t(sub ? 'role.manager' : 'role.boss')
+
+/** The same name with where it stands. */
+export const postState = (sub: boolean | undefined, working: boolean) => t(sub ? (working ? 'manager.working' : 'manager.resting') : working ? 'boss.working' : 'boss.resting')
 
 /** Which of the two pairs: French counts from 0, English from the plural onwards. */
 const form = (count: number) => (count === 1 || (current === 'fr' && count === 0) ? 'one' : 'other')

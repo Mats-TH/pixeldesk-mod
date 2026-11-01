@@ -513,7 +513,7 @@ function bigCamp(s: Sheet, v: MapView, plan: Plan) {
     return seated(s, p, ox + sx * 2, oy + sy * 2)
   })
   const [dx, dy] = [ox + 128, oy + 96]
-  const label = t('role.manager')
+  const label = r.post
   const nap = manager ? '' : `<path transform="translate(${dx} ${dy})" fill="${CR}" d="${ZZ}"/>`
   const post = `${s.put('toile', dx - 4, dy - 44)}${s.put('chef', dx + 44, dy - 4)}${s.put(manager ? 'etabli' : 'etabliR', dx, dy)}${nap}${progress(v.list, dx + 8, dy + 52)}${s.write(label, dx + 60 - textWidth(label, 16) / 2, dy + 60, 16, NIGHT)}`
   const fire = `${s.put('foyer', ox + 240, oy + 80)}${v.liveFire ? '' : use('brasier', ox + 240, oy + 80)}`
