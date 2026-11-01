@@ -54,7 +54,7 @@ export type Moving = { key: string; box: { x: number; y: number; w: number; h: n
 /** The world a floor is drawn on, the same in every theme. */
 export const WORLD = { w: 780, h: 760 }
 /** A conversation as its world shows it. `people`: who is at work there, the manager first. `rest`: seen at a glance. */
-export type MapRoom = { id: string; seed: number; title: string; meta: string; rest: boolean; chief: boolean; people: { hue: number; state: DeskState }[]; working: number }
+export type MapRoom = { id: string; seed: number; title: string; post: string; meta: string; rest: boolean; chief: boolean; people: { hue: number; state: DeskState }[]; working: number }
 /**
  * What a world draws from. `list`: the conversations the one that leads lists on its board. `news`: what reached its
  * tray, and whether one is on its way, for `flightS` seconds. `detail` grows from 0 to 7 while the drawing weighs too much.

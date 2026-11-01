@@ -10,7 +10,7 @@ import { hearthCard } from './card-hearth'
 import { managerSay, minutesBetween } from './chat'
 import { managerOf } from './desks'
 import { log } from './disk'
-import { plural, t } from './i18n'
+import { plural, postState, t } from './i18n'
 import type { Memory } from './memory'
 import { COLD_HEARTH, boardLines, deskBoxes, hearthBox, letterBox, lineSvg, managerBox, roomBackSvg, roomCountSvg, roomSvg, settled, viewOf, zoomPair } from './room'
 import type { HearthLook, HearthPanel, RoomDesk, RoomInput } from './room'
@@ -35,6 +35,7 @@ export type RoomView = {
   cost: number | null
   now: number
   chat: ChatTurn
+  sub: boolean
   settings: SettingsView
   hearth: Hearth | null
   briefing: Briefing | null
@@ -63,12 +64,12 @@ function deskZones(ui: Table, view: RoomView, frame: Frame, panel: PanelCells | 
 }
 
 /** The manager's card: what the conversation is doing, or how long it has been at rest. */
-function managerCardOf({ chat, plan, now }: RoomView) {
+function managerCardOf({ chat, plan, now, sub }: RoomView) {
   if (chat.working) {
     const meta = plural('pane.meta', chat.count, { m: minutesBetween(chat.since, now), n: chat.count })
-    return managerCard({ working: true, title: plan?.title ?? '', text: managerSay(chat, plan), meta, plan: plan?.steps ?? [] })
+    return managerCard({ working: true, title: plan?.title ?? '', text: managerSay(chat, plan), meta, plan: plan?.steps ?? [], sub })
   }
-  return managerCard({ working: false, title: '', text: '', meta: chat.ended ? t('manager.lastWork', { m: minutesBetween(chat.ended, now) }) : '', plan: [] })
+  return managerCard({ working: false, title: '', text: '', meta: chat.ended ? t('manager.lastWork', { m: minutesBetween(chat.ended, now) }) : '', plan: [], sub })
 }
 
 /** The manager's hover zone. On a phone it stands bare: nothing hovers there. */
@@ -256,14 +257,14 @@ export async function roomView($: EngineInterface, m: Memory, ui: Table, frame: 
   const steps = (view.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))
   const manager = managerOf(view.chat.working ? 'working' : undefined, steps)
   const look = hearthLook(m, view)
-  const input: RoomInput = { sessionId: m.sessionId, desks, manager, previous: desks.length, steps, tokens: view.tokens, cost: view.cost, theme: view.settings.theme, width: frame.width, height: frame.height, hearth: look, ...(mobile ? {} : { settings: true }) }
+  const input: RoomInput = { sessionId: m.sessionId, desks, manager, sub: view.sub, previous: desks.length, steps, tokens: view.tokens, cost: view.cost, theme: view.settings.theme, width: frame.width, height: frame.height, hearth: look, ...(mobile ? {} : { settings: true }) }
   // A phone's web view moves an image: the room stays whole there. On the desktop an image stands still.
   const pair = drawings(m, input, Math.min(view.seen.previous, desks.length), mobile ? roomSvg : roomBackSvg, !mobile)
   if (pair.image.sent.length > SVG_MAX) {
     await log($, m, `room drawing too large: ${pair.image.sent.length}`)
     return null
   }
-  const alt = plural('pane.roomAlt', desks.length, { n: desks.length, summary: summaryOf(view.agents), manager: t(view.chat.working ? 'manager.working' : 'manager.resting') })
+  const alt = plural('pane.roomAlt', desks.length, { n: desks.length, summary: summaryOf(view.agents), manager: postState(view.sub, view.chat.working) })
   const image = <Svg key="room-svg" source={pair.image.sent} alt={alt} width={frame.width} height={frame.height} />
   const count = (
     <Box key="room-count" position="absolute" left={0} top={0} width="100%" height="100%" flexDirection="column">

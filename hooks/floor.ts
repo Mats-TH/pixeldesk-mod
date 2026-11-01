@@ -2,7 +2,7 @@ import type { RoomTheme } from '../types'
 import type { FloorRoom, KidState } from './desks'
 import { seedOf } from './draw'
 import type { Box } from './draw'
-import { getLanguage, plural, t } from './i18n'
+import { getLanguage, plural, postName, postState, t } from './i18n'
 import { mix } from './pixel/canvas'
 import { textWidth } from './pixel/font'
 import { WORLD } from './pixel/pack'
@@ -55,13 +55,13 @@ function metaOf(r: FloorRoom, i: number) {
   const agents = i ? r.agents : r.agents + 1
   const count = agents ? plural('overview.agents', agents, { n: agents }) : t('band.idle')
   if (i === 0) return t('floor.meta', { count, summary: r.summary || t('floor.coordinates') })
-  return agents ? t('floor.working', { count }) : r.manager?.working ? t('manager.working') : count
+  return agents ? t('floor.working', { count }) : r.manager?.working ? postState(r.sub, true) : count
 }
 
 function mapRoom(r: FloorRoom, i: number): MapRoom {
   const manager = r.manager ?? AT_REST
   const people = [...(manager.working ? [{ hue: 0, state: 'working' as const }] : []), ...r.desks.map(d => ({ hue: d.hue, state: d.state }))]
-  return { id: r.id, seed: seedOf(r.id), title: r.title, meta: metaOf(r, i), rest: isDim(r, i), chief: i === 0, people, working: r.working + (manager.working ? 1 : 0) }
+  return { id: r.id, seed: seedOf(r.id), title: r.title, post: postName(r.sub), meta: metaOf(r, i), rest: isDim(r, i), chief: i === 0, people, working: r.working + (manager.working ? 1 : 0) }
 }
 
 function viewOf(p: FloorInput, detail: number): MapView {

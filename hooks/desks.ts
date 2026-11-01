@@ -12,7 +12,7 @@ export type ChatState = 'working' | 'done' | 'failed'
 export type KidState = ChatState | 'idle'
 export type DeskExport = { sessionId: string; title: string; agents: number; working: number; summary: string; updatedAt: number; cwd: string; desks: RoomDesk[]; steps: PlanLine[]; tokens: number; since?: number; chat?: ChatState; news?: number; manager?: ManagerDesk }
 export type SessionLink = { cli: string; local: string; title: string; parent: string | null; archived: boolean }
-export type FloorRoom = { id: string; title: string; agents: number; working: number; summary: string; desks: RoomDesk[]; steps: PlanLine[]; tokens: number; since?: number; state?: KidState; manager?: ManagerDesk }
+export type FloorRoom = { id: string; title: string; agents: number; working: number; summary: string; desks: RoomDesk[]; steps: PlanLine[]; tokens: number; since?: number; state?: KidState; manager?: ManagerDesk; sub?: boolean }
 
 export const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 
@@ -95,7 +95,7 @@ export const leaveAhead = (list: readonly { phase: AgentPhase }[], mode: Departu
 /** The manager of a conversation: its own turn and its plan, whatever its agents do. */
 export const managerOf = (chat: ChatState | undefined, steps: readonly { status: PlanStatus }[]): ManagerDesk => ({ working: chat === 'working', ...progressOf(steps) })
 
-const roomOf = (id: string, title: string, e: DeskExport | undefined, now: number): FloorRoom => {
+const roomOf = (id: string, title: string, e: DeskExport | undefined, now: number, sub: boolean): FloorRoom => {
   const live = !!e && now - e.updatedAt < STALE_MS
   return {
     id,
@@ -111,7 +111,14 @@ const roomOf = (id: string, title: string, e: DeskExport | undefined, now: numbe
     state: stateOfExport(e, live),
     // An older file says it all the same, through its turn and its plan. A silent conversation works no more.
     manager: live ? e!.manager ?? managerOf(e!.chat, e!.steps ?? []) : AT_REST,
+    sub,
   }
+}
+
+/** Whether a conversation was started from another; null when the links do not hold it. */
+export function subOf(me: string, links: readonly SessionLink[]) {
+  const mine = links.find(l => l.cli === me)
+  return mine ? mine.parent !== null : null
 }
 
 /** Which conversations make up the floor; null when nothing links them and the project decides. */
@@ -130,12 +137,13 @@ export function floorRooms(me: string, links: readonly SessionLink[], exports: r
     if (!mine) return []
     const kids = links.filter(l => l.parent === mine.local && !l.archived)
     if (!kids.length) return []
-    return [mine, ...kids].map(l => roomOf(l.cli, l.title, byId.get(l.cli), now))
+    return [mine, ...kids].map(l => roomOf(l.cli, l.title, byId.get(l.cli), now, l.parent !== null))
   }
   const own = byId.get(me)
   if (!own) return []
   const root = projectRoot(own.cwd)
   const same = exports.filter(e => projectRoot(e.cwd) === root)
   if (same.length < 2) return []
-  return [own, ...same.filter(e => e !== own)].map(e => roomOf(e.sessionId, e.title, e, now))
+  // Nothing says who started whom here: the one boss of the floor is the conversation that leads it.
+  return [own, ...same.filter(e => e !== own)].map(e => roomOf(e.sessionId, e.title, e, now, e !== own))
 }

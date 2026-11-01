@@ -15,6 +15,7 @@ const CARD_CLOCK = { plugin: 'pixeldesk', key: 'cardClock' } as const
 const SUMMARIES = { plugin: 'pixeldesk', key: 'summaries' } as const
 const SEEN = { plugin: 'pixeldesk', key: 'seen' } as const
 const FLOOR = { plugin: 'pixeldesk', key: 'floor' } as const
+const SUB = { plugin: 'pixeldesk', key: 'sub' } as const
 const TOKENS = { plugin: 'pixeldesk', key: 'tokens' } as const
 const COST = { plugin: 'pixeldesk', key: 'cost' } as const
 const NEWS = { plugin: 'pixeldesk', key: 'news' } as const
@@ -116,6 +117,14 @@ export async function readFloorRooms($: EngineInterface) {
 
 export function writeFloorRooms($: EngineInterface, value: Values['floor']) {
   return $.state.set(FLOOR, value)
+}
+
+export async function readSub($: EngineInterface) {
+  return (await $.state.get(SUB)).value
+}
+
+export function writeSub($: EngineInterface, value: boolean) {
+  return $.state.set(SUB, value)
 }
 
 export async function readTokens($: EngineInterface) {

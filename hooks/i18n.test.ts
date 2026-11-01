@@ -133,9 +133,16 @@ describe('plurals', () => {
   })
 })
 
-test('the conversation that leads is the boss, in every language', async () => {
-  expect([fr['role.manager'], en['role.manager']]).toEqual(['Patron', 'Boss'])
-  expect([fr['manager.working'], fr['manager.resting']]).toEqual(['Patron au travail', 'Patron au repos'])
-  expect([en['manager.working'], en['manager.resting']]).toEqual(['Boss working', 'Boss at rest'])
-  for (const words of [fr, en]) expect(Object.values(words).filter(text => /manager/i.test(text.replace('{manager}', '')))).toEqual([])
+test('the main conversation is the boss, in every language', async () => {
+  expect([fr['role.boss'], en['role.boss']]).toEqual(['Patron', 'Boss'])
+  expect([fr['boss.working'], fr['boss.resting']]).toEqual(['Patron au travail', 'Patron au repos'])
+  expect([en['boss.working'], en['boss.resting']]).toEqual(['Boss working', 'Boss at rest'])
+})
+
+test('a sub-conversation is a manager, in every language', async () => {
+  expect([fr['role.manager'], en['role.manager']]).toEqual(['Manager', 'Manager'])
+  expect([fr['manager.working'], fr['manager.resting']]).toEqual(['Manager au travail', 'Manager au repos'])
+  expect([en['manager.working'], en['manager.resting']]).toEqual(['Manager working', 'Manager at rest'])
+  const own = ['role.manager', 'manager.working', 'manager.resting']
+  for (const words of [fr, en]) expect(Object.entries(words).filter(([key, text]) => !own.includes(key) && /manager/i.test(text.replace('{manager}', '')))).toEqual([])
 })

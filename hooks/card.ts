@@ -1,7 +1,7 @@
 import type { CompactBefore, Departure, BriefingMode, PlanLine, SettingsView, RoomTheme } from '../types'
 import { plain } from './desks'
 import type { FloorRoom } from './desks'
-import { decides, getLanguage, plural, t } from './i18n'
+import { decides, getLanguage, plural, postName, postState, t } from './i18n'
 import type { TextKey } from './i18n'
 import { canvas, paths } from './pixel/canvas'
 import { fit, textWidth, wrap } from './pixel/font'
@@ -23,7 +23,7 @@ export type Card = {
   hue: number | null
 }
 /** The manager's card. `title`: the name of the plan. `text` and `meta`: what the chat does, and for how long. */
-export type CardManager = { working: boolean; title: string; text: string; meta: string; plan: readonly PlanLine[] }
+export type CardManager = { working: boolean; title: string; text: string; meta: string; plan: readonly PlanLine[]; sub?: boolean }
 export type CardAgent = { role: string; task: string; text: string; meta: string; state: DeskState; hue: number; plan: readonly PlanLine[] }
 export type CardDrawing = { source: string; width: number; height: number }
 /** A card that draws itself: the hearth's and the briefing's. `cardSvg` and `cardAlt` take it as any other. */
@@ -99,8 +99,8 @@ export function agentCard(c: CardAgent): Card {
 
 /** The manager's card: at work, as an agent's with the plan of the chat; at rest, no block of progress. */
 export function managerCard(m: CardManager): Card {
-  if (m.working) return agentCard({ role: t('role.manager'), task: m.title || t('manager.noPlan'), text: m.text, meta: m.meta, state: 'working', hue: 0, plan: m.plan })
-  return { title: t('role.manager'), task: t('manager.noTask'), text: t('manager.waiting'), label: '', cells: [], dots: null, step: '', meta: m.meta, chip: 'rest', hue: 0 }
+  if (m.working) return agentCard({ role: postName(m.sub), task: m.title || t('manager.noPlan'), text: m.text, meta: m.meta, state: 'working', hue: 0, plan: m.plan })
+  return { title: postName(m.sub), task: t('manager.noTask'), text: t('manager.waiting'), label: '', cells: [], dots: null, step: '', meta: m.meta, chip: 'rest', hue: 0 }
 }
 
 /** The card of a room of the floor plan: one box per agent, no portrait and no chip. `minutes` 0: no time known. */
@@ -119,7 +119,7 @@ export function roomCard(r: FloorRoom, minutes: number): Card {
     cells: r.desks.map(d => (d.state === 'done' ? WON : d.state === 'failed' ? STOP : GOLD)),
     dots: null,
     step,
-    meta: n ? `${plural('overview.agents', n, { n })}${minutes ? ` · ${t('card.minutes', { n: minutes })}` : ''}` : r.manager?.working ? t('manager.working') : t('band.idle'),
+    meta: n ? `${plural('overview.agents', n, { n })}${minutes ? ` · ${t('card.minutes', { n: minutes })}` : ''}` : r.manager?.working ? postState(r.sub, true) : t('band.idle'),
     chip: null,
     hue: null,
   }

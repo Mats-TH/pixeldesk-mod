@@ -142,6 +142,7 @@ export type FloorSeat = {
   since?: number
   state?: AgentPhase | 'idle'
   manager?: ManagerDesk
+  sub?: boolean
 }
 
 // ---------- Everything else the drawings read ----------
@@ -172,6 +173,7 @@ declare module 'claude-code' {
       seen: Seen
       settings: SettingsView
       shimmer: number
+      sub: boolean
       summaries: Record<string, string>
       tokens: number
       cost: number | null

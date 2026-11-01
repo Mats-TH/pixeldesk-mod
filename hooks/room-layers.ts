@@ -79,7 +79,7 @@ const roomKey = (p: RoomInput) => `${p.theme ?? 'cosy'} ${p.sessionId} ${p.desks
 function seatsOf(p: RoomInput) {
   const { v } = paneOf(p)
   const n = p.desks.length
-  return [{ d: managerSeat(p.manager), at: managerOrigin(v) }, ...p.desks.map((d, i) => ({ d: { ...d, hue: agentHue(d.hue) }, at: deskOrigin(i, v, n) }))]
+  return [{ d: managerSeat(p.manager, p.sub), at: managerOrigin(v) }, ...p.desks.map((d, i) => ({ d: { ...d, hue: agentHue(d.hue) }, at: deskOrigin(i, v, n) }))]
 }
 
 /** All that shows a desk at work, its desk included: a person stands behind theirs. A rail or a name never gets here. */
@@ -214,7 +214,7 @@ function labelsDraw(p: RoomInput, detail: number) {
 
 /** The labels of a room: the rails, the names, the ash, the plate and the letter. */
 export function labelsSvg(p: RoomInput) {
-  return kept(`labels ${getLanguage()} ${JSON.stringify([p.theme, p.desks, p.manager, p.hearth, p.width, p.height])}`, () => [1, 2, 3, 4, 5, 6, 7].reduce((svg, detail) => (svg.length > MAX_SVG ? labelsDraw(p, detail) : svg), labelsDraw(p, 0)))
+  return kept(`labels ${getLanguage()} ${JSON.stringify([p.theme, p.desks, p.manager, p.sub, p.hearth, p.width, p.height])}`, () => [1, 2, 3, 4, 5, 6, 7].reduce((svg, detail) => (svg.length > MAX_SVG ? labelsDraw(p, detail) : svg), labelsDraw(p, 0)))
 }
 
 // ---------- The keeper's visit ----------

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { DESK_FILE, ENGLISH, FRENCH, HOME, NOON, altOf, callTool, cardIn, endTurn, hasKey, kids, mountPane, sendPlan, sourceOf, spawn, start, startTurn, step, submit, textsOf, world } from './test-kit'
+import { DESK_FILE, ENGLISH, FRENCH, HOME, NOON, SESSION, altOf, callTool, cardIn, endTurn, hasKey, kids, mountPane, sendPlan, sourceOf, spawn, start, startTurn, step, submit, textsOf, world } from './test-kit'
 import { managerBox, viewOf } from './room'
 
 const CELL_H = 21
@@ -247,6 +247,119 @@ describe('the Manager in the room', () => {
     expect(await sourceOf(ui, 'room-labels')).toContain('href="#B"')
     expect(await sourceOf(ui)).not.toContain('waiting')
     expect(await sourceOf(ui, 'room-labels')).not.toContain('waiting')
+  })
+})
+
+const DATA = '/Users/test/AppData/Local/Claude-Data/profile/claude-code-sessions'
+const LOCAL = 'C:\\Users\\test\\AppData\\Local'
+const KID_DESK = '/Users/test/.claude/pixeldesk/state/desk-kid.json'
+const LANGUAGES = [
+  { lang: 'fr', LANG: 'fr_FR', boss: 'Patron', bossRest: 'Patron au repos', bossBusy: 'Patron au travail', manager: 'Manager', rest: 'Manager au repos', busy: 'Manager au travail' },
+  { lang: 'en', LANG: 'en_US', boss: 'Boss', bossRest: 'Boss at rest', bossBusy: 'Boss working', manager: 'Manager', rest: 'Manager at rest', busy: 'Manager working' },
+]
+
+const sessionFile = (local: string, cli: string, parent?: string) => JSON.stringify({ sessionId: local, cliSessionId: cli, title: local, ...(parent ? { spawnedFrom: { sessionId: parent } } : {}) })
+
+/** This conversation as the desktop app knows it: `parent` when it was started from another, `kid` when it started one. */
+const inApp = (LANG: string, parent?: string, kid = false) => ({
+  env: { USERPROFILE: HOME, LANG, LOCALAPPDATA: LOCAL },
+  files: {
+    [`${DATA}/local_me.json`]: sessionFile('me', SESSION, parent),
+    ...(kid ? { [`${DATA}/local_kid.json`]: sessionFile('kidl', 'kid', 'me'), [KID_DESK]: JSON.stringify({ sessionId: 'kid', title: '', agents: 0, working: 0, summary: '', updatedAt: NOON, cwd: 'C:/work/app', desks: [], steps: [], tokens: 0, chat: 'working' }) } : {}),
+  },
+})
+
+describe('the name at the conversation\'s own desk', () => {
+  for (const { lang, LANG, boss, bossRest, bossBusy, manager, rest, busy } of LANGUAGES) {
+    test(`${lang}: the main conversation is the boss everywhere in its room`, async ($, on) => {
+      const w = world(on, inApp(LANG))
+      await start($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(await managerAlt(ui)).toMatch(new RegExp(`^${boss}\\.`))
+      expect(await altOf(ui)).toContain(bossRest)
+      expect(await sourceOf(ui, 'room-labels')).toContain(`href="#${boss[0]}"`)
+      await startTurn($)
+      expect(await altOf(ui)).toContain(bossBusy)
+    })
+
+    test(`${lang}: a sub-conversation is a manager everywhere in its room`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top'))
+      await start($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(await managerAlt(ui)).toMatch(new RegExp(`^${manager}\\.`))
+      expect(await altOf(ui)).toContain(rest)
+      expect(await sourceOf(ui, 'room-labels')).toContain('href="#M"')
+      expect(await sourceOf(ui, 'room-labels')).not.toContain(`href="#${boss[0]}"`)
+      await startTurn($)
+      expect(await managerAlt(ui)).toMatch(new RegExp(`^${manager}\\.`))
+      expect(await altOf(ui)).toContain(busy)
+    })
+
+    test(`${lang}: its own agents leave a sub-conversation a manager`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top'))
+      await start($)
+      await beat(w)
+      await spawn($, w, 'a1')
+      const ui = await mountPane($)
+      expect(await altOf(ui)).toContain(rest)
+    })
+
+    test(`${lang}: the lists of the terminal and the phone say the same`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top'))
+      await start($, 'terminal')
+      await beat(w)
+      expect((await textsOf(await mountPane($, 'terminal')))[2]).toContain(`○ ${manager}`)
+      expect((await textsOf(await mountPane($, 'mobile')))[0]).toContain(`○ ${manager}`)
+    })
+
+    test(`${lang}: the main conversation keeps its name on the lists`, async ($, on) => {
+      const w = world(on, inApp(LANG))
+      await start($, 'terminal')
+      await beat(w)
+      expect((await textsOf(await mountPane($, 'terminal')))[2]).toContain(`○ ${boss}`)
+    })
+
+    test(`${lang}: on a floor the main conversation is the boss and its child a manager`, async ($, on) => {
+      const w = world(on, inApp(LANG, undefined, true))
+      await start($)
+      await startTurn($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(cardIn(await ui.find({ key: `room-${SESSION}` })).svg.props.alt).toContain(bossBusy)
+      expect(cardIn(await ui.find({ key: 'room-kid' })).svg.props.alt).toContain(busy)
+    })
+
+    test(`${lang}: a sub-conversation with a child of its own stays a manager on its floor`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top', true))
+      await start($)
+      await startTurn($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(cardIn(await ui.find({ key: `room-${SESSION}` })).svg.props.alt).toContain(busy)
+      expect(cardIn(await ui.find({ key: 'room-kid' })).svg.props.alt).toContain(busy)
+    })
+  }
+
+  test('a reload keeps the name, before the links are read again', async ($, on) => {
+    world(on, { held: { sub: true } })
+    await start($)
+    expect(await altOf(await mountPane($))).toContain('Manager au repos')
+  })
+
+  test('links that do not hold this conversation take nothing away', async ($, on) => {
+    const w = world(on, { env: { USERPROFILE: HOME, LANG: 'fr_FR', LOCALAPPDATA: LOCAL }, held: { sub: true }, files: { [`${DATA}/local_other.json`]: sessionFile('other', 'other') } })
+    await start($)
+    await beat(w)
+    expect(w.state.sub).toBe(true)
+  })
+
+  test('with nothing to say who started it, a conversation is the boss', async ($, on) => {
+    const w = world(on)
+    await start($)
+    await beat(w)
+    expect(await altOf(await mountPane($))).toContain('Patron au repos')
   })
 })
 
