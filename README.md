@@ -347,7 +347,7 @@ There's no wall to click. To go Manual, set `"briefingMode": "manual"` in `~/.cl
 - **Tested** on Windows only so far, with Claude Code 2.1.309. Reports from macOS and Linux are very welcome.
 - **Boss and Manager.** There's one Boss, your main conversation. The conversations it starts are Managers. The app's links are only read on Windows, so elsewhere a sub-conversation reads Boss too.
 - **Language.** The mod follows your Claude Code `language` setting, then your system language, and falls back to English. To force one, use the plugin's `language` option: `auto`, `fr` or `en`.
-- **Your files.** The mod writes in `~/.claude/pixeldesk/`. One exception: on Windows, when no language is set, it asks PowerShell once for your system language and keeps it in Claude Code's plugin storage.
+- **Your files.** The mod writes in `~/.claude/pixeldesk/`, and nowhere else.
 - **Limits.** The gauges show `--` until Claude Code reports a reading.
 - **Global view.** On Windows, it reads the links between conversations from the app. Elsewhere, it groups the conversations of the same project.
 - **Usage.** To keep the bar up to date, the mod adds a short instruction to Claude's prompt, a note for each subagent at its first tool call, and a short reminder after some tool calls. While the panel is open, the desk summaries come from small Haiku calls.
@@ -374,14 +374,14 @@ PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights.
 | The session transcript in `~/.claude/projects/`, up to 4 MiB, at most every 5 minutes | Only to find the cache length. |
 | Tool names and inputs as Claude uses them | To animate the desks, the plan and the agent cards. |
 | Usage and limits reported by Claude Code | For the gauges and the cost plate. |
-| The Claude Code `language` setting | To pick the language. |
+| The Claude Code `language` setting, then your locale and the system's | To pick the language. |
 | On Windows, `local_*.json` session files of the desktop app, in `%LOCALAPPDATA%\Claude-Data\`, at most once a minute | For the global view. It keeps ids, titles, the archived mark and the link between conversations. |
 | `~/.claude/pixeldesk/` | Its own files. |
 | Environment variables `USERPROFILE`, `HOME`, `LOCALAPPDATA`, `LC_ALL`, `LC_MESSAGES`, `LANG`, `LANGUAGE` | To find your folders and your language. |
 
 ### What it writes
 
-Everything goes in `~/.claude/pixeldesk/` and in Claude Code's plugin storage, and nowhere else.
+Everything goes in `~/.claude/pixeldesk/`, and nowhere else.
 
 | File | Content |
 | --- | --- |
@@ -389,7 +389,6 @@ Everything goes in `~/.claude/pixeldesk/` and in Claude Code's plugin storage, a
 | `state/` | Plan, desks and cache state of each conversation. |
 | `briefings/` | Briefings, compaction notes and drafts, in plain text. The latest 20 of each are kept, older ones are emptied. Known secret formats are removed first. |
 | `logs/pixeldesk.log` | The log, capped at 256 KiB. |
-| Plugin storage | Your system language, once read. |
 
 The mod doesn't touch your settings, your `CLAUDE.md`, your hooks or your project files. It writes nothing that a tool runs.
 
@@ -403,7 +402,6 @@ Each program is started with its arguments as a list, without a shell.
 | --- | --- | --- |
 | `claude -p <briefing> --session-id <id> --name=<title> --tools= --strict-mcp-config` | At each change of conversation, on Windows and macOS | Starts the new conversation in the session's folder, named after the briefing. The message holds the briefing, asks for a one-sentence confirmation and says to do nothing else. This first answer has no tools and no connectors, whatever your permission rules say, so it can't write or run anything and never waits on a prompt. Your tools come back when the conversation opens. It uses your limits. |
 | `rundll32 url.dll,FileProtocolHandler`, `open` or `xdg-open` | At a change of conversation, or when you open a briefing | Hands a `claude://` link or a briefing file to your system. The new-conversation link holds the briefing, up to about 14,000 characters, and the folder. |
-| `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | On Windows, once, if no language is set anywhere | Reads the system language. It prints that language and nothing else. To skip it, set the plugin's `language` option to `fr` or `en`. |
 
 The mod also runs one Claude Code command by itself: `/compact`, with its own instructions, when the context reaches your threshold and the app has no direct way to compact. The Settings let you choose Manual, and then it waits for you.
 

@@ -22,7 +22,6 @@ import { drawPane } from './view-pane'
 
 export { desk } from './agents'
 
-const CULTURE_TIMEOUT = 3000
 const FIRST_READ_MS = 180_000
 
 // The engine reads each reference off the source of the file that uses it: this file is the one that does.
@@ -101,7 +100,6 @@ export const register: Register = (on, options) => {
           if (system === 'mac') return $.process.run(['open', target])
           return $.process.run(['xdg-open', target])
         },
-        systemCulture: () => $.process.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name'], { timeoutMs: CULTURE_TIMEOUT }),
       },
       session: {
         compact: args => $.session.compact(args),
@@ -112,7 +110,6 @@ export const register: Register = (on, options) => {
         usage: () => $.session.usage(),
       },
       settings: { language: () => $.settings.read({ key: 'language' }) },
-      store: { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value) },
       tool: { register: spec => $.tool.register(spec) },
       ui: {
         close: pane => $.ui.close(pane),

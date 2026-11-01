@@ -1,5 +1,6 @@
 import { mock } from 'claude-code/testing'
 import type { MockClock } from 'claude-code/testing'
+import { system } from './language'
 
 /**
  * The world beneath the mod, for the tests: a disk, a clock, an environment and the engine's calls, all in memory.
@@ -36,8 +37,8 @@ export type WorldOptions = {
   store?: Record<string, unknown>
   /** What `$.settings.read` answers: an object of settings, or a function that throws or denies. */
   settings?: Record<string, unknown> | (() => Answer)
-  /** What PowerShell prints for the culture; a function may refuse. */
-  culture?: string | (() => Answer)
+  /** The system's locale, as the mod reads it. */
+  locale?: string
   summary?: () => Answer
   /** What the host still holds for the session, by key of the state: a reload. */
   held?: Record<string, unknown>
@@ -60,6 +61,7 @@ export type World = ReturnType<typeof world>
 
 /** Registers the whole world beneath the plugin. Call it first in a test: `$` loads the plugins on its first call. */
 export function world(on: Loose, options: WorldOptions = {}) {
+  system.locale = () => options.locale ?? 'en-US'
   const files = new Map(Object.entries(options.files ?? {}).map(([path, text]) => [pathKey(path), text]))
   const stamps = new Map<string, number>()
   const w = {
@@ -201,8 +203,7 @@ export function world(on: Loose, options: WorldOptions = {}) {
     w.runs.push(e)
     const answered = w.answerRun?.(e)
     if (answered) return answered
-    if (typeof options.culture === 'function') return options.culture()
-    return { value: { exitCode: 0, stdout: `${options.culture ?? ''}\r\n`, stderr: '' } }
+    return { value: { exitCode: 0, stdout: '', stderr: '' } }
   })
 
   on('fs.read', (_: Loose, e: Loose) => {

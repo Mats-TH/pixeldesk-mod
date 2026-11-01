@@ -6,7 +6,8 @@ import type { Language } from './i18n'
 import type { Memory } from './memory'
 import { readLanguage, writeLanguage } from './state'
 
-const CULTURE_KEY = 'systemCulture'
+/** What the system says it speaks, with no program to start. A table, so that a test can answer for it. */
+export const system = { locale: () => Intl.DateTimeFormat().resolvedOptions().locale }
 
 /** What a setting, a locale or a culture means, or null when it names neither language. */
 export function recognize(value: unknown): Language | null {
@@ -29,17 +30,6 @@ async function fromLocale(host: Host) {
   return null
 }
 
-/** Asked of PowerShell once on a machine: a failure is not kept, so the next session asks again. */
-async function systemCulture(host: Host) {
-  const kept = await host.store.get(CULTURE_KEY)
-  if (typeof kept === 'string' && kept) return kept
-  const { exitCode, stdout } = await host.process.systemCulture()
-  const culture = stdout.trim()
-  if (exitCode !== 0 || !culture) return null
-  await host.store.set(CULTURE_KEY, culture)
-  return culture
-}
-
 /** Each step of the chain falls through to the next, whatever goes wrong in it. */
 async function step(host: Host, m: Memory, name: string, work: () => Promise<Language | null>) {
   try {
@@ -55,11 +45,8 @@ async function chain(host: Host, m: Memory): Promise<Language> {
   if (setting) return setting
   const locale = await step(host, m, 'locale', () => fromLocale(host))
   if (locale) return locale
-  // The engine names no platform: a home on a drive letter is Windows.
-  if (/^[A-Za-z]:/.test(m.home)) {
-    const culture = await step(host, m, 'culture', async () => recognize(await systemCulture(host)))
-    if (culture) return culture
-  }
+  const spoken = await step(host, m, 'system', async () => recognize(system.locale()))
+  if (spoken) return spoken
   return 'en'
 }
 

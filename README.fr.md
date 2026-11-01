@@ -347,7 +347,7 @@ Il n'y a pas de mur à cliquer. Pour passer en Manuel, mets `"briefingMode": "ma
 - **Testé** sous Windows seulement pour l'instant, avec Claude Code 2.1.309. Les retours macOS et Linux sont les bienvenus.
 - **Patron et Manager.** Il n'y a qu'un Patron, ta conversation principale. Les conversations qu'elle lance sont des Managers. Les liens de l'application ne sont lus que sous Windows : ailleurs, une sous-conversation s'affiche aussi Patron.
 - **Langue.** Le mod suit le réglage `language` de Claude Code, puis la langue du système, et se rabat sur l'anglais. Pour en imposer une, utilise l'option `language` du plugin : `auto`, `fr` ou `en`.
-- **Tes fichiers.** Le mod écrit dans `~/.claude/pixeldesk/`. Une exception : sous Windows, quand aucune langue n'est réglée, il demande une fois la langue du système à PowerShell et la garde dans le stockage de plugin de Claude Code.
+- **Tes fichiers.** Le mod écrit dans `~/.claude/pixeldesk/`, et nulle part ailleurs.
 - **Limites.** Les jauges affichent `--` tant que Claude Code n'a pas donné de relevé.
 - **Vue globale.** Sous Windows, il lit les liens entre conversations dans l'application. Ailleurs, il regroupe les conversations du même projet.
 - **Consommation.** Pour garder la barre à jour, le mod ajoute une courte instruction au prompt de Claude, une note à chaque sous-agent à son premier appel d'outil, et un court rappel après certains appels d'outils. Tant que le panneau est ouvert, les résumés des bureaux viennent de petits appels à Haiku.
@@ -374,14 +374,14 @@ PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits 
 | Le transcript de la session dans `~/.claude/projects/`, jusqu'à 4 Mio, au plus toutes les 5 minutes | Uniquement pour trouver la durée du cache. |
 | Les noms et les entrées des outils que Claude utilise | Pour animer les bureaux, le plan et les cartes d'agents. |
 | L'usage et les limites donnés par Claude Code | Pour les jauges et la plaque du coût. |
-| Le réglage `language` de Claude Code | Pour choisir la langue. |
+| Le réglage `language` de Claude Code, puis ta locale et celle du système | Pour choisir la langue. |
 | Sous Windows, les fichiers de session `local_*.json` de l'app, dans `%LOCALAPPDATA%\Claude-Data\`, au plus une fois par minute | Pour la vue globale. Il garde les identifiants de session, les titres, la marque d'archive et le lien entre conversations. |
 | `~/.claude/pixeldesk/` | Ses propres fichiers. |
 | Les variables d'environnement `USERPROFILE`, `HOME`, `LOCALAPPDATA`, `LC_ALL`, `LC_MESSAGES`, `LANG`, `LANGUAGE` | Pour trouver tes dossiers et ta langue. |
 
 ### Ce qu'il écrit
 
-Tout va dans `~/.claude/pixeldesk/` et dans le stockage de plugin de Claude Code, et nulle part ailleurs.
+Tout va dans `~/.claude/pixeldesk/`, et nulle part ailleurs.
 
 | Fichier | Contenu |
 | --- | --- |
@@ -389,7 +389,6 @@ Tout va dans `~/.claude/pixeldesk/` et dans le stockage de plugin de Claude Code
 | `state/` | Plan, bureaux et état du cache de chaque conversation. |
 | `briefings/` | Passations, notes de compaction et brouillons, en texte brut. Les 20 dernières de chaque sorte sont gardées, les plus anciennes sont vidées. Les formats de secrets connus sont retirés avant. |
 | `logs/pixeldesk.log` | Le journal, plafonné à 256 Kio. |
-| Stockage de plugin | La langue de ton système, une fois lue. |
 
 Le mod ne touche ni à tes réglages, ni à ton `CLAUDE.md`, ni à tes hooks, ni aux fichiers de tes projets. Il n'écrit rien qu'un outil exécute.
 
@@ -403,7 +402,6 @@ Chaque programme démarre avec ses arguments en liste, sans shell.
 | --- | --- | --- |
 | `claude -p <passation> --session-id <id> --name=<titre> --tools= --strict-mcp-config` | À chaque changement de conversation, sous Windows et macOS | Démarre la nouvelle conversation dans le dossier de la session, avec le titre de la passation. Le message contient la passation, demande une confirmation en une phrase et dit de ne rien faire d'autre. Cette première réponse n'a ni outils ni connecteurs, quelles que soient tes règles de permission : elle ne peut rien écrire ni lancer, et n'attend jamais de réponse à une demande. Tes outils reviennent à l'ouverture de la conversation. Il consomme tes limites. |
 | `rundll32 url.dll,FileProtocolHandler`, `open` ou `xdg-open` | À un changement de conversation, ou quand tu ouvres une passation | Confie un lien `claude://` ou un fichier de passation à ton système. Le lien de nouvelle conversation contient la passation, jusqu'à environ 14 000 caractères, et le dossier. |
-| `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | Sous Windows, une fois, si aucune langue n'est réglée nulle part | Lit la langue du système. Il affiche cette langue et rien d'autre. Pour l'éviter, règle l'option `language` du plugin sur `fr` ou `en`. |
 
 Le mod lance aussi une commande de Claude Code tout seul : `/compact`, avec ses propres instructions, quand le contexte atteint ton seuil et que l'app n'offre pas d'autre moyen de compacter. Les Réglages permettent de choisir Manuel : il t'attend alors.
 

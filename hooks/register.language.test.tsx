@@ -126,84 +126,30 @@ describe('the environment', () => {
   })
 })
 
-describe('the culture of Windows', () => {
-  const asked = (options: WorldOptions, on: any) => world(on, { env: WINDOWS, ...options })
-
-  test('asked once of PowerShell, with no profile and within 3 s, then kept', async ($, on) => {
-    const w = asked({ culture: 'fr-FR' }, on)
-    expect(await settled($, w)).toBe('fr')
-    expect(w.runs).toHaveLength(1)
-    expect(w.runs[0].argv[0].toLowerCase()).toContain('powershell')
-    expect(w.runs[0].argv).toContain('-NoProfile')
-    expect(w.runs[0].init.timeoutMs).toBe(3000)
-    expect(w.stored.systemCulture).toBe('fr-FR')
-  })
-
-  test('a kept culture is not asked again', async ($, on) => {
-    const w = asked({ store: { systemCulture: 'fr-CH' }, culture: 'en-US' }, on)
+describe('the system language', () => {
+  test('it speaks last, and no program starts for it', async ($, on) => {
+    const w = world(on, { env: WINDOWS, locale: 'fr-FR' })
     expect(await settled($, w)).toBe('fr')
     expect(w.runs).toEqual([])
   })
 
-  test('the raw value is kept even when it names another language', async ($, on) => {
-    const w = asked({ culture: 'de-DE' }, on)
-    expect(await settled($, w)).toBe('en')
-    expect(w.stored.systemCulture).toBe('de-DE')
+  test('it holds on every system', async ($, on) => {
+    const w = world(on, { env: MAC, locale: 'fr-CA' })
+    expect(await settled($, w)).toBe('fr')
   })
 
-  test('an empty answer is not kept', async ($, on) => {
-    const w = asked({ culture: '  ' }, on)
-    expect(await settled($, w)).toBe('en')
-    expect(w.storeWrites).toEqual([])
-  })
-
-  test('a failed command is not kept', async ($, on) => {
-    const w = asked({ culture: () => ({ value: { exitCode: 1, stdout: 'fr-FR', stderr: '' } }) }, on)
-    expect(await settled($, w)).toBe('en')
-    expect(w.storeWrites).toEqual([])
-  })
-
-  test('a command that does not start falls through', async ($, on) => {
-    const w = asked({ culture: denies }, on)
-    expect(await settled($, w)).toBe('en')
-    expect(w.toasts).toEqual([])
-  })
-
-  test('a culture that cannot be kept falls through', async ($, on) => {
-    const w = asked({ culture: 'fr-FR', refuseStore: true }, on)
+  test('it gives way to the locale of the environment', async ($, on) => {
+    const w = world(on, { env: { ...WINDOWS, LANG: 'en_US' }, locale: 'fr-FR' })
     expect(await settled($, w)).toBe('en')
   })
 
-  test('a store that cannot be read falls through', async ($, on) => {
-    const w = asked({ culture: 'fr-FR', refuseStoreRead: true }, on)
+  test('another language ends in English', async ($, on) => {
+    const w = world(on, { env: WINDOWS, locale: 'de-DE' })
     expect(await settled($, w)).toBe('en')
-    expect(w.commands).toHaveLength(1)
-    expect(w.runs).toEqual([])
-  })
-
-  test('a repeated start does not run the chain again', async ($, on) => {
-    const w = asked({ culture: 'fr-FR' }, on)
-    await start($)
-    await start($)
-    expect(w.settingsReads).toBe(1)
-    expect(w.runs).toHaveLength(1)
-    expect(languageOf(w)).toBe('fr')
-  })
-
-  test('a home with no drive letter is not Windows: PowerShell is never asked', async ($, on) => {
-    const w = world(on, { env: MAC, culture: 'fr-FR' })
-    expect(await settled($, w)).toBe('en')
-    expect(w.runs).toEqual([])
-  })
-
-  test('neither is a session with no home', async ($, on) => {
-    const w = world(on, { env: {}, culture: 'fr-FR' })
-    expect(await settled($, w)).toBe('en')
-    expect(w.runs).toEqual([])
   })
 
   test('nothing known ends in English', async ($, on) => {
-    const w = world(on, { env: MAC })
+    const w = world(on, { env: MAC, locale: '' })
     expect(await settled($, w)).toBe('en')
   })
 })
