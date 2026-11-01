@@ -130,7 +130,7 @@ The fuller the conversation, the more every message has to read. So at 80% of th
     <td width="33%" valign="top">
       <img src="assets/feature-agents.png" alt="Desks with the Boss and two agents at work">
       <br><b>One desk per agent</b>
-      <br>Every subagent gets a desk, live. Hover it to read what it's doing. The conversation is the Boss.
+      <br>Every subagent gets a desk, live. Hover it to read what it's doing. The main conversation is the Boss, the ones it starts are Managers.
     </td>
     <td width="33%" valign="top">
       <img src="assets/feature-plan.png" alt="The plan on a board, in the Space base theme">
@@ -310,6 +310,7 @@ There is no wall to click in the terminal. To go Manual, set `"briefingMode": "m
 - **Your files.** PixelDesk Mod writes in `~/.claude/pixeldesk/`. One exception: on Windows, when no language is set anywhere, it asks PowerShell once for your system language and keeps it in Claude Code's plugin storage.
 - **Limits.** The gauges show `--` until Claude Code reports a reading.
 - **Floor plan.** On Windows, it reads the links between conversations from the desktop app. Elsewhere, it groups the conversations of the same project.
+- **Boss and Manager.** There is one Boss, the main conversation. The app's links are only read on Windows, so elsewhere a sub-conversation reads Boss too.
 - **Usage.** To keep the bar up to date, PixelDesk Mod adds a short instruction to Claude's prompt and to each subagent's, plus a short reminder after some tool calls. While the panel is open, the plain-language desk summaries come from small Haiku calls.
 - **Known limit.** A plugin cannot remove the panel's inner margin or its scroll gutter.
 

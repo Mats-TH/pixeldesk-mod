@@ -18,7 +18,7 @@ Six rooms, and a panel that no longer freezes.
 
 ### Changed
 
-- The conversation's desk now reads Boss in English and Patron in French.
+- There is one boss now. The main conversation reads Boss in English and Patron in French, and a conversation started from another stays Manager. The links are only read on Windows: elsewhere, a sub-conversation reads Boss too.
 - The boss stays at the desk in every theme, and sleeps there at rest.
 
 ### Fixed

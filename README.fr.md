@@ -130,7 +130,7 @@ Plus la conversation est pleine, plus chaque message a de choses à lire. Donc �
     <td width="33%" valign="top">
       <img src="assets/feature-agents.png" alt="Des bureaux avec le patron et deux agents au travail">
       <br><b>Un bureau par agent</b>
-      <br>Chaque sous-agent a son bureau, en direct. Survole-le pour lire ce qu'il fait. La conversation, c'est le Patron.
+      <br>Chaque sous-agent a son bureau, en direct. Survole-le pour lire ce qu'il fait. La conversation principale est le Patron, celles qu'elle lance sont des Managers.
     </td>
     <td width="33%" valign="top">
       <img src="assets/feature-plan.png" alt="Le plan sur un tableau, dans le thème Base spatiale">
@@ -310,6 +310,7 @@ Il n'y a pas de mur à cliquer dans le terminal. Pour passer en Manuel, mets `"b
 - **Tes fichiers.** PixelDesk Mod écrit dans `~/.claude/pixeldesk/`. Une exception : sous Windows, quand aucune langue n'est réglée nulle part, il demande une fois la langue du système à PowerShell et la garde dans le stockage de plugin de Claude Code.
 - **Limites.** Les jauges affichent `--` tant que Claude Code n'a pas donné de relevé.
 - **Plan d'étage.** Sous Windows, il lit les liens entre conversations dans l'application de bureau. Ailleurs, il regroupe les conversations du même projet.
+- **Patron et Manager.** Il n'y a qu'un Patron, la conversation principale. Les liens de l'application ne sont lus que sous Windows : ailleurs, une sous-conversation s'affiche aussi Patron.
 - **Usage.** Pour garder la barre à jour, PixelDesk Mod ajoute une courte instruction au prompt de Claude et à celui de chaque sous-agent, plus un court rappel après certains appels d'outils. Tant que le panneau est ouvert, les résumés des bureaux en langage simple viennent de petits appels à Haiku.
 - **Limite connue.** Un plugin ne peut pas retirer la marge intérieure du panneau ni sa gouttière de défilement.
 
