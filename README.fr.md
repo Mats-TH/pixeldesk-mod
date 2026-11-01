@@ -18,6 +18,7 @@
 <p align="center">
   <a href="#comment-installer-pixeldesk-mod"><b>Installer</b></a> &nbsp;·&nbsp;
   <a href="#ce-que-pixeldesk-mod-affiche-à-lécran"><b>L'interface</b></a> &nbsp;·&nbsp;
+  <a href="#la-vue-globale--toutes-tes-conversations-dun-coup-dœil"><b>La vue globale</b></a> &nbsp;·&nbsp;
   <a href="#fait-pour-téconomiser-des-tokens"><b>Économiser des tokens</b></a> &nbsp;·&nbsp;
   <a href="#6-thèmes-disponibles-pour-ton-pixeldesk"><b>Les thèmes</b></a> &nbsp;·&nbsp;
   <a href="#commandes"><b>Commandes</b></a>
@@ -118,9 +119,9 @@ Il te faut Git sur ta machine : le plugin est récupéré depuis GitHub.
       <br>Le tas grossit avec ta conversation. Quand il est plein, le mod prend le relais.
     </td>
     <td width="33%" valign="top">
-      <img src="assets/feature-floor.png" alt="Une rue de maisons, une par conversation">
-      <br><b>Toutes tes conversations sur un plan</b>
-      <br>Une conversation qui en lance d'autres les voit toutes d'un coup d'œil. Chacune a sa pièce et son Manager.
+      <img src="assets/feature-settings.png" alt="Le panneau de réglages ouvert dans la pièce">
+      <br><b>Tout se règle en un clic</b>
+      <br>Le bouton sur le mur ouvre les Réglages : thème, relances, compactage.
     </td>
   </tr>
 </table>
@@ -133,6 +134,23 @@ Il te faut Git sur ta machine : le plugin est récupéré depuis GitHub.
 - **Un crabe.** Il vit là. Il fait la sieste.
 - **Français et anglais.** Le mod choisit tout seul.
 - **Une version terminal.** Plus simple, en texte, sans le pixel art.
+
+## La vue globale : toutes tes conversations d'un coup d'œil
+
+<p align="center">
+  <img src="assets/themes/cosy-floor.png" alt="La vue globale du thème Cosy : le Patron et ses quatre sous-conversations, chacune dans sa maison avec son nom et son état" width="880">
+</p>
+
+Dès que ta conversation principale en lance d'autres, PixelDesk Mod change d'interface.
+
+La pièce laisse place à une vue globale, faite pour le Patron : toutes ses sous-conversations sur une seule image. Elle s'ouvre toute seule.
+
+- **Une pièce par sous-conversation**, avec son nom et son Manager.
+- **Son état, écrit dessous :** combien d'agents travaillent, ou si le Manager travaille.
+- **Une conversation au repos s'assombrit.** Tu vois tout de suite où ça bouge.
+- **Ses tokens** affichés à côté de son nom.
+- **La liste de toutes tes conversations** au mur du Patron, cochée au fil de l'eau.
+- **Une carte au survol** pour lire où en est chacune.
 
 ## Fait pour t'économiser des tokens
 
@@ -209,15 +227,53 @@ Tu préfères décider toi-même ? Tout se change dans les Réglages.
 
 ## 6 thèmes disponibles pour ton PixelDesk
 
-<p align="center">
-  <img src="assets/themes.png" alt="Les six thèmes : Cosy, Japonais, Nature, Futuriste, Geek et jeu, Base spatiale" width="880">
-</p>
-
-**Cosy, Japonais, Nature, Futuriste, Geek et jeu, Base spatiale.**
-
-Chaque thème change tout : le décor, les bureaux, le poêle et même le plan d'étage.
+Chaque thème change tout : le décor, les bureaux, le poêle et la vue globale.
 
 Pour en changer, ouvre les Réglages et choisis-en un dans la colonne Thème.
+
+Voici chaque thème en deux images : la pièce, puis la vue globale.
+
+### Cosy
+
+<p align="center">
+  <img src="assets/themes/cosy-room.png" alt="La pièce, thème Cosy" width="400">
+  <img src="assets/themes/cosy-floor.png" alt="La vue globale, thème Cosy" width="400">
+</p>
+
+### Japonais
+
+<p align="center">
+  <img src="assets/themes/japonais-room.png" alt="La pièce, thème Japonais" width="400">
+  <img src="assets/themes/japonais-floor.png" alt="La vue globale, thème Japonais" width="400">
+</p>
+
+### Nature
+
+<p align="center">
+  <img src="assets/themes/nature-room.png" alt="La pièce, thème Nature" width="400">
+  <img src="assets/themes/nature-floor.png" alt="La vue globale, thème Nature" width="400">
+</p>
+
+### Futuriste
+
+<p align="center">
+  <img src="assets/themes/futuriste-room.png" alt="La pièce, thème Futuriste" width="400">
+  <img src="assets/themes/futuriste-floor.png" alt="La vue globale, thème Futuriste" width="400">
+</p>
+
+### Geek et jeu
+
+<p align="center">
+  <img src="assets/themes/geek-room.png" alt="La pièce, thème Geek et jeu" width="400">
+  <img src="assets/themes/geek-floor.png" alt="La vue globale, thème Geek et jeu" width="400">
+</p>
+
+### Base spatiale
+
+<p align="center">
+  <img src="assets/themes/base-room.png" alt="La pièce, thème Base spatiale" width="400">
+  <img src="assets/themes/base-floor.png" alt="La vue globale, thème Base spatiale" width="400">
+</p>
 
 ## Tout se règle dans les Réglages
 
@@ -287,7 +343,7 @@ Il n'y a pas de mur à cliquer. Pour passer en Manuel, mets `"briefingMode": "ma
 - **Langue.** Le mod suit le réglage `language` de Claude Code, puis la langue du système, et se rabat sur l'anglais. Pour en imposer une, utilise l'option `language` du plugin : `auto`, `fr` ou `en`.
 - **Tes fichiers.** Le mod écrit dans `~/.claude/pixeldesk/`. Une exception : sous Windows, quand aucune langue n'est réglée, il demande une fois la langue du système à PowerShell et la garde dans le stockage de plugin de Claude Code.
 - **Limites.** Les jauges affichent `--` tant que Claude Code n'a pas donné de relevé.
-- **Plan d'étage.** Sous Windows, il lit les liens entre conversations dans l'application. Ailleurs, il regroupe les conversations du même projet.
+- **Vue globale.** Sous Windows, il lit les liens entre conversations dans l'application. Ailleurs, il regroupe les conversations du même projet.
 - **Consommation.** Pour garder la barre à jour, le mod ajoute une courte instruction au prompt de Claude et de chaque sous-agent, plus un court rappel après certains appels d'outils. Tant que le panneau est ouvert, les résumés des bureaux viennent de petits appels à Haiku.
 - **Limite connue.** Un plugin ne peut pas retirer la marge intérieure du panneau ni sa gouttière de défilement.
 
