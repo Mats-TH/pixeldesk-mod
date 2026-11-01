@@ -53,7 +53,7 @@ Then open a new conversation in the Code tab. The mod is active.
 | Where you are | What to do |
 | --- | --- |
 | **In the Code tab** | Paste the line above. No terminal needed. |
-| **In a normal chat** | It can't install the mod. A chat doesn't run commands on your computer, and the mod lives in the Code tab. Switch to the Code tab, then paste the line. |
+| **In a normal chat** | Use the Code tab instead. A chat may answer that the plugin is installed, but that doesn't reach the Code tab, where the mod runs. Switch to the Code tab, then paste the line. |
 | **In a terminal** | Run the command given in the block below. |
 
 <details>

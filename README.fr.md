@@ -53,7 +53,7 @@ Ouvre ensuite une nouvelle conversation dans l'onglet Code. Le mod est actif.
 | Où tu es | Quoi faire |
 | --- | --- |
 | **Dans l'onglet Code** | Colle la ligne ci-dessus. Pas besoin de terminal. |
-| **Dans une conversation normale** | Elle ne peut pas installer le mod. Un chat ne lance pas de commande sur ton ordinateur, et le mod vit dans l'onglet Code. Passe sur l'onglet Code, puis colle la ligne. |
+| **Dans une conversation normale** | Passe par l'onglet Code. Une conversation peut répondre que le plugin est installé, mais cela n'atteint pas l'onglet Code, où tourne le mod. Va dans l'onglet Code, puis colle la ligne. |
 | **Dans un terminal** | Lance la commande donnée dans le bloc ci-dessous. |
 
 <details>
