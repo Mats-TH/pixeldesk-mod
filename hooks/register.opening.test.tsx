@@ -37,7 +37,24 @@ describe('the new conversation', () => {
     expect(run.argv[2]).toContain(t.w.file(saved(t.w)[0]))
     expect(run.argv[2]).not.toContain('Read')
     expect(run.argv.join(' ')).not.toContain('allowedTools')
-    expect(run.argv.at(-1)).toBe('--tools=')
+    expect(run.argv.join(' ')).not.toContain('--tools')
+    expect(run.argv).toHaveLength(6)
+  })
+
+  test('the new conversation takes the title of the briefing', async ($, on) => {
+    const t = hearthWorld(on, { files: MANUAL })
+    await ready($, t)
+    t.w.files.set(saved(t.w)[0], '# Passation : finir la validation\n\nReprends ici.')
+    await press($, 'briefing-start')
+    expect(claudeRun(t.w).argv[5]).toBe('--name=finir la validation')
+  })
+
+  test('a briefing without a title still names the conversation', async ($, on) => {
+    const t = hearthWorld(on, { files: MANUAL })
+    await ready($, t)
+    t.w.files.set(saved(t.w)[0], 'Reprends ici.')
+    await press($, 'briefing-start')
+    expect(claudeRun(t.w).argv[5]).toBe('--name=PixelDesk')
   })
 
   test('a first message that never ends is cut off by the time limit, and the link takes over', async ($, on) => {

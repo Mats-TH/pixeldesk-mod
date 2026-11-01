@@ -401,7 +401,7 @@ Chaque programme démarre avec ses arguments en liste, sans shell.
 
 | Programme | Quand | Pourquoi |
 | --- | --- | --- |
-| `claude -p <passation> --session-id <id> --tools=` | À chaque changement de conversation, sous Windows et macOS | Démarre la nouvelle conversation dans le dossier de la session. Le message contient la passation et demande une confirmation en une phrase. Ce premier lancement n'a aucun outil : il n'autorise rien et n'attend rien. Il consomme tes limites. |
+| `claude -p <passation> --session-id <id> --name=<titre>` | À chaque changement de conversation, sous Windows et macOS | Démarre la nouvelle conversation dans le dossier de la session, avec le titre de la passation. Le message contient la passation, demande une confirmation en une phrase et dit de ne rien faire d'autre. Le mod n'autorise aucun outil : tes propres règles de permission s'appliquent, et ce lancement n'attend jamais de réponse à une demande. Il consomme tes limites. |
 | `rundll32 url.dll,FileProtocolHandler`, `open` ou `xdg-open` | À un changement de conversation, ou quand tu ouvres une passation | Confie un lien `claude://` ou un fichier de passation à ton système. Le lien de nouvelle conversation contient la passation, jusqu'à environ 14 000 caractères, et le dossier. |
 | `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | Sous Windows, une fois, si aucune langue n'est réglée nulle part | Lit la langue du système. Il affiche cette langue et rien d'autre. Pour l'éviter, règle l'option `language` du plugin sur `fr` ou `en`. |
 

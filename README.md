@@ -401,7 +401,7 @@ Each program is started with its arguments as a list, without a shell.
 
 | Program | When | Why |
 | --- | --- | --- |
-| `claude -p <briefing> --session-id <id> --tools=` | At each change of conversation, on Windows and macOS | Starts the new conversation in the session's folder. The message holds the briefing and asks for a one-sentence confirmation. This first run has no tools, so it allows nothing and waits for nothing. It uses your limits. |
+| `claude -p <briefing> --session-id <id> --name=<title>` | At each change of conversation, on Windows and macOS | Starts the new conversation in the session's folder, named after the briefing. The message holds the briefing, asks for a one-sentence confirmation and says to do nothing else. The mod allows no tool: your own permission rules apply, and this run never waits on a prompt. It uses your limits. |
 | `rundll32 url.dll,FileProtocolHandler`, `open` or `xdg-open` | At a change of conversation, or when you open a briefing | Hands a `claude://` link or a briefing file to your system. The new-conversation link holds the briefing, up to about 14,000 characters, and the folder. |
 | `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | On Windows, once, if no language is set anywhere | Reads the system language. It prints that language and nothing else. To skip it, set the plugin's `language` option to `fr` or `en`. |
 

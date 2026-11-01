@@ -18,7 +18,7 @@ export type Host = {
   env: { userProfile: Env; home: Env; localAppData: Env; lcAll: Env; lcMessages: Env; lang: Env; language: Env }
   fs: Pick<EngineInterface['fs'], 'exists' | 'list' | 'write'> & { read: (path: string) => Promise<string> }
   model: Pick<EngineInterface['model'], 'complete' | 'fork'>
-  process: { claude: (message: string, id: string, cwd: string) => Promise<Ran>; open: (system: System, target: string) => Promise<Ran>; systemCulture: () => Promise<Ran> }
+  process: { claude: (message: string, id: string, cwd: string, title: string) => Promise<Ran>; open: (system: System, target: string) => Promise<Ran>; systemCulture: () => Promise<Ran> }
   session: Pick<EngineInterface['session'], 'compact' | 'cwd' | 'id' | 'model' | 'usage'> & { messages: () => Promise<SessionMessage[]> }
   settings: { language: () => Promise<unknown> }
   store: Pick<EngineInterface['store'], 'get' | 'set'>

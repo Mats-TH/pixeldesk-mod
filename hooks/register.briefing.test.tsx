@@ -149,7 +149,7 @@ describe('auto: compact under the cursor, change past it', () => {
     expect(run.argv[2]).not.toContain('.md')
     expect(run.argv[3]).toBe('--session-id')
     expect(id).toMatch(UUID)
-    expect(run.argv[5], 'no tool, and no tool allowed: the = stays').toBe('--tools=')
+    expect(run.argv[5]).toMatch(/^--name=.+/)
     expect(run.argv).toHaveLength(6)
     expect(run.init.cwd, 'the exact folder, worktree included').toBe(h.cwd)
     expect(linksOpened(w)).toEqual([`claude://resume?session=${id}`])
