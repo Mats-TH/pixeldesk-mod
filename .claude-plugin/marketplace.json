@@ -1,6 +1,6 @@
 {
   "name": "pixeldesk-mod",
   "owner": { "name": "Mats-TH" },
-  "description": "A pixel art office for your Claude Code subagents.",
-  "plugins": [{ "name": "pixeldesk", "source": "./", "description": "A pixel art office for your Claude Code subagents: one desk per agent, a fireplace that keeps the cache hot, a live bar." }]
+  "description": "A pixel art interface to follow your Claude agents live.",
+  "plugins": [{ "name": "pixeldesk", "source": "./", "description": "A pixel art interface to follow your Claude agents live: a desk for every agent, plan and limits on screen, and a cache kept alive to spend fewer tokens." }]
 }
