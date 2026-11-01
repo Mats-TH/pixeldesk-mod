@@ -8,7 +8,7 @@ type Env = () => Promise<string | undefined>
 type Ran = { exitCode: number; stdout: string }
 
 /**
- * All the mod may ask of the engine. `hostOf` in `register.tsx` builds it from a hook's `$`, each call spelled out there,
+ * All the mod may ask of the engine. The `session.start` hook in `register.tsx` builds it, each call spelled out there,
  * so one file shows everything the mod reads, writes and runs. The commands it starts have their words in that file too.
  */
 export type Host = {

@@ -69,8 +69,8 @@ export const fireMoments = (h: Heat) => (h.at ? FIRE_SHARES.map(([share]) => h.a
 export const relaunchMoment = (h: Heat) => (h.at && h.known ? Math.max(h.at + h.lengthMs - LEAD_MS, h.retryAt) : null)
 
 /** How many agents, and how many conversations of the floor, are at work. */
-export async function workNow($: Host, m: Memory) {
-  const rooms = ((await readFloorRooms($)) ?? []).slice(1).map(keptRoom)
+export async function workNow(host: Host, m: Memory) {
+  const rooms = ((await readFloorRooms(host)) ?? []).slice(1).map(keptRoom)
   return { agents: m.agents.filter(isWorking).length, chats: rooms.filter(r => r.state === 'working').length }
 }
 
@@ -81,14 +81,14 @@ const lastActivity = (m: Memory) => Math.max(m.chatTurn.since, m.chatTurn.ended,
 const planAlive = (m: Memory, now: number) => (m.plan?.steps.some(st => st.status === 'in_progress') ?? false) && now - lastActivity(m) < PLAN_ALIVE_MS
 
 /** A session stays active while a turn, an agent or a conversation of the floor works, or a plan was moving not long ago. */
-export async function isActive($: Host, m: Memory) {
-  const { agents, chats } = await workNow($, m)
-  return m.chatTurn.working || agents > 0 || chats > 0 || planAlive(m, await $.clock.now())
+export async function isActive(host: Host, m: Memory) {
+  const { agents, chats } = await workNow(host, m)
+  return m.chatTurn.working || agents > 0 || chats > 0 || planAlive(m, await host.clock.now())
 }
 
 /** The context as the status line has it. The call is free, and a failure keeps what was known. */
-export async function readContext($: Host, m: Memory) {
-  const usage = await $.session.usage().catch(() => null)
+export async function readContext(host: Host, m: Memory) {
+  const usage = await host.session.usage().catch(() => null)
   if (!usage) return
   const { context } = usage
   const tokens = context.tokens ?? 0
@@ -97,41 +97,41 @@ export async function readContext($: Host, m: Memory) {
 }
 
 /** The clock moves on to the moment a request left, never backwards. */
-async function reached($: Host, m: Memory, at: number) {
+async function reached(host: Host, m: Memory, at: number) {
   const h = m.heat
   h.at = Math.max(h.at, at)
-  h.model = await $.session.model().catch(() => h.model)
+  h.model = await host.session.model().catch(() => h.model)
 }
 
 /** A request of the main loop leaves. The API counts the cache's time from here, not from the reply. */
-export function stepLeaves($: Host, m: Memory) {
+export function stepLeaves(host: Host, m: Memory) {
   m.heat.requests += 1
-  return $.clock.now()
+  return host.clock.now()
 }
 
 /** A request of the person's own says what the length is. A change of model rewrites the cache whatever its length. */
-async function learnLength($: Host, m: Memory, sentAt: number, usage: ModelUsage) {
+async function learnLength(host: Host, m: Memory, sentAt: number, usage: ModelUsage) {
   const h = m.heat
-  if (h.known || !h.at || (await $.session.model().catch(() => '')) !== h.model) return
+  if (h.known || !h.at || (await host.session.model().catch(() => '')) !== h.model) return
   const proven = lengthProven(sentAt - h.at, usage)
   if (proven) settleLength(h, proven)
 }
 
 /** That request came back; with no usage it never reached the cache. */
-export async function stepBack($: Host, m: Memory, sentAt: number, usage: ModelUsage | null) {
+export async function stepBack(host: Host, m: Memory, sentAt: number, usage: ModelUsage | null) {
   const h = m.heat
   h.requests = Math.max(0, h.requests - 1)
   if (usage) {
-    await learnLength($, m, sentAt, usage)
-    await reached($, m, sentAt)
+    await learnLength(host, m, sentAt, usage)
+    await reached(host, m, sentAt)
   }
   m.wake()
 }
 
 /** A turn of the main loop is over: the counters start afresh, and whatever stopped the relaunches is forgotten. */
-export async function turnEnded($: Host, m: Memory) {
+export async function turnEnded(host: Host, m: Memory) {
   const h = m.heat
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   Object.assign(h, { requests: 0, endedAt: now, relaunches: 0, since: now, failures: 0, retryAt: 0, stop: null, error: '' })
   m.change.acted = false
 }
@@ -144,8 +144,8 @@ export function isForkTurn(m: Memory, text: string, turnId: string) {
 }
 
 /** The moment the mod itself reached the cache, for a fork that read it. */
-export async function stokedBy($: Host, m: Memory, at: number) {
-  await reached($, m, at)
+export async function stokedBy(host: Host, m: Memory, at: number) {
+  await reached(host, m, at)
 }
 
 export function keeperCalls(m: Memory, tool: Heat['keeper'], now: number) {
@@ -174,7 +174,7 @@ function isDue(m: Memory, now: number) {
   return cools > now && cools - now <= LEAD_MS && now >= h.retryAt
 }
 
-function failed($: Host, m: Memory, text: string, now: number) {
+function failed(host: Host, m: Memory, text: string, now: number) {
   const h = m.heat
   h.relaunches += 1
   h.failures += 1
@@ -182,7 +182,7 @@ function failed($: Host, m: Memory, text: string, now: number) {
   h.retryAt = now + RETRY_MS
   if (h.failures < MAX_FAILURES) return
   h.stop = 'failed'
-  if (!h.toldFailure) toast($, m, t('fire.stopFailed', { error: text }))
+  if (!h.toldFailure) toast(host, m, t('fire.stopFailed', { error: text }))
   h.toldFailure = true
 }
 
@@ -193,31 +193,31 @@ function read(h: Heat, usage: ModelUsage) {
   if (usage.cache_creation_input_tokens > usage.cache_read_input_tokens) h.stop = 'cold'
 }
 
-async function landed($: Host, m: Memory, sentAt: number, r: ModelForkResult) {
+async function landed(host: Host, m: Memory, sentAt: number, r: ModelForkResult) {
   const h = m.heat
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   if (r.isAnswered || r.reason === 'empty-reply') {
     read(h, r.usage)
-    await reached($, m, sentAt)
+    await reached(host, m, sentAt)
     keeperCalls(m, 'log', now)
-    await log($, m, `relaunch ${h.relaunches}: read ${r.usage.cache_read_input_tokens}, wrote ${r.usage.cache_creation_input_tokens}`)
+    await log(host, m, `relaunch ${h.relaunches}: read ${r.usage.cache_read_input_tokens}, wrote ${r.usage.cache_creation_input_tokens}`)
   } else if (r.reason === 'nothing-to-fork') h.stop = 'nothing'
   else {
     const text = r.reason === 'api-error' ? `${r.error} ${r.status ?? ''}`.trim() : r.reason
-    failed($, m, text, now)
-    await log($, m, `relaunch failed: ${text}`)
+    failed(host, m, text, now)
+    await log(host, m, `relaunch failed: ${text}`)
   }
 }
 
 /** One relaunch. It runs on its own: nothing waits for it, and its outcome wakes the mod. */
-async function relaunch($: Host, m: Memory, sentAt: number) {
+async function relaunch(host: Host, m: Memory, sentAt: number) {
   const h = m.heat
   h.forks.add(PING)
   try {
-    await landed($, m, sentAt, await $.model.fork({ prompt: PING }))
+    await landed(host, m, sentAt, await host.model.fork({ prompt: PING }))
   } catch (err) {
-    failed($, m, t('fire.error'), await $.clock.now())
-    await log($, m, `relaunch threw: ${String(err)}`)
+    failed(host, m, t('fire.error'), await host.clock.now())
+    await log(host, m, `relaunch threw: ${String(err)}`)
   }
   h.forks.delete(PING)
   h.sending = false
@@ -225,27 +225,27 @@ async function relaunch($: Host, m: Memory, sentAt: number) {
 }
 
 /** The caps, then a relaunch if one is due. A change of model leaves a cache nothing can read cheaply. */
-export async function heatPass($: Host, m: Memory) {
+export async function heatPass(host: Host, m: Memory) {
   const h = m.heat
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   if (h.keeper && now >= h.keeperUntil) h.keeper = null
-  followCaps(h, await isActive($, m), now)
+  followCaps(h, await isActive(host, m), now)
   if (!isDue(m, now)) return
-  const model = await $.session.model().catch(() => h.model)
+  const model = await host.session.model().catch(() => h.model)
   if (h.model && model !== h.model) {
     Object.assign(h, { at: 0, stop: 'cold' })
     return
   }
   h.sending = true
-  void relaunch($, m, now)
+  void relaunch(host, m, now)
 }
 
 /** What the drawings read. Written only when something moved: the fire changes four times in a cycle. */
-export async function publishHearth($: Host, m: Memory) {
+export async function publishHearth(host: Host, m: Memory) {
   const h = m.heat
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   const coolsAt = coolsAtOf(h)
-  const active = await isActive($, m)
+  const active = await isActive(host, m)
   const value: Hearth = {
     fire: coolsAt === null ? 'out' : fireOf(coolsAt - now, spanOf(h)),
     ash: ashOf(h.percent),
@@ -268,23 +268,23 @@ export async function publishHearth($: Host, m: Memory) {
   if (text === h.shown) return
   h.shown = text
   try {
-    await writeHearth($, value)
+    await writeHearth(host, value)
   } catch (err) {
     h.blind = true
-    await log($, m, `hearth state: ${String(err)}`)
+    await log(host, m, `hearth state: ${String(err)}`)
   }
 }
 
 /** A reload keeps the clock the host holds. A relaunch in flight did not survive it, and neither did its count. */
-export async function restoreHeat($: Host, m: Memory) {
-  const held = await readHearth($)
+export async function restoreHeat(host: Host, m: Memory) {
+  const held = await readHearth(host)
   if (!held) return false
   const h = m.heat
   if (held.lengthMs === ONE_HOUR) settleLength(h, '1h')
   if (held.lengthMs === FIVE_MINUTES) settleLength(h, '5m')
   Object.assign(h, { since: held.relaunchSince, relaunches: held.relaunches, failures: held.failures, stop: held.relaunchStop, error: held.relaunchError, keeperRun: held.keeperRun, percent: held.contextPercent, compactions: held.compactions })
   if (held.coolsAt !== null) h.at = held.coolsAt - spanOf(h)
-  h.model = await $.session.model().catch(() => '')
+  h.model = await host.session.model().catch(() => '')
   return true
 }
 

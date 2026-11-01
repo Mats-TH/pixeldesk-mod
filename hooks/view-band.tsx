@@ -140,10 +140,10 @@ function terminalIdle(ui: TerminalTable, gauges: Gauges, width: number) {
 }
 
 /** The band in cells, for the terminal. */
-async function terminalBand($: Host, e: Band, plan: DrawnPlan | null, open: boolean, view: OverviewInput | null, gauges: Gauges) {
-  const ui = $.ui.resolve(e) as unknown as TerminalTable
+async function terminalBand(host: Host, e: Band, plan: DrawnPlan | null, open: boolean, view: OverviewInput | null, gauges: Gauges) {
+  const ui = host.ui.resolve(e) as unknown as TerminalTable
   const width = e.props.bodyColumns || TERMINAL_COLS
-  if (open && plan) return terminalPlan(ui, plan, gauges, width, (await readShimmer($)) ?? 0)
+  if (open && plan) return terminalPlan(ui, plan, gauges, width, (await readShimmer(host)) ?? 0)
   if (view) return terminalOverview(ui, view, width)
   if (plan?.steps.length) return terminalPlan(ui, plan, gauges, width, 0)
   return terminalIdle(ui, gauges, width)
@@ -187,37 +187,37 @@ async function beneath(pass: () => Promise<RenderElement>) {
   }
 }
 
-async function overviewOf($: Host, news: number, gauges: Gauges): Promise<OverviewInput | null> {
-  const kids = ((await readFloorRooms($)) ?? []).slice(1).map(keptRoom)
+async function overviewOf(host: Host, news: number, gauges: Gauges): Promise<OverviewInput | null> {
+  const kids = ((await readFloorRooms(host)) ?? []).slice(1).map(keptRoom)
   if (!kids.length) return null
   const states = kids.map(kid => kid.state ?? 'idle')
   return { states, agents: kids.reduce((sum, kid) => sum + kid.agents, 0), news, gauges, width: 0, night: false }
 }
 
 /** The band above the prompt: an open plan, else the overview, else a finished plan, else the world at rest. */
-export async function drawBand($: Host, m: Memory, e: Band, pass: () => Promise<RenderElement>) {
+export async function drawBand(host: Host, m: Memory, e: Band, pass: () => Promise<RenderElement>) {
   if (e.props.hasSurvey) return pass()
-  await followLanguage($, m)
-  const plan = (await readPlan($)) ?? null
-  const limits: Limit[] = (await readLimits($)) ?? []
-  const news = await readNews($)
-  await readMinute($)
-  const now = await $.clock.now()
+  await followLanguage(host, m)
+  const plan = (await readPlan(host)) ?? null
+  const limits: Limit[] = (await readLimits(host)) ?? []
+  const news = await readNews(host)
+  await readMinute(host)
+  const now = await host.clock.now()
   // A gauge's mark moves with the clock: held to the minute, the source stands still between two ticks.
   const minute = Math.floor(now / MINUTE_MS) * MINUTE_MS
   const gauges: Gauges = [gauge(limits, 'five_hour', minute), gauge(limits, 'seven_day', minute)]
   const open = !!plan && plan.steps.some(st => st.status !== 'completed')
-  const view = await overviewOf($, news?.count ?? 0, gauges)
+  const view = await overviewOf(host, news?.count ?? 0, gauges)
   const under = await beneath(pass)
   // What comes first eats the frame's edge, as long as nothing stands above it.
   const top = under && shows(under) ? UNDER_MOD : -1
-  const rows = await hearthRows($, m, e, top)
+  const rows = await hearthRows(host, m, e, top)
   if (e.surface === 'terminal') {
-    const { Box } = $.ui.resolve(e)
-    const band = await terminalBand($, e, plan, open, view, gauges)
+    const { Box } = host.ui.resolve(e)
+    const band = await terminalBand(host, e, plan, open, view, gauges)
     return under || rows ? <Box flexDirection="column">{under}{rows}{band}</Box> : band
   }
-  const { Box, Svg } = $.ui.resolve(e)
+  const { Box, Svg } = host.ui.resolve(e)
   const drawn = drawnBand(e, plan, open, view, gauges, isNight(now))
   return (
     <Box flexDirection="column" backgroundColor="transparent">

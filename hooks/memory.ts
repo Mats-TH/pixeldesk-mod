@@ -1,5 +1,7 @@
 import type { Timer } from 'claude-code'
 
+import type { Host } from './host'
+
 import type { AgentRecord, Ash, ChatTurn, CompactBefore, Departure, Fire, BriefingMode, BriefingPhase, Keeper, News, PlanStep, RoomTheme, Seen, RelaunchStop } from '../types'
 import type { ChatState, SessionLink } from './desks'
 import type { Language } from './i18n'
@@ -97,6 +99,8 @@ export type Change = {
 
 /** All the mod holds in memory for one load: a reload starts over, from the host's state and the files. */
 export type Memory = {
+  // What `session.start` bound: nothing reaches the engine before it.
+  host: Host | null
   forced: Language | null
   started: boolean
   home: string
@@ -207,6 +211,7 @@ export const createMemory = (forced: Language | null): Memory => ({
   logs: Promise.resolve(),
   agents: [],
   gone: new Set(),
+  host: null,
   strangers: new Set(),
   noted: new Set(),
   goneTokens: 0,

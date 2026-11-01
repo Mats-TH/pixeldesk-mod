@@ -83,7 +83,7 @@ export function liveBox({ Box, Svg }: Table, l: Layer) {
 }
 
 /** A drawing keeps the session's language through a reload that never ran `session.start`. */
-export async function followLanguage($: Host, m: Memory) {
-  const language = await readLanguage($)
+export async function followLanguage(host: Host, m: Memory) {
+  const language = await readLanguage(host)
   if (language && !m.forced) setLanguage(language)
 }

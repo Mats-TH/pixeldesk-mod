@@ -18,12 +18,12 @@ Ready for the plugin directory, and clearer about what the mod does.
 - A new conversation now gets its briefing in its first message. The mod no longer asks it to read a file.
 - The Read tool is no longer allowed automatically. That first answer has no tools and no connectors. Your tools come back when the conversation opens.
 - Subagent prompts stay as they were written. Each agent gets its note on the plan with its first tool result.
-- Every call the mod makes to Claude Code is now written out in one place: `hostOf`, in `hooks/register.tsx`.
+- Every call the mod makes to Claude Code is now written out in one place, in `hooks/register.tsx`.
 
 ### Fixed
 
 - The directory can now read how the mod calls Claude Code.
-- `demo.gif` and `themes.gif` no longer hold byte runs that read like shell commands. Every pixel is the same.
+- The two demo animations are stored differently. Every pixel is the same.
 
 ## [1.3.1] - 2026-11-01
 

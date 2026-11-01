@@ -8,9 +8,9 @@ const LOG_KEEP = 256 * 1024
 const TOAST_MAX = 140
 
 /** The home folder, with forward slashes and no slash at the end; empty when the environment does not say. */
-export async function readHome($: Host) {
+export async function readHome(host: Host) {
   try {
-    const home = (await $.env.userProfile()) || (await $.env.home()) || ''
+    const home = (await host.env.userProfile()) || (await host.env.home()) || ''
     return slashed(home).replace(/\/+$/, '')
   } catch {
     return ''
@@ -33,14 +33,14 @@ export const onDisk = (m: Memory) => m.home !== '' && m.sessionId !== ''
 export const reason = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /** One line in the log; the failure of a log line is nobody's problem. Lines are written one after the other. */
-export function log($: Host, m: Memory, message: string) {
+export function log(host: Host, m: Memory, message: string) {
   if (!onDisk(m)) return Promise.resolve()
   m.logs = m.logs.then(async () => {
     try {
       const path = logPath(m)
-      const before = await $.fs.read(path).catch(() => '')
-      const at = new Date(await $.clock.now()).toISOString()
-      await $.fs.write(path, `${before}${at} ${message}\n`.slice(-LOG_KEEP))
+      const before = await host.fs.read(path).catch(() => '')
+      const at = new Date(await host.clock.now()).toISOString()
+      await host.fs.write(path, `${before}${at} ${message}\n`.slice(-LOG_KEEP))
     } catch {
       // Nowhere left to say it.
     }
@@ -49,35 +49,35 @@ export function log($: Host, m: Memory, message: string) {
 }
 
 /** A line on screen, held to what a toast shows; its failure goes to the log. */
-export function toast($: Host, m: Memory, text: string) {
+export function toast(host: Host, m: Memory, text: string) {
   try {
-    $.ui.toast(cut(text, TOAST_MAX))
+    host.ui.toast(cut(text, TOAST_MAX))
   } catch (err) {
-    void log($, m, `toast: ${reason(err)}`)
+    void log(host, m, `toast: ${reason(err)}`)
   }
 }
 
 /** Runs what must not break the conversation: a failure becomes a line in the log. */
-export async function guard<T>($: Host, m: Memory, what: string, work: () => Promise<T> | T): Promise<T | undefined> {
+export async function guard<T>(host: Host, m: Memory, what: string, work: () => Promise<T> | T): Promise<T | undefined> {
   try {
     return await work()
   } catch (err) {
-    await log($, m, `${what}: ${reason(err)}`)
+    await log(host, m, `${what}: ${reason(err)}`)
     return undefined
   }
 }
 
 /** A file's text, or undefined when it cannot be read. */
-export function readText($: Host, path: string) {
-  return $.fs.read(path).catch(() => undefined)
+export function readText(host: Host, path: string) {
+  return host.fs.read(path).catch(() => undefined)
 }
 
 /** A folder's entries. A folder that is not there is empty; any other failure is the caller's. */
-export async function listed($: Host, path: string) {
+export async function listed(host: Host, path: string) {
   try {
-    return await $.fs.list(path)
+    return await host.fs.list(path)
   } catch (err) {
-    if (await $.fs.exists(path).catch(() => false)) throw err
+    if (await host.fs.exists(path).catch(() => false)) throw err
     return []
   }
 }

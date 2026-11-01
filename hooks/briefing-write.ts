@@ -33,12 +33,12 @@ const chatLines = (rooms: readonly FloorSeat[]) => rooms.map(r => `${r.title} : 
 const planLines = (plan: DrawnPlan | null) => (plan?.steps ?? []).map(st => `${t(STEP_WORD[st.status] ?? 'briefing.running.todo')} : ${st.text}`)
 
 /** What still runs: never left to the model, and always in the document, even empty. */
-export async function runningSection($: Host, m: Memory, carryOn: boolean) {
-  const rooms = ((await readFloorRooms($)) ?? []).slice(1).map(keptRoom)
+export async function runningSection(host: Host, m: Memory, carryOn: boolean) {
+  const rooms = ((await readFloorRooms(host)) ?? []).slice(1).map(keptRoom)
   const agents = agentLines(m)
   const plan = m.plan ? drawnPlan(m.plan) : null
   const body = [...block(t('briefing.running.agents'), agents), ...block(t('briefing.running.chats'), chatLines(rooms)), ...block(t('briefing.running.plan'), planLines(plan))]
-  const { agents: live, chats } = await workNow($, m)
+  const { agents: live, chats } = await workNow(host, m)
   const carry = carryOn && live + chats > 0 ? [t('briefing.running.carryOn'), ''] : []
   return [`## ${t('briefing.running.title')}`, '', ...carry, ...(body.length ? body : [t('briefing.running.none'), ''])].join('\n').trimEnd()
 }
@@ -62,19 +62,19 @@ function draftOf(cwd: string, found: Found, notes: string, running: string) {
 }
 
 /** Only the files still on the disk, the most used first. */
-async function onDiskOnly($: Host, files: readonly string[]) {
+async function onDiskOnly(host: Host, files: readonly string[]) {
   const kept: string[] = []
   for (const path of files) {
     if (kept.length >= MOST_FILES) break
-    if (await $.fs.exists(path).catch(() => false)) kept.push(path)
+    if (await host.fs.exists(path).catch(() => false)) kept.push(path)
   }
   return kept
 }
 
-async function askModel($: Host, m: Memory, prompt: string) {
+async function askModel(host: Host, m: Memory, prompt: string) {
   m.heat.forks.add(prompt)
   try {
-    const reply = await $.model.fork({ prompt })
+    const reply = await host.model.fork({ prompt })
     if (reply.isAnswered && reply.text.trim()) return reply.text
     if (reply.isAnswered) throw new Stopped(t('briefing.errNone', { reason: 'empty-reply' }))
     if (reply.reason === 'api-error') throw new Stopped(t('briefing.errApi', { status: reply.status ?? '?' }))
@@ -84,9 +84,9 @@ async function askModel($: Host, m: Memory, prompt: string) {
   }
 }
 
-async function saveChecked($: Host, path: string, text: string) {
-  await $.fs.write(path, text)
-  if ((await $.fs.read(path)) !== text) throw new Stopped(t('briefing.errMismatch'))
+async function saveChecked(host: Host, path: string, text: string) {
+  await host.fs.write(path, text)
+  if ((await host.fs.read(path)) !== text) throw new Stopped(t('briefing.errMismatch'))
 }
 
 /**
@@ -94,7 +94,7 @@ async function saveChecked($: Host, path: string, text: string) {
  * called, so that a failure leaves something; a failure of the model never costs a second call.
  * `signal` stops it at the next step, so nothing is saved after it: the engine cannot cut a fork on its way.
  */
-export async function writeBriefingFile($: Host, m: Memory, carryOn: boolean, signal: AbortSignal, at: (step: number) => Promise<void>): Promise<Written> {
+export async function writeBriefingFile(host: Host, m: Memory, carryOn: boolean, signal: AbortSignal, at: (step: number) => Promise<void>): Promise<Written> {
   let step = 0
   let draft: string | null = null
   let draftText = ''
@@ -105,26 +105,26 @@ export async function writeBriefingFile($: Host, m: Memory, carryOn: boolean, si
   }
   try {
     await enter(0)
-    const messages = await $.session.messages()
+    const messages = await host.session.messages()
     await enter(1)
     const raw = gather(messages, m.home)
-    const found = { ...raw, files: await onDiskOnly($, raw.files) }
+    const found = { ...raw, files: await onDiskOnly(host, raw.files) }
     await enter(2)
-    const notes = (await readNotes($, m)).slice(-NOTES_CHARS)
-    const running = await runningSection($, m, carryOn)
+    const notes = (await readNotes(host, m)).slice(-NOTES_CHARS)
+    const running = await runningSection(host, m, carryOn)
     const cwd = tilde(m.cwd, m.home)
     draftText = scrubbed(draftOf(cwd, found, notes, running))
-    await $.fs.write(draftPath(m), draftText)
+    await host.fs.write(draftPath(m), draftText)
     draft = draftPath(m)
     await enter(3)
-    const sentAt = await $.clock.now()
+    const sentAt = await host.clock.now()
     const prompt = t('briefing.prompt', { ...promptValues(found), cwd, notes: notes || t('briefing.none') })
-    const reply = unwrapped(await askModel($, m, prompt))
+    const reply = unwrapped(await askModel(host, m, prompt))
     await enter(4)
     const text = scrubbed(`${reply}\n\n${running}\n`)
-    const file = `${briefingsDir(m)}/${stampOf(await $.clock.now())}-${slugOf(text)}.md`
-    await saveChecked($, file, text)
-    await pruneBriefings($, m)
+    const file = `${briefingsDir(m)}/${stampOf(await host.clock.now())}-${slugOf(text)}.md`
+    await saveChecked(host, file, text)
+    await pruneBriefings(host, m)
     return { ok: true, file, text, words: wordsOf(reply), sentAt }
   } catch (err) {
     const error = err instanceof Stopped ? err.message : reason(err)

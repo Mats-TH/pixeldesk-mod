@@ -252,7 +252,7 @@ function briefingZone(ui: Table, view: RoomView, frame: Frame, panel: PanelCells
 }
 
 /** The room as a drawing, as thin as the app needs it; null when not even one image holds it, and the list takes over. */
-export async function roomView($: Host, m: Memory, ui: Table, frame: Frame, view: RoomView, mobile: boolean, list: readonly RenderElement[] | null) {
+export async function roomView(host: Host, m: Memory, ui: Table, frame: Frame, view: RoomView, mobile: boolean, list: readonly RenderElement[] | null) {
   const { Box, Svg } = ui
   const desks: RoomDesk[] = view.agents.map(desk)
   const steps = (view.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))
@@ -262,7 +262,7 @@ export async function roomView($: Host, m: Memory, ui: Table, frame: Frame, view
   // A phone's web view moves an image: the room stays whole there. On the desktop an image stands still.
   const pair = drawings(m, input, Math.min(view.seen.previous, desks.length), mobile ? roomSvg : roomBackSvg, !mobile)
   if (pair.image.sent.length > SVG_MAX) {
-    await log($, m, `room drawing too large: ${pair.image.sent.length}`)
+    await log(host, m, `room drawing too large: ${pair.image.sent.length}`)
     return null
   }
   const alt = plural('pane.roomAlt', desks.length, { n: desks.length, summary: summaryOf(view.agents), manager: postState(view.sub, view.chat.working) })
@@ -322,7 +322,7 @@ export async function roomView($: Host, m: Memory, ui: Table, frame: Frame, view
   // The last resort is a phone's room: one image, still, under the same buttons.
   const whole = roomSvg(input)
   if (whole.length > SVG_MAX) {
-    await log($, m, `room drawing too large: ${whole.length}`)
+    await log(host, m, `room drawing too large: ${whole.length}`)
     return null
   }
   return (

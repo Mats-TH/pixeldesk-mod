@@ -1,4 +1,4 @@
-import type { EngineInterface, Register, ToolCallResult } from 'claude-code'
+import type { Register, ToolCallResult } from 'claude-code'
 
 import { act, arrive, endTurn, known, publish } from './agents'
 import { closeTurn, noteCall, openTurn } from './chat'
@@ -45,82 +45,6 @@ const NEWS = { plugin: 'pixeldesk', key: 'news' } as const
 const HEARTH = { plugin: 'pixeldesk', key: 'hearth' } as const
 const BRIEFING = { plugin: 'pixeldesk', key: 'briefing' } as const
 
-/**
- * What a hook's `$` lets the rest of the mod do. `$` stays in this file: each call is written here in full, and the
- * words of each command with it. Built per hook: a state read while drawing subscribes that drawing.
- */
-function hostOf($: EngineInterface): Host {
-  return {
-    agent: { list: () => $.agent.list() },
-    clock: { after: (ms, fn) => $.clock.after(ms, fn), every: (ms, fn) => $.clock.every(ms, fn), now: () => $.clock.now() },
-    command: {
-      register: spec => $.command.register(spec),
-      compact: brief => $.command.run({ command: 'compact', args: brief }),
-    },
-    env: {
-      userProfile: () => $.env.get('USERPROFILE'),
-      home: () => $.env.get('HOME'),
-      localAppData: () => $.env.get('LOCALAPPDATA'),
-      lcAll: () => $.env.get('LC_ALL'),
-      lcMessages: () => $.env.get('LC_MESSAGES'),
-      lang: () => $.env.get('LANG'),
-      language: () => $.env.get('LANGUAGE'),
-    },
-    fs: { exists: path => $.fs.exists(path), list: path => $.fs.list(path), read: path => $.fs.read(path), write: (path, text) => $.fs.write(path, text) },
-    model: { complete: args => $.model.complete(args), fork: args => $.model.fork(args) },
-    process: {
-      // This first answer has no tool at all, built-in or connector: it can write nothing, run nothing and wait for nothing. `--tools=` alone sends every connector's tool in full.
-      claude: (message, id, cwd, title) => $.process.run(['claude', '-p', message, '--session-id', id, `--name=${title}`, '--tools=', '--strict-mcp-config'], { cwd, timeoutMs: FIRST_READ_MS }),
-      open: (system: System, target) => {
-        if (system === 'windows') return $.process.run(['rundll32', 'url.dll,FileProtocolHandler', target])
-        if (system === 'mac') return $.process.run(['open', target])
-        return $.process.run(['xdg-open', target])
-      },
-      systemCulture: () => $.process.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name'], { timeoutMs: CULTURE_TIMEOUT }),
-    },
-    session: {
-      compact: args => $.session.compact(args),
-      cwd: () => $.session.cwd(),
-      id: () => $.session.id(),
-      messages: () => $.session.messages(),
-      model: () => $.session.model(),
-      usage: () => $.session.usage(),
-    },
-    settings: { language: () => $.settings.read({ key: 'language' }) },
-    store: { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value) },
-    tool: { register: spec => $.tool.register(spec) },
-    ui: {
-      close: pane => $.ui.close(pane),
-      copy: args => $.ui.copy(args),
-      open: pane => $.ui.open(pane),
-      panes: () => $.ui.panes(),
-      resolve: (e => $.ui.resolve(e)) as Host['ui']['resolve'],
-      status: text => $.ui.status(text),
-      toast: text => $.ui.toast(text),
-    },
-    values: {
-      agents: { get: async () => (await $.state.get(AGENTS)).value, set: value => $.state.set(AGENTS, value) },
-      chat: { get: async () => (await $.state.get(CHAT)).value, set: value => $.state.set(CHAT, value) },
-      settings: { get: async () => (await $.state.get(SETTINGS)).value, set: value => $.state.set(SETTINGS, value) },
-      language: { get: async () => (await $.state.get(LANGUAGE)).value, set: value => $.state.set(LANGUAGE, value) },
-      plan: { get: async () => (await $.state.get(PLAN)).value, set: value => $.state.set(PLAN, value) },
-      shimmer: { get: async () => (await $.state.get(SHIMMER)).value, set: value => $.state.set(SHIMMER, value) },
-      limits: { get: async () => (await $.state.get(LIMITS)).value, set: value => $.state.set(LIMITS, value) },
-      minute: { get: async () => (await $.state.get(MINUTE)).value, set: value => $.state.set(MINUTE, value) },
-      cardClock: { get: async () => (await $.state.get(CARD_CLOCK)).value, set: value => $.state.set(CARD_CLOCK, value) },
-      summaries: { get: async () => (await $.state.get(SUMMARIES)).value, set: value => $.state.set(SUMMARIES, value) },
-      seen: { get: async () => (await $.state.get(SEEN)).value, set: value => $.state.set(SEEN, value) },
-      floor: { get: async () => (await $.state.get(FLOOR)).value, set: value => $.state.set(FLOOR, value) },
-      sub: { get: async () => (await $.state.get(SUB)).value, set: value => $.state.set(SUB, value) },
-      tokens: { get: async () => (await $.state.get(TOKENS)).value, set: value => $.state.set(TOKENS, value) },
-      cost: { get: async () => (await $.state.get(COST)).value, set: value => $.state.set(COST, value) },
-      news: { get: async () => (await $.state.get(NEWS)).value, set: value => $.state.set(NEWS, value) },
-      hearth: { get: async () => (await $.state.get(HEARTH)).value, set: value => $.state.set(HEARTH, value) },
-      briefing: { get: async () => (await $.state.get(BRIEFING)).value, set: value => $.state.set(BRIEFING, value) },
-    },
-  }
-}
-
 /** What a call of the main conversation may add for the model, once the tool has answered. */
 function notesAfter(m: Memory, ran: ToolCallResult) {
   m.turn = { ...m.turn, calls: m.turn.calls + 1 }
@@ -135,9 +59,9 @@ function agentNote(m: Memory, id: string, ran: ToolCallResult) {
 }
 
 /** Reads a finished call. Whatever goes wrong here stays here: the tool's result is left as it came. */
-async function afterCall($: Host, m: Memory, tool: string, input: Record<string, unknown>, ran: ToolCallResult, agentId: string | undefined) {
+async function afterCall(host: Host, m: Memory, tool: string, input: Record<string, unknown>, ran: ToolCallResult, agentId: string | undefined) {
   if (isMirror(tool)) {
-    if (ran.deny === undefined && !ran.isError) await applyMirror($, m, tool, input, ran.result, agentId)
+    if (ran.deny === undefined && !ran.isError) await applyMirror(host, m, tool, input, ran.result, agentId)
     return []
   }
   return agentId === undefined ? notesAfter(m, ran) : agentNote(m, agentId, ran)
@@ -148,8 +72,79 @@ export const register: Register = (on, options) => {
   // Nothing is seen before a session settles the language: this is what the tests of the drawings read.
   setLanguage(m.forced ?? 'fr')
 
+  // `$` stops here: each call the mod makes is written below in full, with the words of each command, and every other
+  // hook works through what this one binds.
   on('session.start', async ($, e, next) => {
-    const host = hostOf($)
+    const host: Host = {
+      agent: { list: () => $.agent.list() },
+      clock: { after: (ms, fn) => $.clock.after(ms, fn), every: (ms, fn) => $.clock.every(ms, fn), now: () => $.clock.now() },
+      command: {
+        register: spec => $.command.register(spec),
+        compact: brief => $.command.run({ command: 'compact', args: brief }),
+      },
+      env: {
+        userProfile: () => $.env.get('USERPROFILE'),
+        home: () => $.env.get('HOME'),
+        localAppData: () => $.env.get('LOCALAPPDATA'),
+        lcAll: () => $.env.get('LC_ALL'),
+        lcMessages: () => $.env.get('LC_MESSAGES'),
+        lang: () => $.env.get('LANG'),
+        language: () => $.env.get('LANGUAGE'),
+      },
+      fs: { exists: path => $.fs.exists(path), list: path => $.fs.list(path), read: path => $.fs.read(path), write: (path, text) => $.fs.write(path, text) },
+      model: { complete: args => $.model.complete(args), fork: args => $.model.fork(args) },
+      process: {
+        // This first answer has no tool at all, built-in or connector: it can write nothing, run nothing and wait for nothing. `--tools=` alone sends every connector's tool in full.
+        claude: (message, id, cwd, title) => $.process.run(['claude', '-p', message, '--session-id', id, `--name=${title}`, '--tools=', '--strict-mcp-config'], { cwd, timeoutMs: FIRST_READ_MS }),
+        open: (system: System, target) => {
+          if (system === 'windows') return $.process.run(['rundll32', 'url.dll,FileProtocolHandler', target])
+          if (system === 'mac') return $.process.run(['open', target])
+          return $.process.run(['xdg-open', target])
+        },
+        systemCulture: () => $.process.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name'], { timeoutMs: CULTURE_TIMEOUT }),
+      },
+      session: {
+        compact: args => $.session.compact(args),
+        cwd: () => $.session.cwd(),
+        id: () => $.session.id(),
+        messages: () => $.session.messages(),
+        model: () => $.session.model(),
+        usage: () => $.session.usage(),
+      },
+      settings: { language: () => $.settings.read({ key: 'language' }) },
+      store: { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value) },
+      tool: { register: spec => $.tool.register(spec) },
+      ui: {
+        close: pane => $.ui.close(pane),
+        copy: args => $.ui.copy(args),
+        open: pane => $.ui.open(pane),
+        panes: () => $.ui.panes(),
+        resolve: (e => $.ui.resolve(e)) as Host['ui']['resolve'],
+        status: text => $.ui.status(text),
+        toast: text => $.ui.toast(text),
+      },
+      values: {
+        agents: { get: async () => (await $.state.get(AGENTS)).value, set: value => $.state.set(AGENTS, value) },
+        chat: { get: async () => (await $.state.get(CHAT)).value, set: value => $.state.set(CHAT, value) },
+        settings: { get: async () => (await $.state.get(SETTINGS)).value, set: value => $.state.set(SETTINGS, value) },
+        language: { get: async () => (await $.state.get(LANGUAGE)).value, set: value => $.state.set(LANGUAGE, value) },
+        plan: { get: async () => (await $.state.get(PLAN)).value, set: value => $.state.set(PLAN, value) },
+        shimmer: { get: async () => (await $.state.get(SHIMMER)).value, set: value => $.state.set(SHIMMER, value) },
+        limits: { get: async () => (await $.state.get(LIMITS)).value, set: value => $.state.set(LIMITS, value) },
+        minute: { get: async () => (await $.state.get(MINUTE)).value, set: value => $.state.set(MINUTE, value) },
+        cardClock: { get: async () => (await $.state.get(CARD_CLOCK)).value, set: value => $.state.set(CARD_CLOCK, value) },
+        summaries: { get: async () => (await $.state.get(SUMMARIES)).value, set: value => $.state.set(SUMMARIES, value) },
+        seen: { get: async () => (await $.state.get(SEEN)).value, set: value => $.state.set(SEEN, value) },
+        floor: { get: async () => (await $.state.get(FLOOR)).value, set: value => $.state.set(FLOOR, value) },
+        sub: { get: async () => (await $.state.get(SUB)).value, set: value => $.state.set(SUB, value) },
+        tokens: { get: async () => (await $.state.get(TOKENS)).value, set: value => $.state.set(TOKENS, value) },
+        cost: { get: async () => (await $.state.get(COST)).value, set: value => $.state.set(COST, value) },
+        news: { get: async () => (await $.state.get(NEWS)).value, set: value => $.state.set(NEWS, value) },
+        hearth: { get: async () => (await $.state.get(HEARTH)).value, set: value => $.state.set(HEARTH, value) },
+        briefing: { get: async () => (await $.state.get(BRIEFING)).value, set: value => $.state.set(BRIEFING, value) },
+      },
+    }
+    m.host = host
     await guard(host, m, 'session start', () => startSession(host, m, e))
     return next(e)
   })
@@ -165,7 +160,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('session.compact', ($, e, next) => onCompact(hostOf($), m, e, next))
+  on('session.compact', ($, e, next) => (m.host ? onCompact(m.host, m, e, next) : next(e)))
 
   on('session.end', async ($, e, next) => {
     if (e.reason === 'clear') clearHearth(m)
@@ -173,16 +168,18 @@ export const register: Register = (on, options) => {
   })
 
   on('session.measure', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     await guard(host, m, 'limits', () => writeLimits(host, e.rateLimits))
     if (e.cost) await guard(host, m, 'cost', () => writeCost(host, e.cost!.usd))
     return next(e)
   })
 
-  on('command.run', { command: 'pixeldesk' }, ($, e) => runCommand(hostOf($), m, e.args))
+  on('command.run', { command: 'pixeldesk' }, ($, e, next) => (m.host ? runCommand(m.host, m, e.args) : next(e)))
 
   on('agent.spawn', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     const started = await next(e)
     if (started.agentId && (e.resume !== undefined || e.workflow !== undefined)) m.noted.add(started.agentId)
     if (started.agentId) await guard(host, m, 'agent spawn', () => arrive(host, m, started.agentId!, { description: e.description, type: e.subagentType }))
@@ -190,7 +187,8 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     const tool = String(e.tool)
     const input = e as Record<string, unknown>
     if (tool === PLAN_TOOL) {
@@ -207,7 +205,8 @@ export const register: Register = (on, options) => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     const agentId = (e as { agentId?: string }).agentId
     if (agentId !== undefined) return next(e)
     newTurn(m)
@@ -216,13 +215,15 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.start', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     if (!isForkTurn(m, e.text, e.turnId) && e.agentId === undefined) await guard(host, m, 'turn start', () => openTurn(host, m))
     return next(e)
   })
 
   on('session.receive', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     const delivery = await next(e)
     if (e.agentId === undefined && delivery.consumed === undefined) await guard(host, m, 'news', () => received(host, m, e.origin.kind, e.text))
     return delivery
@@ -235,7 +236,8 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.step', async function* ($, e, next) {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return yield* next(e)
     const main = e.agentId === undefined && !m.heat.forkTurns.has(e.turnId)
     const sentAt = main ? await stepLeaves(host, m) : 0
     const step = yield* next(e)
@@ -255,7 +257,8 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.complete', async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     if (m.heat.forkTurns.delete(e.turnId)) return next(e)
     await guard(host, m, 'turn end', async () => {
       if (e.agentId !== undefined) {
@@ -269,16 +272,17 @@ export const register: Register = (on, options) => {
   })
 
   // Each zone has its hook, and the tree's own `onPress` does nothing.
-  on('ui.press', { plugin: 'pixeldesk', element: 'settings-button-0' }, ($, e) => pressSettings(hostOf($), m, e.element))
-  on('ui.press', { plugin: 'pixeldesk', element: 'settings-plan-0' }, ($, e) => pressSettings(hostOf($), m, e.element))
-  on('ui.press', { plugin: 'pixeldesk', element: 'settings-each-0' }, ($, e) => pressSettings(hostOf($), m, e.element))
+  on('ui.press', { plugin: 'pixeldesk', element: 'settings-button-0' }, ($, e, next) => (m.host ? pressSettings(m.host, m, e.element) : next(e)))
+  on('ui.press', { plugin: 'pixeldesk', element: 'settings-plan-0' }, ($, e, next) => (m.host ? pressSettings(m.host, m, e.element) : next(e)))
+  on('ui.press', { plugin: 'pixeldesk', element: 'settings-each-0' }, ($, e, next) => (m.host ? pressSettings(m.host, m, e.element) : next(e)))
 
-  on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth|theme)-/ }, ($, e) => pressGesture(hostOf($), m, e))
+  on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth|theme)-/ }, ($, e, next) => (m.host ? pressGesture(m.host, m, e) : next(e)))
 
-  on('ui.render', { component: 'Pane', requestId: 'pixeldesk' }, ($, e) => drawPane(hostOf($), m, e))
+  on('ui.render', { component: 'Pane', requestId: 'pixeldesk' }, ($, e, next) => (m.host ? drawPane(m.host, m, e) : next(e)))
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const host = hostOf($)
+    const host = m.host
+    if (!host) return next(e)
     // A band that cannot be drawn hides the mod: nothing goes out to the model until it can.
     try {
       const drawn = await drawBand(host, m, e, () => next(e))

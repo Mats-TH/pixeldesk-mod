@@ -21,9 +21,9 @@ export function summaryPrompt(agent: Source) {
 }
 
 /** A sentence for the card, or null: a failed summary leaves the rule line in place. */
-export async function summarize($: Host, agent: Source): Promise<string | null> {
+export async function summarize(host: Host, agent: Source): Promise<string | null> {
   try {
-    const r = await $.model.complete({ model: 'haiku', system: t('summary.system'), prompt: summaryPrompt(agent), maxTokens: 120 })
+    const r = await host.model.complete({ model: 'haiku', system: t('summary.system'), prompt: summaryPrompt(agent), maxTokens: 120 })
     const text = r.isAnswered ? r.text.trim() : ''
     return text || null
   } catch {

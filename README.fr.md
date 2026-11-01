@@ -357,7 +357,7 @@ Il n'y a pas de mur à cliquer. Pour passer en Manuel, mets `"briefingMode": "ma
 
 ## Ce que PixelDesk Mod lit, écrit, lance et envoie
 
-PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits d'utilisateur. Cette section liste tout ce qu'il fait sur ta machine. Le code est dans `hooks/`, lisible et non minifié. Chaque appel à Claude Code est écrit en clair dans `hostOf`, dans `hooks/register.tsx`, et le reste du mod passe par lui. Les fichiers de test n'utilisent que des valeurs fictives.
+PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits d'utilisateur. Cette section liste tout ce qu'il fait sur ta machine. Le code est dans `hooks/`, lisible et non minifié. Chaque appel à Claude Code est écrit en clair dans le hook `session.start` de `hooks/register.tsx`, et le reste du mod passe par lui. Les fichiers de test n'utilisent que des valeurs fictives.
 
 ### En bref
 

@@ -87,11 +87,11 @@ function drawnRow(ui: Table, view: Briefing, width: number, top: number) {
 }
 
 /** What the band adds above itself, or null: it only speaks when a briefing is under way, and the band itself never moves for it. */
-export async function hearthRows($: Host, m: Memory, e: Band, top: number) {
-  const view = await readBriefing($)
+export async function hearthRows(host: Host, m: Memory, e: Band, top: number) {
+  const view = await readBriefing(host)
   if (!view || view.phase === 'idle') return null
-  if (e.surface === 'desktop' || e.surface === 'vscode') return drawnRow($.ui.resolve(e) as unknown as Table, view, ROW_PAST + bandWidth(e.props.bodyColumns), top)
-  const percent = (await readHearth($))?.contextPercent ?? 0
+  if (e.surface === 'desktop' || e.surface === 'vscode') return drawnRow(host.ui.resolve(e) as unknown as Table, view, ROW_PAST + bandWidth(e.props.bodyColumns), top)
+  const percent = (await readHearth(host))?.contextPercent ?? 0
   const width = Math.max(1, (e.props.bodyColumns || 0) - WIDTH_MARGIN)
-  return wordRow($.ui.resolve(e) as unknown as Row, view, view.phase, percent, width, m.home)
+  return wordRow(host.ui.resolve(e) as unknown as Row, view, view.phase, percent, width, m.home)
 }

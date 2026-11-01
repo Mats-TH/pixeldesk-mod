@@ -28,8 +28,8 @@ export const linksOpened = (w: Loose) => w.runs.filter((r: Loose) => r.argv[0] !
 export const saved = (w: Loose) => [...w.files.keys()].filter((p: string) => /\/\d{4}-\d{2}-\d{2}-\d{4}-/.test(p) && w.files.get(p))
 
 /** A click on a button of the row above the band, as the person makes it. */
-export async function press($: Loose, key: string, surface = 'desktop') {
-  const ui = await mountBand($, surface)
+export async function press(engine: Loose, key: string, surface = 'desktop') {
+  const ui = await mountBand(engine, surface)
   const pressed = await ui.press({ key })
   await ui.unmount()
   return pressed
@@ -76,10 +76,10 @@ export function hearthWorld(on: Loose, options: WorldOptions = {}) {
     ...h,
     h,
     /** A whole turn of the main conversation: the request leaves now. */
-    async reply($: Loose) {
-      await startTurn($)
-      await spend($, usage(10, 10, 100, 100))
-      await endTurn($)
+    async reply(engine: Loose) {
+      await startTurn(engine)
+      await spend(engine, usage(10, 10, 100, 100))
+      await endTurn(engine)
     },
     spend,
     fill(percent: number, tokens = percent * 10_000) {

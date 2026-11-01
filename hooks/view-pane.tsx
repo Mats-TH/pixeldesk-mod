@@ -57,30 +57,30 @@ function listView(ui: Words, width: number, agents: readonly AgentRecord[], summ
 }
 
 /** The pane: the floor when this conversation leads others, else its room, else the same in words. */
-export async function drawPane($: Host, m: Memory, e: Pane) {
-  await followLanguage($, m)
-  const summaries = (await readSummaries($)) ?? {}
-  const plan = (await readPlan($)) ?? null
-  const tokens = (await readTokens($)) ?? 0
-  const cost = (await readCost($)) ?? null
-  const news = (await readNews($)) ?? { count: 0, shown: 0 }
-  await readMinute($)
-  await readCardClock($)
-  const agents = seated(((await readAgents($)) ?? []).map(healed))
-  const rooms = ((await readFloorRooms($)) ?? []).map(keptRoom)
-  const chat = (await readChat($)) ?? NO_TURN
-  const sub = (await readSub($)) ?? false
-  const words = () => listView($.ui.resolve(e) as unknown as Words, Math.max(1, e.props.bodyColumns || 0), agents, summaries, rooms, chat, plan, sub)
+export async function drawPane(host: Host, m: Memory, e: Pane) {
+  await followLanguage(host, m)
+  const summaries = (await readSummaries(host)) ?? {}
+  const plan = (await readPlan(host)) ?? null
+  const tokens = (await readTokens(host)) ?? 0
+  const cost = (await readCost(host)) ?? null
+  const news = (await readNews(host)) ?? { count: 0, shown: 0 }
+  await readMinute(host)
+  await readCardClock(host)
+  const agents = seated(((await readAgents(host)) ?? []).map(healed))
+  const rooms = ((await readFloorRooms(host)) ?? []).map(keptRoom)
+  const chat = (await readChat(host)) ?? NO_TURN
+  const sub = (await readSub(host)) ?? false
+  const words = () => listView(host.ui.resolve(e) as unknown as Words, Math.max(1, e.props.bodyColumns || 0), agents, summaries, rooms, chat, plan, sub)
   if (e.surface === 'terminal') return words()
-  const ui = $.ui.resolve(e) as unknown as Table
+  const ui = host.ui.resolve(e) as unknown as Table
   const frame = frameOf(e)
   const mobile = e.surface === 'mobile'
-  const now = await $.clock.now()
-  const settings = (await readSettings($)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme }
+  const now = await host.clock.now()
+  const settings = (await readSettings(host)) ?? { open: false, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme }
   if (rooms.length) return floorView(m, ui, frame, rooms, news, now, mobile, settings)
-  const seen = (await readSeen($)) ?? { shown: agents.length, previous: agents.length }
-  const view: RoomView = { agents, summaries, plan, seen, tokens, cost, now, chat, sub, settings, hearth: (await readHearth($)) ?? null, briefing: (await readBriefing($)) ?? null }
-  const list = $.ui.resolve(e) as unknown as Words
+  const seen = (await readSeen(host)) ?? { shown: agents.length, previous: agents.length }
+  const view: RoomView = { agents, summaries, plan, seen, tokens, cost, now, chat, sub, settings, hearth: (await readHearth(host)) ?? null, briefing: (await readBriefing(host)) ?? null }
+  const list = host.ui.resolve(e) as unknown as Words
   const rows = mobile ? [managerRow(list, chat, plan, sub), ...agentRows(list, agents, summaries)] : null
-  return (await roomView($, m, ui, frame, view, mobile, rows)) ?? words()
+  return (await roomView(host, m, ui, frame, view, mobile, rows)) ?? words()
 }

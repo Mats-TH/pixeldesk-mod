@@ -53,6 +53,7 @@ describe('waiting for the work', () => {
 
   test('the plan and the agents always reach the document, by the mod and not the model', async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
+    await start($)
     await sendPlan($, [step('Finir', 'in_progress'), step('Livrer', 'pending'), step('Lire', 'completed')], 'Le mod')
     await asked($, t)
     await press($, 'briefing-now')

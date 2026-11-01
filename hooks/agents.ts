@@ -77,27 +77,27 @@ export function summaryOf(list: readonly AgentRecord[]) {
 export const isWorking = (a: AgentRecord) => a.phase === 'working'
 
 /** Whether the pane is up; a failure to tell counts as closed. */
-export function paneOpen($: Host) {
-  return $.ui.panes().then(list => list.some(pane => pane.id === PANE), () => false)
+export function paneOpen(host: Host) {
+  return host.ui.panes().then(list => list.some(pane => pane.id === PANE), () => false)
 }
 
 /** Opens the pane; a refusal goes to the log. */
-export function openPane($: Host, m: Memory) {
-  return guard($, m, 'open pane', () => $.ui.open({ id: PANE, title: t('brand') }))
+export function openPane(host: Host, m: Memory) {
+  return guard(host, m, 'open pane', () => host.ui.open({ id: PANE, title: t('brand') }))
 }
 
 /** The summaries that are due. The mark goes on before the call: two summaries of one agent never run at once. */
-async function freshen($: Host, m: Memory) {
-  if (!(await paneOpen($))) return
-  const now = await $.clock.now()
+async function freshen(host: Host, m: Memory) {
+  if (!(await paneOpen(host))) return
+  const now = await host.clock.now()
   for (const a of m.agents) {
     const mark = m.marks.get(a.id) ?? { at: 0, count: 0 }
     if (!dueForSummary(a, mark, now, true)) continue
     m.marks.set(a.id, { at: now, count: a.count })
-    void summarize($, a).then(async text => {
+    void summarize(host, a).then(async text => {
       if (!text) return
-      await writeSummaries($, { ...(await readSummaries($)), [a.id]: text })
-    }).catch((err: unknown) => log($, m, `summary: ${reason(err)}`))
+      await writeSummaries(host, { ...(await readSummaries(host)), [a.id]: text })
+    }).catch((err: unknown) => log(host, m, `summary: ${reason(err)}`))
   }
 }
 
@@ -109,9 +109,9 @@ function planOver(m: Memory) {
 }
 
 /** The 2 s pass runs while anyone works, or while a finished desk has its departure ahead; never otherwise. */
-export function pacePoll($: Host, m: Memory) {
+export function pacePoll(host: Host, m: Memory) {
   const needed = m.agents.some(isWorking) || leaveAhead(m.agents, m.departure, planOver(m))
-  if (needed && !m.poll) m.poll = $.clock.every(POLL_MS, () => void pass($, m))
+  if (needed && !m.poll) m.poll = host.clock.every(POLL_MS, () => void pass(host, m))
   else if (!needed && m.poll) {
     m.poll.cancel()
     m.poll = null
@@ -119,18 +119,18 @@ export function pacePoll($: Host, m: Memory) {
 }
 
 /** Every change of a record ends here: the state gets a copy. */
-export async function publish($: Host, m: Memory) {
-  await writeAgents($, m.agents.map(a => ({ ...a })))
-  pacePoll($, m)
-  await guard($, m, 'summaries', () => freshen($, m))
+export async function publish(host: Host, m: Memory) {
+  await writeAgents(host, m.agents.map(a => ({ ...a })))
+  pacePoll(host, m)
+  await guard(host, m, 'summaries', () => freshen(host, m))
 }
 
 /** The room is settled: whatever comes next starts its zoom from a fresh mark. */
-export async function settle($: Host, m: Memory) {
+export async function settle(host: Host, m: Memory) {
   const n = seated(m.agents).length
   m.seen = { shown: n, previous: n }
   m.roomPair = zoomAgain(m.roomPair)
-  await writeSeen($, m.seen)
+  await writeSeen(host, m.seen)
 }
 
 /** The outfit after this one, in the ring the agents share. */
@@ -146,8 +146,8 @@ function nextHue(m: Memory) {
 }
 
 /** A record for an agent seen for the first time; the pane opens for the first one at work. */
-async function enrol($: Host, m: Memory, id: string, from: Newcomer) {
-  const startedAt = await $.clock.now()
+async function enrol(host: Host, m: Memory, id: string, from: Newcomer) {
+  const startedAt = await host.clock.now()
   // The clock took a moment: a parallel call may have enrolled it meanwhile.
   const held = m.agents.find(a => a.id === id)
   if (held) return held
@@ -173,8 +173,8 @@ async function enrol($: Host, m: Memory, id: string, from: Newcomer) {
   m.agents.push(a)
   m.seen = { shown: seated(m.agents).length, previous: shown }
   m.roomPair = zoomAgain(m.roomPair)
-  await writeSeen($, m.seen)
-  if (quiet && !m.hidden) await openPane($, m)
+  await writeSeen(host, m.seen)
+  if (quiet && !m.hidden) await openPane(host, m)
   return a
 }
 
@@ -186,7 +186,7 @@ function revive(a: AgentRecord) {
 }
 
 /** `agent.spawn` named an agent. A new run of an id brings it back, even after it left. */
-export async function arrive($: Host, m: Memory, id: string, from: Newcomer) {
+export async function arrive(host: Host, m: Memory, id: string, from: Newcomer) {
   m.gone.delete(id)
   m.strangers.delete(id)
   const known = m.agents.find(a => a.id === id)
@@ -194,36 +194,36 @@ export async function arrive($: Host, m: Memory, id: string, from: Newcomer) {
     known.description = from.description || known.description
     known.type = from.type || known.type
     if (!isWorking(known)) revive(known)
-  } else await enrol($, m, id, from)
-  await publish($, m)
+  } else await enrol(host, m, id, from)
+  await publish(host, m)
 }
 
 /** The record of an id, adopted from the list if it is new. An id the list does not name is never looked for again. */
-export async function known($: Host, m: Memory, id: string) {
+export async function known(host: Host, m: Memory, id: string) {
   const held = m.agents.find(a => a.id === id)
   if (held) return held
   if (m.gone.has(id) || m.strangers.has(id)) return null
-  const info = (await $.agent.list()).find(a => a.id === id)
+  const info = (await host.agent.list()).find(a => a.id === id)
   if (!info) {
     m.strangers.add(id)
     return null
   }
-  return enrol($, m, id, info)
+  return enrol(host, m, id, info)
 }
 
 /** One tool call of an agent. */
-export async function act($: Host, m: Memory, id: string, tool: string, input: Record<string, unknown>) {
-  const a = await known($, m, id)
+export async function act(host: Host, m: Memory, id: string, tool: string, input: Record<string, unknown>) {
+  const a = await known(host, m, id)
   if (!a) return
   if (!isWorking(a)) revive(a)
   a.count += 1
   a.steps = [...a.steps, { live: actionPhrase(tool, input, m.connectors) }].slice(-MAX_ACTIONS)
-  await publish($, m)
+  await publish(host, m)
 }
 
-async function finish($: Host, a: AgentRecord, phase: AgentPhase) {
+async function finish(host: Host, a: AgentRecord, phase: AgentPhase) {
   a.phase = phase
-  a.endedAt = await $.clock.now()
+  a.endedAt = await host.clock.now()
   if (phase === 'failed') a.errored = true
 }
 
@@ -236,31 +236,31 @@ export function leave(m: Memory, a: AgentRecord) {
 }
 
 /** Every desk due leaves in one go, with one publication: no zoom, and nothing at all when none is due. */
-export async function sweep($: Host, m: Memory) {
-  const due = leavers(m.agents, { mode: m.departure, now: await $.clock.now(), planOver: planOver(m) })
+export async function sweep(host: Host, m: Memory) {
+  const due = leavers(m.agents, { mode: m.departure, now: await host.clock.now(), planOver: planOver(m) })
   if (due.length) {
     for (const a of due) leave(m, a)
-    await settle($, m)
-    await publish($, m)
-  } else pacePoll($, m)
+    await settle(host, m)
+    await publish(host, m)
+  } else pacePoll(host, m)
 }
 
 /** A new plan clears the room at once: what the last one finished or stopped leaves without waiting. */
-export async function clearDesks($: Host, m: Memory) {
+export async function clearDesks(host: Host, m: Memory) {
   const over = m.agents.filter(a => !isWorking(a))
   if (!over.length) return
   for (const a of over) leave(m, a)
-  await settle($, m)
-  await publish($, m)
+  await settle(host, m)
+  await publish(host, m)
 }
 
 /** Reads the list: only an agent at work can change. */
-async function readList($: Host, m: Memory) {
-  await guard($, m, 'agent list', async () => {
+async function readList(host: Host, m: Memory) {
+  await guard(host, m, 'agent list', async () => {
     if (!m.agents.some(isWorking)) return
     let moved = false
     let filled = false
-    for (const info of await $.agent.list()) {
+    for (const info of await host.agent.list()) {
       const a = m.agents.find(other => other.id === info.id)
       if (!a || !isWorking(a)) continue
       if (!a.description && info.description) {
@@ -268,43 +268,43 @@ async function readList($: Host, m: Memory) {
         filled = true
       }
       if (info.status === 'killed') leave(m, a)
-      else if (info.status === 'failed') await finish($, a, 'failed')
-      else if (info.status === 'completed' || info.status === 'idle') await finish($, a, 'done')
+      else if (info.status === 'failed') await finish(host, a, 'failed')
+      else if (info.status === 'completed' || info.status === 'idle') await finish(host, a, 'done')
       else continue
       moved = true
     }
-    if (moved) await settle($, m)
-    if (moved || filled) await publish($, m)
+    if (moved) await settle(host, m)
+    if (moved || filled) await publish(host, m)
   })
 }
 
 /** The 2 s pass. One at a time: a slow list does not stack passes up. */
-async function pass($: Host, m: Memory) {
+async function pass(host: Host, m: Memory) {
   if (m.polling) return
   m.polling = true
-  await readList($, m)
-  await guard($, m, 'departures', () => sweep($, m))
+  await readList(host, m)
+  await guard(host, m, 'departures', () => sweep(host, m))
   m.polling = false
 }
 
 /** The end of an agent's turn. The turn's sum takes over from the steps; an aborted turn never lowers the total. */
-export async function endTurn($: Host, m: Memory, id: string, end: { isAborted: boolean; reason: string; spent: number | null }) {
+export async function endTurn(host: Host, m: Memory, id: string, end: { isAborted: boolean; reason: string; spent: number | null }) {
   const a = m.agents.find(other => other.id === id)
   if (!a) return
   const counted = end.spent ?? a.liveTokens
   a.tokens += end.isAborted ? Math.max(counted, a.liveTokens) : counted
   a.liveTokens = 0
   if (end.isAborted) leave(m, a)
-  else await finish($, a, end.reason === 'error' || end.reason === 'refusal' ? 'failed' : 'done')
-  await settle($, m)
-  await publish($, m)
+  else await finish(host, a, end.reason === 'error' || end.reason === 'refusal' ? 'failed' : 'done')
+  await settle(host, m)
+  await publish(host, m)
 }
 
 /** Takes the copy the host kept. A desk stopped by an interruption, from an older version, does not stay, nor one finished long ago. */
-export async function restoreAgents($: Host, m: Memory) {
-  const saved = await readAgents($)
+export async function restoreAgents(host: Host, m: Memory) {
+  const saved = await readAgents(host)
   if (m.agents.length || !saved?.length) return
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   const copy = saved.map(healed)
   const stale = (a: AgentRecord) => (a.phase === 'failed' ? !a.errored : a.phase === 'done' && now - a.endedAt >= LEAVE_MS)
   m.agents = copy.filter(a => !stale(a))
@@ -312,7 +312,7 @@ export async function restoreAgents($: Host, m: Memory) {
   m.nextHue = afterHue(Math.max(...copy.map(a => a.hue)))
   m.nextSeat = Math.max(...copy.map(a => a.seat)) + 1
   const n = seated(m.agents).length
-  m.seen = (await readSeen($)) ?? { shown: n, previous: n }
-  if (m.agents.length < copy.length) await settle($, m)
-  await publish($, m)
+  m.seen = (await readSeen(host)) ?? { shown: n, previous: n }
+  if (m.agents.length < copy.length) await settle(host, m)
+  await publish(host, m)
 }

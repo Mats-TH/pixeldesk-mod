@@ -30,26 +30,26 @@ async function parsedFile(path: string, read: (path: string) => Promise<string |
 }
 
 /** The session files under a folder, at most three folders down. */
-async function sessionFiles($: Host, dir: string, depth: number): Promise<string[]> {
+async function sessionFiles(host: Host, dir: string, depth: number): Promise<string[]> {
   const found: string[] = []
-  for (const entry of await listed($, dir)) {
+  for (const entry of await listed(host, dir)) {
     const path = `${dir}/${entry.name}`
     if (entry.kind === 'file' && /^local_.*\.json$/.test(entry.name)) found.push(path)
-    else if (entry.kind === 'dir' && depth < MAX_DEPTH) found.push(...(await sessionFiles($, path, depth + 1)))
+    else if (entry.kind === 'dir' && depth < MAX_DEPTH) found.push(...(await sessionFiles(host, path, depth + 1)))
   }
   return found
 }
 
 /** What the desktop app knows of who spawned whom. Only Windows has it where the mod can look. */
-async function readLinks($: Host) {
-  const local = await $.env.localAppData()
+async function readLinks(host: Host) {
+  const local = await host.env.localAppData()
   if (!local) return []
   const root = `${slashed(local).replace(/\/+$/, '')}/Claude-Data`
   const links: SessionLink[] = []
-  for (const entry of await listed($, root)) {
+  for (const entry of await listed(host, root)) {
     if (entry.kind !== 'dir') continue
-    for (const path of await sessionFiles($, `${root}/${entry.name}/claude-code-sessions`, 0)) {
-      const link = parseSession(await parsedFile(path, p => readText($, p)))
+    for (const path of await sessionFiles(host, `${root}/${entry.name}/claude-code-sessions`, 0)) {
+      const link = parseSession(await parsedFile(path, p => readText(host, p)))
       if (link) links.push(link)
     }
   }
@@ -57,32 +57,32 @@ async function readLinks($: Host) {
 }
 
 /** At the first pass, then at most once a minute. A failure keeps the links known so far. */
-async function linksNow($: Host, m: Memory, now: number) {
+async function linksNow(host: Host, m: Memory, now: number) {
   if (m.linksAt && now - m.linksAt < LINKS_MS) return m.links
   m.linksAt = now
-  m.links = (await guard($, m, 'session links', () => readLinks($))) ?? m.links
+  m.links = (await guard(host, m, 'session links', () => readLinks(host))) ?? m.links
   return m.links
 }
 
-async function readExports($: Host, m: Memory, links: readonly SessionLink[]) {
+async function readExports(host: Host, m: Memory, links: readonly SessionLink[]) {
   const ids = floorIds(m.sessionId, links)
-  const names = ids ? ids.map(id => deskPath(m, id)) : (await listed($, stateDir(m))).filter(e => /^desk-.+\.json$/.test(e.name)).map(e => `${stateDir(m)}/${e.name}`)
-  const files = await Promise.all(names.map(path => parsedFile(path, p => readText($, p))))
+  const names = ids ? ids.map(id => deskPath(m, id)) : (await listed(host, stateDir(m))).filter(e => /^desk-.+\.json$/.test(e.name)).map(e => `${stateDir(m)}/${e.name}`)
+  const files = await Promise.all(names.map(path => parsedFile(path, p => readText(host, p))))
   return files.filter(isExport)
 }
 
 /** Reads the floor, unless the pane is closed and a plan holds the band: then nobody would see it. */
-export async function readFloor($: Host, m: Memory) {
+export async function readFloor(host: Host, m: Memory) {
   if (!onDisk(m)) return
-  if (isOpen(m.plan) && m.change.phase !== 'waiting' && !(await paneOpen($))) return
-  const now = await $.clock.now()
-  const links = await linksNow($, m, now)
+  if (isOpen(m.plan) && m.change.phase !== 'waiting' && !(await paneOpen(host))) return
+  const now = await host.clock.now()
+  const links = await linksNow(host, m, now)
   // Links that do not hold this conversation say nothing of it: what was known stays.
   const sub = subOf(m.sessionId, links)
-  if (sub !== null && sub !== (await readSub($))) await writeSub($, sub)
-  const rooms: FloorRoom[] = floorRooms(m.sessionId, links, await readExports($, m, links), now)
-  const before = (await readFloorRooms($)) ?? []
+  if (sub !== null && sub !== (await readSub(host))) await writeSub(host, sub)
+  const rooms: FloorRoom[] = floorRooms(m.sessionId, links, await readExports(host, m, links), now)
+  const before = (await readFloorRooms(host)) ?? []
   m.floorBefore = before.length
   m.floorPair = zoomAgain(m.floorPair)
-  if (JSON.stringify(before) !== JSON.stringify(rooms)) await writeFloorRooms($, rooms)
+  if (JSON.stringify(before) !== JSON.stringify(rooms)) await writeFloorRooms(host, rooms)
 }

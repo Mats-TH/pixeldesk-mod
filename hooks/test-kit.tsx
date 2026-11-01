@@ -246,10 +246,10 @@ export function world(on: Loose, options: WorldOptions = {}) {
   })
 
   // What is drawn beneath the mod, for the hooks that leave a drawing through.
-  on('ui.render', ($: Loose, e: Loose) => {
+  on('ui.render', (engine: Loose, e: Loose) => {
     if (w.beneath === 'broken') throw new Error('nothing to draw')
     if (w.beneath === 'engine') return { type: 'engine', ref: 0 }
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Text } = engine.ui.resolve(e)
     if (w.beneath === 'empty') return <Box><Box /></Box>
     return <Text>{BENEATH}</Text>
   })
@@ -266,12 +266,12 @@ export const usage = (input: number, output = 0, read = 0, created = 0) => ({
   model: 'haiku',
 })
 
-export const start = ($: Loose, surface: string | null = 'desktop', cwd = CWD) => $.session.start({ cwd, surface, isInteractive: true })
+export const start = (engine: Loose, surface: string | null = 'desktop', cwd = CWD) => engine.session.start({ cwd, surface, isInteractive: true })
 
 /** Starts an agent as the Agent tool does. */
-export async function spawn($: Loose, w: World, id: string, o: { description?: string; type?: string; prompt?: string; resume?: string; workflow?: unknown } = {}) {
+export async function spawn(engine: Loose, w: World, id: string, o: { description?: string; type?: string; prompt?: string; resume?: string; workflow?: unknown } = {}) {
   w.nextAgent = id
-  return $.agent.spawn({
+  return engine.agent.spawn({
     tool_use_id: `tu-${id}`,
     prompt: o.prompt ?? 'Do the job.',
     description: o.description ?? 'Write the tests',
@@ -282,19 +282,19 @@ export async function spawn($: Loose, w: World, id: string, o: { description?: s
   })
 }
 
-export const callTool = ($: Loose, tool: string, input: Record<string, unknown> = {}, agentId?: string) =>
-  $.tool.call({ tool, ...input, ...(agentId === undefined ? {} : { agentId }) })
+export const callTool = (engine: Loose, tool: string, input: Record<string, unknown> = {}, agentId?: string) =>
+  engine.tool.call({ tool, ...input, ...(agentId === undefined ? {} : { agentId }) })
 
 export const planTool = 'mcp__pixeldesk__plan'
 
 export const step = (text: string, status: string, more: Record<string, unknown> = {}) => ({ text, status, ...more })
 
-export const sendPlan = ($: Loose, steps: unknown, title?: unknown, agentId?: string) =>
-  callTool($, planTool, { steps, ...(title === undefined ? {} : { title }) }, agentId)
+export const sendPlan = (engine: Loose, steps: unknown, title?: unknown, agentId?: string) =>
+  callTool(engine, planTool, { steps, ...(title === undefined ? {} : { title }) }, agentId)
 
 /** A step of the model: walks the engine's stream to its end. */
-async function modelStep($: Loose, agentId?: string) {
-  const stream = $.turn.step({ turnId: 't', index: 0, model: 'haiku', messageCount: 1, ...(agentId === undefined ? {} : { agentId }) })
+async function modelStep(engine: Loose, agentId?: string) {
+  const stream = engine.turn.step({ turnId: 't', index: 0, model: 'haiku', messageCount: 1, ...(agentId === undefined ? {} : { agentId }) })
   for (;;) {
     const { done, value } = await stream.next()
     if (done) return value
@@ -308,19 +308,19 @@ export function steps(on: Loose) {
     await next.hold
     return { turnId: 't', index: 0, answer: '', toolUses: [], stopReason: 'end_turn', usage: next.usage }
   })
-  const spend = async ($: Loose, spent: ReturnType<typeof usage> | null, agentId?: string) => {
+  const spend = async (engine: Loose, spent: ReturnType<typeof usage> | null, agentId?: string) => {
     next.usage = spent
-    return modelStep($, agentId)
+    return modelStep(engine, agentId)
   }
   /** The next steps wait for this before they answer. */
   return Object.assign(spend, { hold: (wait: Promise<void>) => void (next.hold = wait) })
 }
 
 /** A turn opens, on the main loop or an agent's. */
-export const startTurn = ($: Loose, agentId?: string) => $.turn.start({ text: '', turnId: 't', ...(agentId === undefined ? {} : { agentId }) })
+export const startTurn = (engine: Loose, agentId?: string) => engine.turn.start({ text: '', turnId: 't', ...(agentId === undefined ? {} : { agentId }) })
 
-export const endTurn = ($: Loose, o: { agentId?: string; reason?: string; isAborted?: boolean; usage?: unknown } = {}) =>
-  $.turn.complete({
+export const endTurn = (engine: Loose, o: { agentId?: string; reason?: string; isAborted?: boolean; usage?: unknown } = {}) =>
+  engine.turn.complete({
     answer: '',
     durationMs: 1,
     isAborted: o.isAborted ?? false,
@@ -331,25 +331,25 @@ export const endTurn = ($: Loose, o: { agentId?: string; reason?: string; isAbor
     ...(o.usage === undefined ? {} : { usage: o.usage }),
   })
 
-export const submit = ($: Loose, text = 'hello', kind = 'composer', more: Record<string, unknown> = {}) =>
-  $.prompt.submit({ text, wait: false, origin: { kind }, ...more })
+export const submit = (engine: Loose, text = 'hello', kind = 'composer', more: Record<string, unknown> = {}) =>
+  engine.prompt.submit({ text, wait: false, origin: { kind }, ...more })
 
-export const receive = ($: Loose, text = 'a message', kind = 'peer', more: Record<string, unknown> = {}) =>
-  $.session.receive({ text, origin: { kind }, ...more })
+export const receive = (engine: Loose, text = 'a message', kind = 'peer', more: Record<string, unknown> = {}) =>
+  engine.session.receive({ text, origin: { kind }, ...more })
 
-export const command = ($: Loose, args = '') =>
-  $.command.run({ command: PLUGIN, args, origin: { kind: 'composer' }, presentation: { kind: 'plain' } })
+export const command = (engine: Loose, args = '') =>
+  engine.command.run({ command: PLUGIN, args, origin: { kind: 'composer' }, presentation: { kind: 'plain' } })
 
 const PANE_PROPS = { title: 'PixelDesk', isFocused: false, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 22 }, view: {} }
 const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100 }
 
 export const paneProps = (props: Record<string, unknown> = {}) => ({ ...PANE_PROPS, ...props })
 
-export const mountPane = ($: Loose, surface = 'desktop', props: Record<string, unknown> = {}) =>
-  $.ui.mount({ plugin: PLUGIN, surface, component: 'Pane', requestId: PLUGIN, props: paneProps(props) })
+export const mountPane = (engine: Loose, surface = 'desktop', props: Record<string, unknown> = {}) =>
+  engine.ui.mount({ plugin: PLUGIN, surface, component: 'Pane', requestId: PLUGIN, props: paneProps(props) })
 
-export const mountBand = ($: Loose, surface = 'desktop', props: Record<string, unknown> = {}) =>
-  $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: { ...BAND_PROPS, ...props } })
+export const mountBand = (engine: Loose, surface = 'desktop', props: Record<string, unknown> = {}) =>
+  engine.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: { ...BAND_PROPS, ...props } })
 
 /** The drawing of a mounted tree: the main picture, or the keyed box's own. */
 export const svgOf = async (ui: Loose, key?: string) => {

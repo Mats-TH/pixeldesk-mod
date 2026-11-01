@@ -41,14 +41,15 @@ describe('the option', () => {
 
   test('an explicit option is in force before any event', { options: { language: 'en' } }, async ($, on) => {
     world(on)
+    await start($)
     const ui = await mountBand($, 'terminal')
     expect(await textsOf(ui)).toContain('Idle')
   })
 
-  test('nothing settled reads in French, for the kept modules', async ($, on) => {
+  test('before a session starts the mod draws nothing of its own', async ($, on) => {
     world(on, { env: { LANG: 'en_US' } })
     const ui = await mountBand($, 'terminal')
-    expect(await textsOf(ui)).toContain('Au repos')
+    expect(await textsOf(ui)).not.toContain('Idle')
   })
 })
 
@@ -224,8 +225,9 @@ describe('a language already settled', () => {
     expect(await settled($, w)).toBe('fr')
   })
 
-  test('a drawing follows the state even if no session started on this load', async ($, on) => {
+  test('a language the host still holds comes back with the session', async ($, on) => {
     world(on, { held: { language: 'en' } })
+    await start($)
     const ui = await mountBand($, 'terminal')
     expect(await textsOf(ui)).toContain('Idle')
   })

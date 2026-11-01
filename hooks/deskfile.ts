@@ -17,8 +17,8 @@ function summaryOf(m: Memory, summaries: Readonly<Record<string, string>>) {
 }
 
 /** The conversation as the others read it. `updatedAt` stays out: it would change the content every time. */
-async function exported($: Host, m: Memory) {
-  const summaries = (await readSummaries($)) ?? {}
+async function exported(host: Host, m: Memory) {
+  const summaries = (await readSummaries(host)) ?? {}
   const working = m.agents.filter(isWorking)
   const steps = (m.plan?.steps ?? []).map(st => ({ text: st.text, status: st.status }))
   return {
@@ -39,22 +39,22 @@ async function exported($: Host, m: Memory) {
 }
 
 /** Writes the file when something changed. A busy conversation still writes once a minute, not to pass for dead. */
-export async function writeDesk($: Host, m: Memory) {
+export async function writeDesk(host: Host, m: Memory) {
   if (!onDisk(m)) return
-  const body = await exported($, m)
+  const body = await exported(host, m)
   const content = JSON.stringify(body)
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   const busy = body.working > 0 || m.chat === 'working'
   if (content === m.lastDesk && !(busy && now - m.deskAt >= KEEP_ALIVE_MS)) return
-  await $.fs.write(deskPath(m, m.sessionId), JSON.stringify({ ...body, updatedAt: now }))
+  await host.fs.write(deskPath(m, m.sessionId), JSON.stringify({ ...body, updatedAt: now }))
   m.lastDesk = content
   m.deskAt = now
 }
 
 /** The saved file of this conversation, for what survives a restart; empty when it is missing or broken. */
-export async function readOwnDesk($: Host, m: Memory): Promise<{ tokens?: unknown; news?: unknown }> {
-  const text = onDisk(m) ? await readText($, deskPath(m, m.sessionId)) : undefined
+export async function readOwnDesk(host: Host, m: Memory): Promise<{ tokens?: unknown; news?: unknown }> {
+  const text = onDisk(m) ? await readText(host, deskPath(m, m.sessionId)) : undefined
   if (text === undefined) return {}
-  const json = await guard($, m, 'desk file', (): unknown => JSON.parse(text))
+  const json = await guard(host, m, 'desk file', (): unknown => JSON.parse(text))
   return typeof json === 'object' && json !== null ? json : {}
 }

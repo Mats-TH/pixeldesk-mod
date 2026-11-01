@@ -36,12 +36,12 @@ export function lengthIn(transcript: string): CacheLength | null {
 }
 
 /** Where the transcript lies: the engine's word when it gave it, else a look through the project folders. */
-async function transcriptPath($: Host, m: Memory) {
+async function transcriptPath(host: Host, m: Memory) {
   if (m.heat.transcript) return m.heat.transcript
   const projects = `${m.home}/.claude/projects`
-  for (const entry of await listed($, projects)) {
+  for (const entry of await listed(host, projects)) {
     const path = `${projects}/${entry.name}/${m.sessionId}.jsonl`
-    if (entry.kind === 'dir' && (await $.fs.exists(path).catch(() => false))) {
+    if (entry.kind === 'dir' && (await host.fs.exists(path).catch(() => false))) {
       m.heat.transcript = path
       return path
     }
@@ -54,13 +54,13 @@ async function transcriptPath($: Host, m: Memory) {
  * `$.fs.read` takes a file whole, up to 4 MiB. Past that the transcript says nothing, what was known stays, and the
  * person's own requests are left to prove it (`heat.ts`). Until then no relaunch goes out.
  */
-export async function readLength($: Host, m: Memory) {
+export async function readLength(host: Host, m: Memory) {
   const h = m.heat
-  const now = await $.clock.now()
+  const now = await host.clock.now()
   if (!onDisk(m) || (h.lengthReadAt && now - h.lengthReadAt < READ_EVERY_MS)) return
   h.lengthReadAt = now
-  const path = await transcriptPath($, m)
-  const text = path ? await readText($, path) : undefined
+  const path = await transcriptPath(host, m)
+  const text = path ? await readText(host, path) : undefined
   const found = text === undefined ? null : lengthIn(text)
   if (!found || found === h.known) return
   settleLength(h, found)
