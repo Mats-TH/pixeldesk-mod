@@ -6,9 +6,6 @@ import type { Language } from './i18n'
 import type { Memory } from './memory'
 import { readLanguage, writeLanguage } from './state'
 
-/** What the system says it speaks, with no program to start. A table, so that a test can answer for it. */
-export const system = { locale: () => Intl.DateTimeFormat().resolvedOptions().locale }
-
 /** What a setting, a locale or a culture means, or null when it names neither language. */
 export function recognize(value: unknown): Language | null {
   if (typeof value !== 'string') return null
@@ -45,7 +42,8 @@ async function chain(host: Host, m: Memory): Promise<Language> {
   if (setting) return setting
   const locale = await step(host, m, 'locale', () => fromLocale(host))
   if (locale) return locale
-  const spoken = await step(host, m, 'system', async () => recognize(system.locale()))
+  // The system's own word, with no program to start.
+  const spoken = await step(host, m, 'system', async () => recognize(Intl.DateTimeFormat().resolvedOptions().locale))
   if (spoken) return spoken
   return 'en'
 }

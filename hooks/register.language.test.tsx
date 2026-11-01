@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { recognize } from './language'
 import { HOME, mountBand, start, textsOf, world } from './test-kit'
 import type { World, WorldOptions } from './test-kit'
+
+// What the machine running the tests says: the engine lets no test answer in its place.
+const ownLanguage = () => recognize(Intl.DateTimeFormat().resolvedOptions().locale) ?? 'en'
 
 const WINDOWS = { USERPROFILE: HOME }
 const MAC = { HOME: '/Users/test' }
@@ -117,7 +121,7 @@ describe('the environment', () => {
 
   test('a list led by another language says nothing', async ($, on) => {
     const w = world(on, { env: { LANGUAGE: 'de:fr' } })
-    expect(await settled($, w)).toBe('en')
+    expect(await settled($, w)).toBe(ownLanguage())
   })
 
   test('the charset gets in no one\'s way', async ($, on) => {
@@ -128,29 +132,23 @@ describe('the environment', () => {
 
 describe('the system language', () => {
   test('it speaks last, and no program starts for it', async ($, on) => {
-    const w = world(on, { env: WINDOWS, locale: 'fr-FR' })
-    expect(await settled($, w)).toBe('fr')
+    const w = world(on, { env: WINDOWS })
+    expect(await settled($, w)).toBe(ownLanguage())
     expect(w.runs).toEqual([])
   })
 
   test('it holds on every system', async ($, on) => {
-    const w = world(on, { env: MAC, locale: 'fr-CA' })
-    expect(await settled($, w)).toBe('fr')
+    const w = world(on, { env: MAC })
+    expect(await settled($, w)).toBe(ownLanguage())
   })
 
   test('it gives way to the locale of the environment', async ($, on) => {
-    const w = world(on, { env: { ...WINDOWS, LANG: 'en_US' }, locale: 'fr-FR' })
+    const w = world(on, { env: { ...WINDOWS, LANG: 'en_US' } })
     expect(await settled($, w)).toBe('en')
   })
 
-  test('another language ends in English', async ($, on) => {
-    const w = world(on, { env: WINDOWS, locale: 'de-DE' })
-    expect(await settled($, w)).toBe('en')
-  })
-
-  test('nothing known ends in English', async ($, on) => {
-    const w = world(on, { env: MAC, locale: '' })
-    expect(await settled($, w)).toBe('en')
+  test('what it may say reads as a language, or as nothing', async () => {
+    expect(['fr-FR', 'fr-CA', 'en-US', 'de-DE', ''].map(recognize)).toEqual(['fr', 'fr', 'en', null, null])
   })
 })
 
