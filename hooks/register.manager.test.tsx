@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { DESK_FILE, ENGLISH, FRENCH, HOME, NOON, SESSION, altOf, callTool, cardIn, endTurn, hasKey, kids, mountPane, sendPlan, sourceOf, spawn, start, startTurn, step, submit, textsOf, world } from './test-kit'
+import { DESK_FILE, ENGLISH, FRENCH, HOME, NOON, SESSION, altOf, callTool, cardIn, endTurn, hasKey, kids, mountPane, pathKey, sendPlan, sourceOf, spawn, start, startTurn, step, submit, textsOf, world } from './test-kit'
 import { managerBox, viewOf } from './room'
 
 const CELL_H = 21
@@ -253,18 +253,19 @@ describe('the Manager in the room', () => {
 const DATA = '/Users/test/AppData/Local/Claude-Data/profile/claude-code-sessions'
 const LOCAL = 'C:\\Users\\test\\AppData\\Local'
 const KID_DESK = '/Users/test/.claude/pixeldesk/state/desk-kid.json'
+const NEXT_LINKS = 65_000
 const LANGUAGES = [
   { lang: 'fr', LANG: 'fr_FR', boss: 'Patron', bossRest: 'Patron au repos', bossBusy: 'Patron au travail', manager: 'Manager', rest: 'Manager au repos', busy: 'Manager au travail' },
   { lang: 'en', LANG: 'en_US', boss: 'Boss', bossRest: 'Boss at rest', bossBusy: 'Boss working', manager: 'Manager', rest: 'Manager at rest', busy: 'Manager working' },
 ]
 
-const sessionFile = (local: string, cli: string, parent?: string) => JSON.stringify({ sessionId: local, cliSessionId: cli, title: local, ...(parent ? { spawnedFrom: { sessionId: parent } } : {}) })
+const sessionFile = (local: string, cli: string, parent?: string, detached = false) => JSON.stringify({ sessionId: local, cliSessionId: cli, title: local, ...(parent ? { spawnedFrom: { sessionId: parent } } : {}), ...(detached ? { lineageDetached: true } : {}) })
 
-/** This conversation as the desktop app knows it: `parent` when it was started from another, `kid` when it started one. */
-const inApp = (LANG: string, parent?: string, kid = false) => ({
+/** This conversation as the desktop app knows it: `parent` when it was started from another, `kid` when it started one, `detached` when it was moved to top level. */
+const inApp = (LANG: string, parent?: string, kid = false, detached = false) => ({
   env: { USERPROFILE: HOME, LANG, LOCALAPPDATA: LOCAL },
   files: {
-    [`${DATA}/local_me.json`]: sessionFile('me', SESSION, parent),
+    [`${DATA}/local_me.json`]: sessionFile('me', SESSION, parent, detached),
     ...(kid ? { [`${DATA}/local_kid.json`]: sessionFile('kidl', 'kid', 'me'), [KID_DESK]: JSON.stringify({ sessionId: 'kid', title: '', agents: 0, working: 0, summary: '', updatedAt: NOON, cwd: 'C:/work/app', desks: [], steps: [], tokens: 0, chat: 'working' }) } : {}),
   },
 })
@@ -340,7 +341,60 @@ describe('the name at the conversation\'s own desk', () => {
       expect(cardIn(await ui.find({ key: `room-${SESSION}` })).svg.props.alt).toContain(busy)
       expect(cardIn(await ui.find({ key: 'room-kid' })).svg.props.alt).toContain(busy)
     })
+
+    test(`${lang}: moved to top level, a conversation is the boss everywhere in its room`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top', false, true))
+      await start($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(await managerAlt(ui)).toMatch(new RegExp(`^${boss}\\.`))
+      expect(await altOf(ui)).toContain(bossRest)
+      expect(await sourceOf(ui, 'room-labels')).toContain(`href="#${boss[0]}"`)
+    })
+
+    test(`${lang}: moved to top level, a conversation is the boss on its floor and its child a manager`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top', true, true))
+      await start($)
+      await startTurn($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(cardIn(await ui.find({ key: `room-${SESSION}` })).svg.props.alt).toContain(bossBusy)
+      expect(cardIn(await ui.find({ key: 'room-kid' })).svg.props.alt).toContain(busy)
+    })
+
+    test(`${lang}: the move to top level changes the name in the open room, at the next reading of the links`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top'))
+      await start($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(await altOf(ui)).toContain(rest)
+      w.files.set(pathKey(`${DATA}/local_me.json`), sessionFile('me', SESSION, 'top', true))
+      await w.clock.advance(NEXT_LINKS)
+      expect(await altOf(ui)).toContain(bossRest)
+    })
+
+    test(`${lang}: the move to top level changes the name on the open floor, at the next reading of the links`, async ($, on) => {
+      const w = world(on, inApp(LANG, 'top', true))
+      await start($)
+      await startTurn($)
+      await beat(w)
+      const ui = await mountPane($)
+      expect(cardIn(await ui.find({ key: `room-${SESSION}` })).svg.props.alt).toContain(busy)
+      w.files.set(pathKey(`${DATA}/local_me.json`), sessionFile('me', SESSION, 'top', true))
+      await w.clock.advance(NEXT_LINKS)
+      expect(cardIn(await ui.find({ key: `room-${SESSION}` })).svg.props.alt).toContain(bossBusy)
+      expect(cardIn(await ui.find({ key: 'room-kid' })).svg.props.alt).toContain(busy)
+    })
   }
+
+  test('a reload corrects a name saved before the move to top level, on the room and on the floor', async ($, on) => {
+    const saved = { id: SESSION, title: 'me', agents: 0, working: 0, summary: '', desks: [], steps: [], tokens: 0, manager: { working: true }, sub: true }
+    const w = world(on, { ...inApp('fr_FR', 'top', true, true), held: { sub: true, floor: [saved] } })
+    await start($)
+    await beat(w)
+    expect(w.state.sub).toBe(false)
+    expect(w.state.floor[0].sub).toBe(false)
+  })
 
   test('a reload keeps the name, before the links are read again', async ($, on) => {
     world(on, { held: { sub: true } })

@@ -24,6 +24,13 @@ test('a session file gives its link to the parent conversation', async () => {
   expect(parseSession({ title: 'sans identifiant' }), 'incomplete record').toBe(null)
 })
 
+test('a conversation moved to top level has no parent left, though its file still names the one that started it', async () => {
+  const file = { sessionId: 'local_a', cliSessionId: 'a', title: 'A2', spawnedFrom: { sessionId: 'local_m' } }
+  expect(parseSession({ ...file, lineageDetached: true })?.parent, 'detached').toBeNull()
+  expect(parseSession({ ...file, lineageDetached: false })?.parent, 'still attached').toBe('local_m')
+  expect(parseSession({ ...file, lineageDetached: 'yes' })?.parent, 'the app stores a boolean').toBe('local_m')
+})
+
 test('a worktree belongs to its project', async () => {
   expect(projectRoot('C:\\p\\Shop\\.claude\\worktrees\\a2-923')).toBe('C:/p/Shop')
   expect(projectRoot('C:/p/Shop')).toBe('C:/p/Shop')
@@ -148,6 +155,15 @@ test('a room knows if its conversation was started from another', async () => {
   const links = [link('top', null), link('m', 'local_top'), link('a', 'local_m')]
   expect(floorRooms('m', links, [], NOW).map(r => r.sub), 'a parent of its own, and its child').toEqual([true, true])
   expect(floorRooms('top', links, [], NOW).map(r => r.sub), 'no parent, then its child').toEqual([false, true])
+})
+
+test('moved to top level, a conversation leads its own floor and leaves the floor of the one that started it', async () => {
+  const session = (id: string, parent?: string, detached = false) => parseSession({ sessionId: `local_${id}`, cliSessionId: id, spawnedFrom: parent ? { sessionId: `local_${parent}` } : undefined, lineageDetached: detached })!
+  const links = [session('old'), session('m', 'old', true), session('a', 'm'), session('b', 'old')]
+  expect(subOf('m', links), 'the moved one').toBe(false)
+  expect(subOf('a', links), 'its child').toBe(true)
+  expect(floorRooms('m', links, [], NOW).map(r => r.sub)).toEqual([false, true])
+  expect(floorRooms('old', links, [], NOW).map(r => r.id), 'its former parent').toEqual(['old', 'b'])
 })
 
 test('with no links only the first room can be the main one: the others are told apart from it', async () => {

@@ -51,9 +51,10 @@ export const isMail = (kind: string, text: string) => isPeer(kind) && !OWN_AGENT
 export const isOwner = (kind: string) => kind === 'composer' || kind === 'bridge' || kind === 'sdk'
 
 export function parseSession(json: unknown): SessionLink | null {
-  const j = (json ?? {}) as { sessionId?: unknown; cliSessionId?: unknown; title?: unknown; isArchived?: unknown; spawnedFrom?: { sessionId?: unknown } }
+  const j = (json ?? {}) as { sessionId?: unknown; cliSessionId?: unknown; title?: unknown; isArchived?: unknown; spawnedFrom?: { sessionId?: unknown }; lineageDetached?: unknown }
   if (typeof j.sessionId !== 'string' || typeof j.cliSessionId !== 'string') return null
-  const parent = j.spawnedFrom?.sessionId
+  // Moved to top level, a conversation keeps `spawnedFrom` on file: as for the app, the mark cuts the link.
+  const parent = j.lineageDetached === true ? null : j.spawnedFrom?.sessionId
   return { cli: j.cliSessionId, local: j.sessionId, title: typeof j.title === 'string' ? j.title : '', parent: typeof parent === 'string' ? parent : null, archived: j.isArchived === true }
 }
 
@@ -115,7 +116,7 @@ const roomOf = (id: string, title: string, e: DeskExport | undefined, now: numbe
   }
 }
 
-/** Whether a conversation was started from another; null when the links do not hold it. */
+/** Whether a conversation hangs from another; null when the links do not hold it. */
 export function subOf(me: string, links: readonly SessionLink[]) {
   const mine = links.find(l => l.cli === me)
   return mine ? mine.parent !== null : null
