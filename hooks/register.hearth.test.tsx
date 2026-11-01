@@ -17,7 +17,7 @@ describe('the clock', () => {
   })
 
   test('the time counts from the request, not from the reply', async ($, on) => {
-    const { w, h, spend } = hearthWorld(on)
+    const { w, stage, spend } = hearthWorld(on)
     let release = () => {}
     spend.hold(new Promise<void>(resolve => (release = resolve)))
     await start($)
@@ -29,7 +29,7 @@ describe('the clock', () => {
     await endTurn($)
     await w.clock.advance(1)
     expect(w.state.hearth.coolsAt).toBe(NOON + FIVE)
-    expect(h.model).toBe('opus')
+    expect(stage.model).toBe('opus')
   })
 
   test('an answer with no usage never reached the cache', async ($, on) => {
@@ -43,8 +43,8 @@ describe('the clock', () => {
   })
 
   test('the fire follows the share left: 60, 30 and 10 %, and writes only when it moves', SLOW, async ($, on) => {
-    const { w, h, reply } = hearthWorld(on)
-    h.fork = () => answers.overloaded
+    const { w, stage, reply } = hearthWorld(on)
+    stage.fork = () => answers.overloaded
     await start($)
     await command($, 'fire off')
     await reply($)
@@ -187,8 +187,8 @@ describe('relaunches', () => {
   })
 
   test('its own turn is not a turn of the conversation', async ($, on) => {
-    const { w, h, reply } = hearthWorld(on)
-    h.fork = async () => {
+    const { w, stage, reply } = hearthWorld(on)
+    stage.fork = async () => {
       await $.turn.start({ text: PING, turnId: 'fork' })
       await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 'fork', reason: 'answer' })
       return answers.pong()
@@ -204,8 +204,8 @@ describe('relaunches', () => {
 
 describe('what stops them', () => {
   test('a failure waits 20 s, three stop it with one toast, and the next turn starts over', SLOW, async ($, on) => {
-    const { w, h, forks, reply } = hearthWorld(on)
-    h.fork = () => answers.overloaded
+    const { w, stage, forks, reply } = hearthWorld(on)
+    stage.fork = () => answers.overloaded
     await start($)
     await reply($)
     await w.clock.advance(FIVE - 45_000)
@@ -229,8 +229,8 @@ describe('what stops them', () => {
   })
 
   test('a call that throws counts as a failure', async ($, on) => {
-    const { w, h, reply } = hearthWorld(on)
-    h.fork = () => {
+    const { w, stage, reply } = hearthWorld(on)
+    stage.fork = () => {
       throw new Error('no line')
     }
     await start($)
@@ -240,8 +240,8 @@ describe('what stops them', () => {
   })
 
   test('a reply with no words read the conversation all the same', async ($, on) => {
-    const { w, h, reply } = hearthWorld(on)
-    h.fork = () => ({ value: { isAnswered: false, reason: 'empty-reply', usage: READ } })
+    const { w, stage, reply } = hearthWorld(on)
+    stage.fork = () => ({ value: { isAnswered: false, reason: 'empty-reply', usage: READ } })
     await start($)
     await reply($)
     await w.clock.advance(FIVE - 45_000)
@@ -249,8 +249,8 @@ describe('what stops them', () => {
   })
 
   test('nothing to read stops them, silently', async ($, on) => {
-    const { w, h, forks, reply } = hearthWorld(on)
-    h.fork = () => answers.nothing
+    const { w, stage, forks, reply } = hearthWorld(on)
+    stage.fork = () => answers.nothing
     await start($)
     await reply($)
     await w.clock.advance(FIVE)
@@ -260,8 +260,8 @@ describe('what stops them', () => {
   })
 
   test('a relaunch that had to write stops at once', SLOW, async ($, on) => {
-    const { w, h, forks, reply } = hearthWorld(on)
-    h.fork = () => answers.reply('ok', REWRITE)
+    const { w, stage, forks, reply } = hearthWorld(on)
+    stage.fork = () => answers.reply('ok', REWRITE)
     await start($)
     await reply($)
     await w.clock.advance(FIVE - 45_000)
@@ -282,10 +282,10 @@ describe('what stops them', () => {
   })
 
   test('after a change of model the cache is not there to read', async ($, on) => {
-    const { w, h, forks, reply } = hearthWorld(on)
+    const { w, stage, forks, reply } = hearthWorld(on)
     await start($)
     await reply($)
-    h.model = 'sonnet'
+    stage.model = 'sonnet'
     await w.clock.advance(FIVE)
     expect(forks).toEqual([])
     expect(w.state.hearth).toMatchObject({ coolsAt: null, relaunchStop: 'cold' })

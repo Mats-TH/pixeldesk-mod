@@ -42,7 +42,7 @@ export const answers = { pong, reply: answered, nothing: { value: { isAnswered: 
 
 export function hearthWorld(on: Loose, options: WorldOptions = {}) {
   const w = world(on, { ...options, files: { [TRANSCRIPT]: lengthLine('ephemeral_5m_input_tokens'), ...options.files } })
-  const h = {
+  const stage = {
     w,
     forks: [] as string[],
     compacts: [] as Loose[],
@@ -57,24 +57,24 @@ export function hearthWorld(on: Loose, options: WorldOptions = {}) {
   }
   const spend = steps(on)
   on('model.fork', (_: Loose, e: Loose) => {
-    h.forks.push(e.prompt)
-    return h.fork(e.prompt)
+    stage.forks.push(e.prompt)
+    return stage.fork(e.prompt)
   })
-  on('session.model', () => ({ value: h.model }))
-  on('session.cwd', () => (h.cwd ? { value: h.cwd } : { deny: 'no folder' }))
-  on('session.messages', () => ({ value: h.messages }))
+  on('session.model', () => ({ value: stage.model }))
+  on('session.cwd', () => (stage.cwd ? { value: stage.cwd } : { deny: 'no folder' }))
+  on('session.messages', () => ({ value: stage.messages }))
   on('session.compact', (_: Loose, e: Loose) => {
-    h.compacts.push(e)
-    return h.compactAnswer ?? { messages: [{ role: 'user', text: 'summary', toolUses: [] }], tokensBefore: 800_000, tokensAfter: 40_000 }
+    stage.compacts.push(e)
+    return stage.compactAnswer ?? { messages: [{ role: 'user', text: 'summary', toolUses: [] }], tokensBefore: 800_000, tokensAfter: 40_000 }
   })
   on('session.end', (_: Loose, e: Loose) => ({ sessionId: e.sessionId }))
   on('ui.copy', (_: Loose, e: Loose) => {
-    h.copies.push(e.text)
-    return { value: h.copied ? { isCopied: true } : { isCopied: false, reason: 'no-surface' } }
+    stage.copies.push(e.text)
+    return { value: stage.copied ? { isCopied: true } : { isCopied: false, reason: 'no-surface' } }
   })
   return {
-    ...h,
-    h,
+    ...stage,
+    stage,
     /** A whole turn of the main conversation: the request leaves now. */
     async reply(engine: Loose) {
       await startTurn(engine)

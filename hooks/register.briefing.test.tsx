@@ -25,27 +25,27 @@ describe('the ash', () => {
   })
 
   test('below the mark nothing happens at the end of a turn', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on)
+    const { w, stage, reply, fill } = hearthWorld(on)
     fill(79)
     await start($)
     await reply($)
     await w.clock.advance(2000)
-    expect(h.compacts).toEqual([])
+    expect(stage.compacts).toEqual([])
     expect(w.state.briefing.phase).toBe('idle')
   })
 })
 
 describe('auto: compact under the cursor, change past it', () => {
   test('under the cursor it compacts at the end of the turn, with the briefing brief and notes first', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on)
-    h.messages = [{ role: 'user', text: 'Fais le mod, on garde la cheminée à gauche.', toolUses: [] }, { role: 'assistant', text: '', toolUses: [{ tool: 'Edit', input: { file_path: 'C:/work/app/a.ts' } }] }]
+    const { w, stage, reply, fill } = hearthWorld(on)
+    stage.messages = [{ role: 'user', text: 'Fais le mod, on garde la cheminée à gauche.', toolUses: [] }, { role: 'assistant', text: '', toolUses: [{ tool: 'Edit', input: { file_path: 'C:/work/app/a.ts' } }] }]
     fill(80)
     await start($)
     await reply($)
-    expect(h.compacts, 'never inside the turn').toEqual([])
+    expect(stage.compacts, 'never inside the turn').toEqual([])
     await w.clock.advance(1000)
-    expect(h.compacts).toHaveLength(1)
-    expect(h.compacts[0].instructions).toContain(`~/.claude/pixeldesk/briefings/notes-${SESSION}.md`)
+    expect(stage.compacts).toHaveLength(1)
+    expect(stage.compacts[0].instructions).toContain(`~/.claude/pixeldesk/briefings/notes-${SESSION}.md`)
     expect(w.state.hearth).toMatchObject({ compactions: 1, keeper: 'broom', keeperRun: 1, coolsAt: null })
     expect(w.json(STATE_FILE).compactions).toBe(1)
     const notes = w.file(NOTES)!
@@ -57,33 +57,33 @@ describe('auto: compact under the cursor, change past it', () => {
   })
 
   test('at most once for an end of turn: a context still full does not loop', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on)
+    const { w, stage, reply, fill } = hearthWorld(on)
     fill(90)
     await start($)
     await reply($)
     await w.clock.advance(60_000)
-    expect(h.compacts).toHaveLength(1)
+    expect(stage.compacts).toHaveLength(1)
   })
 
   test('compactions by Claude Code count too, and move the next step on', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on)
+    const { w, stage, reply, fill } = hearthWorld(on)
     await start($)
-    h.messages = [{ role: 'user', text: 'Une demande', toolUses: [] }]
-    await $.session.compact({ trigger: 'auto', messages: h.messages })
-    await $.session.compact({ trigger: 'manual', messages: h.messages })
+    stage.messages = [{ role: 'user', text: 'Une demande', toolUses: [] }]
+    await $.session.compact({ trigger: 'auto', messages: stage.messages })
+    await $.session.compact({ trigger: 'manual', messages: stage.messages })
     await w.clock.advance(1)
     expect(w.state.hearth.compactions).toBe(2)
     expect(w.file(NOTES)).toContain('Compactage 2')
     fill(85)
     await reply($)
     await w.clock.advance(1000)
-    expect(h.compacts, 'the two of before, and no third').toHaveLength(2)
-    expect(h.forks.some(prompt => prompt.includes('document de reprise'))).toBe(true)
+    expect(stage.compacts, 'the two of before, and no third').toHaveLength(2)
+    expect(stage.forks.some(prompt => prompt.includes('document de reprise'))).toBe(true)
   })
 
   test('a refused compaction counts for nothing', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on)
-    h.compactAnswer = { skip: 'not now' }
+    const { w, stage, reply, fill } = hearthWorld(on)
+    stage.compactAnswer = { skip: 'not now' }
     fill(90)
     await start($)
     await reply($)
@@ -93,31 +93,31 @@ describe('auto: compact under the cursor, change past it', () => {
   })
 
   test('/pixeldesk compact compacts at once, under the mark, and it counts', async ($, on) => {
-    const { w, h, fill } = hearthWorld(on)
-    h.messages = [{ role: 'user', text: 'Une demande', toolUses: [] }]
+    const { w, stage, fill } = hearthWorld(on)
+    stage.messages = [{ role: 'user', text: 'Une demande', toolUses: [] }]
     fill(30)
     await start($)
     expect((await command($, 'compact')).text).toBe('Compactage lancé.')
     await w.clock.advance(1)
-    expect(h.compacts).toHaveLength(1)
-    expect(h.compacts[0].instructions).toContain('notes-')
+    expect(stage.compacts).toHaveLength(1)
+    expect(stage.compacts[0].instructions).toContain('notes-')
     expect(w.state.hearth.compactions).toBe(1)
     expect(w.file(NOTES)).toContain('Compactage 1')
     expect(w.toasts).toContain('Conversation compactée, les notes sont enregistrées.')
   })
 
   test('/pixeldesk compact never lands on a turn', async ($, on) => {
-    const { w, h } = hearthWorld(on)
+    const { w, stage } = hearthWorld(on)
     await start($)
     await startTurn($)
     expect((await command($, 'compact')).text).toContain('Pas maintenant')
     await w.clock.advance(1)
-    expect(h.compacts).toEqual([])
+    expect(stage.compacts).toEqual([])
   })
 
   test('/pixeldesk compact says so when it is refused', async ($, on) => {
-    const { w, h } = hearthWorld(on)
-    h.compactAnswer = { skip: 'not now' }
+    const { w, stage } = hearthWorld(on)
+    stage.compactAnswer = { skip: 'not now' }
     await start($)
     await command($, 'compact')
     await w.clock.advance(1)
@@ -133,13 +133,13 @@ describe('auto: compact under the cursor, change past it', () => {
   })
 
   test('compactBefore 0: the first full ash changes conversation, with no gesture', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ compactBefore: 0 }) } })
+    const { w, stage, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ compactBefore: 0 }) } })
     w.answerRun = () => ({ value: { exitCode: 0, stdout: 'ready', stderr: '' } })
     fill(80)
     await start($, 'desktop', CWD)
     await reply($)
     await w.clock.advance(1000)
-    expect(h.compacts).toEqual([])
+    expect(stage.compacts).toEqual([])
     expect(w.state.briefing.phase, 'the row closes once the conversation is open').toBe('idle')
     expect(saved(w)).toHaveLength(1)
     const run = claudeRun(w)
@@ -151,44 +151,44 @@ describe('auto: compact under the cursor, change past it', () => {
     expect(id).toMatch(UUID)
     expect(run.argv[5]).toMatch(/^--name=.+/)
     expect(run.argv).toHaveLength(8)
-    expect(run.init.cwd, 'the exact folder, worktree included').toBe(h.cwd)
+    expect(run.init.cwd, 'the exact folder, worktree included').toBe(stage.cwd)
     expect(linksOpened(w)).toEqual([`claude://resume?session=${id}`])
     expect(w.runs.at(-1).argv.slice(0, 2)).toEqual(['rundll32', 'url.dll,FileProtocolHandler'])
     expect(w.toasts.at(-1)).toBe('Nouvelle conversation ouverte, la passation est déjà lue.')
   })
 
   test('always compacts, whatever the count', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ compactBefore: 'always' }), [STATE_FILE]: JSON.stringify({ compactions: 9 }) } })
+    const { w, stage, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ compactBefore: 'always' }), [STATE_FILE]: JSON.stringify({ compactions: 9 }) } })
     fill(85)
     await start($)
     await reply($)
     await w.clock.advance(1000)
-    expect(h.compacts).toHaveLength(1)
+    expect(stage.compacts).toHaveLength(1)
     expect(w.state.hearth.compactTarget).toBe('always')
   })
 
   test('a cold cache is never paid for without a gesture: the choice is offered', async ($, on) => {
-    const { w, h, fill } = hearthWorld(on)
+    const { w, stage, fill } = hearthWorld(on)
     fill(90)
     await start($)
     await w.clock.advance(FIVE)
-    expect(h.compacts).toEqual([])
-    expect(h.forks).toEqual([])
+    expect(stage.compacts).toEqual([])
+    expect(stage.forks).toEqual([])
     expect(w.state.briefing.phase).toBe('offered')
   })
 
   test('agents hold it back, and it goes alone when the last one ends', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on)
+    const { w, stage, reply, fill } = hearthWorld(on)
     fill(82)
     await start($)
     await spawn($, w, 'a1')
     await reply($)
     await w.clock.advance(2000)
-    expect(h.compacts).toEqual([])
+    expect(stage.compacts).toEqual([])
     expect(w.state.briefing).toMatchObject({ phase: 'waiting', waitingAgents: 1, waitingChats: 0, asked: false })
     await endTurn($, { agentId: 'a1' })
     await w.clock.advance(1000)
-    expect(h.compacts).toHaveLength(1)
+    expect(stage.compacts).toHaveLength(1)
   })
 })
 
@@ -196,27 +196,27 @@ describe('the two settings are independent', () => {
   for (const fire of [true, false]) {
     for (const briefingMode of ['auto', 'manual'] as const) {
       test(`fire ${fire}, ${briefingMode}: fire rules the relaunches, the mode rules the rest`, async ($, on) => {
-        const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire, briefingMode }) } })
+        const { w, stage, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire, briefingMode }) } })
         fill(10)
         await start($)
         await reply($)
         await w.clock.advance(FIVE - 45_000)
-        expect(h.forks).toHaveLength(fire ? 1 : 0)
+        expect(stage.forks).toHaveLength(fire ? 1 : 0)
         fill(85)
         await reply($)
         await w.clock.advance(1000)
-        expect(h.compacts).toHaveLength(briefingMode === 'auto' ? 1 : 0)
+        expect(stage.compacts).toHaveLength(briefingMode === 'auto' ? 1 : 0)
         expect(w.state.briefing.phase).toBe(briefingMode === 'auto' ? 'idle' : 'offered')
       })
 
       test(`fire ${fire}, ${briefingMode}: the change of conversation follows the mode alone`, async ($, on) => {
-        const { w, h, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire, briefingMode, compactBefore: 0 }) } })
+        const { w, stage, reply, fill } = hearthWorld(on, { files: { [SETTINGS_FILE]: JSON.stringify({ fire, briefingMode, compactBefore: 0 }) } })
         w.answerRun = () => ({ value: { exitCode: 0, stdout: '', stderr: '' } })
         fill(85)
         await start($)
         await reply($)
         await w.clock.advance(1000)
-        expect(h.compacts).toEqual([])
+        expect(stage.compacts).toEqual([])
         expect(claudeRun(w) !== undefined).toBe(briefingMode === 'auto')
         expect(saved(w)).toHaveLength(briefingMode === 'auto' ? 1 : 0)
       })
@@ -229,14 +229,14 @@ const pressKeys = async (ui: any) => (await ui.findAll({ type: 'Button' })).map(
 
 describe('manual: the button', () => {
   test('nothing moves until the click: Changer on a full ash, gone when the ash falls', async ($, on) => {
-    const { w, h, reply, fill } = hearthWorld(on, { files: MANUAL })
+    const { w, stage, reply, fill } = hearthWorld(on, { files: MANUAL })
     fill(81)
     await start($)
     await reply($)
     await w.clock.advance(5000)
     expect(w.state.briefing.phase).toBe('offered')
-    expect(h.forks).toEqual([])
-    expect(h.compacts).toEqual([])
+    expect(stage.forks).toEqual([])
+    expect(stage.compacts).toEqual([])
     const ui = await mountBand($)
     expect(await textsOf(ui), 'on the desktop, the row is an image').not.toContain('Contexte à 81 %. PixelDesk conseille de changer de conversation.')
     expect(await altOf(ui, 'briefing-row')).toBe('Grosse conversation. Déménager ?. Déménager. Fermer')
@@ -299,7 +299,7 @@ describe('manual: the button', () => {
   })
 
   test('a click during a turn writes at its end, never over it', async ($, on) => {
-    const { w, h, spend, fill } = hearthWorld(on, { files: MANUAL })
+    const { w, stage, spend, fill } = hearthWorld(on, { files: MANUAL })
     fill(81)
     await start($)
     await startTurn($)
@@ -307,7 +307,7 @@ describe('manual: the button', () => {
     await press($, 'briefing-change')
     await w.clock.settle()
     expect(w.state.briefing).toMatchObject({ phase: 'waiting', waitingAgents: 0, asked: true })
-    expect(h.forks).toEqual([])
+    expect(stage.forks).toEqual([])
     await endTurn($)
     await w.clock.advance(1000)
     expect(w.state.briefing.phase).toBe('ready')
@@ -315,7 +315,7 @@ describe('manual: the button', () => {
   test('Fermer during the writing stops it for good: nothing saved, and the row stays away', async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
     let answer = (_: unknown) => {}
-    t.h.fork = (prompt: string) => (prompt.includes('Answer only') ? answers.pong() : new Promise(resolve => (answer = resolve)))
+    t.stage.fork = (prompt: string) => (prompt.includes('Answer only') ? answers.pong() : new Promise(resolve => (answer = resolve)))
     await start($)
     await t.reply($)
     await t.w.clock.advance(1000)

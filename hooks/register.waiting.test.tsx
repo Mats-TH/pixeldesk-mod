@@ -17,7 +17,7 @@ describe('waiting for the work', () => {
     const t = hearthWorld(on, { files: MANUAL })
     await asked($, t)
     expect(t.w.state.briefing).toMatchObject({ phase: 'waiting', waitingAgents: 1, urgent: false })
-    expect(t.h.forks.some(prompt => prompt.includes('document de reprise'))).toBe(false)
+    expect(t.stage.forks.some(prompt => prompt.includes('document de reprise'))).toBe(false)
     await endTurn($, { agentId: 'a1' })
     await t.w.clock.advance(1000)
     expect(t.w.state.briefing.phase).toBe('ready')
@@ -87,10 +87,10 @@ describe('waiting for the work', () => {
   test('a wait of the ash alone is not a request: a reload does not turn it into a call', async ($, on) => {
     const held = { phase: 'waiting', waitingAgents: 1, waitingChats: 0, step: 0, file: null, urgent: false, words: 0, error: '', note: '', asked: false }
     const hearth = HELD_HEARTH(NOON)
-    const { w, h } = hearthWorld(on, { held: { briefing: held, hearth } })
+    const { w, stage } = hearthWorld(on, { held: { briefing: held, hearth } })
     await start($)
     await w.clock.advance(2000)
-    expect(h.forks).toEqual([])
+    expect(stage.forks).toEqual([])
     expect(w.state.briefing.phase).toBe('idle')
   })
 })
@@ -98,7 +98,7 @@ describe('waiting for the work', () => {
 describe('the document', () => {
   test('notes of the compactions reach the model, and the draft is saved before it is called', async ($, on) => {
     const t = hearthWorld(on, { files: { ...MANUAL, [NOTES]: '## Compactage 1\n- une décision ancienne' } })
-    t.h.fork = () => {
+    t.stage.fork = () => {
       expect(t.w.file(DRAFT)).toContain('Brouillon de passation')
       return answers.reply(BRIEFING_TEXT)
     }
@@ -107,15 +107,15 @@ describe('the document', () => {
     await t.w.clock.advance(1000)
     await command($, 'move')
     await t.w.clock.settle()
-    expect(t.h.forks.at(-1)).toContain('une décision ancienne')
+    expect(t.stage.forks.at(-1)).toContain('une décision ancienne')
     expect(t.w.file(DRAFT)).toContain('une décision ancienne')
   })
 
   test('secrets of a known shape never reach the disk', async ($, on) => {
     const secret = 'sk-abcdefghijklmnopqrstuvwx'
     const t = hearthWorld(on, { files: MANUAL })
-    t.h.messages = [{ role: 'user', text: `ma clé ${secret}`, toolUses: [] }]
-    t.h.fork = () => answers.reply(`# Passation : test\n\nclé ${secret} et AKIAIOSFODNN7EXAMPLE`)
+    t.stage.messages = [{ role: 'user', text: `ma clé ${secret}`, toolUses: [] }]
+    t.stage.fork = () => answers.reply(`# Passation : test\n\nclé ${secret} et AKIAIOSFODNN7EXAMPLE`)
     await start($)
     await t.reply($)
     await t.w.clock.advance(1000)
@@ -130,7 +130,7 @@ describe('the document', () => {
 
   test('the file is named from the date and the title', async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
-    t.h.fork = () => answers.reply('# Passation : Construire le mod Déménager\n\ntexte')
+    t.stage.fork = () => answers.reply('# Passation : Construire le mod Déménager\n\ntexte')
     await start($)
     await t.reply($)
     await t.w.clock.advance(1000)
@@ -156,7 +156,7 @@ describe('the document', () => {
 
   test('a failed model keeps the draft, the buttons, and no relaunch goes out', async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
-    t.h.fork = prompt => (prompt.includes('Answer only') ? answers.pong() : answers.overloaded)
+    t.stage.fork = prompt => (prompt.includes('Answer only') ? answers.pong() : answers.overloaded)
     await start($)
     await t.reply($)
     await t.w.clock.advance(1000)
@@ -167,7 +167,7 @@ describe('the document', () => {
     const count = t.forks.length
     await t.w.clock.advance(FIVE)
     expect(t.forks, 'the conversation is on its way out').toHaveLength(count)
-    t.h.fork = () => answers.reply(BRIEFING_TEXT)
+    t.stage.fork = () => answers.reply(BRIEFING_TEXT)
     await press($, 'briefing-retry')
     await t.w.clock.settle()
     expect(t.w.state.briefing.phase).toBe('ready')

@@ -22,7 +22,7 @@ describe('the new conversation', () => {
     await press($, 'briefing-start')
     const [link] = linksOpened(t.w) as [string]
     const [, q, folder] = link.match(NEW)!
-    expect(decodeURIComponent(folder!)).toBe(t.h.cwd)
+    expect(decodeURIComponent(folder!)).toBe(t.stage.cwd)
     expect(decodeURIComponent(q!)).toContain('Voici la passation')
     expect(decodeURIComponent(q!)).toContain('Prochaines étapes')
     expect(t.w.toasts.at(-1)).toBe('Nouvelle conversation ouverte. Appuie sur Entrée pour la lancer.')
@@ -138,7 +138,7 @@ describe('the new conversation', () => {
 
   test('an unknown folder opens nothing and leaves Copier', async ($, on) => {
     const t = hearthWorld(on, { files: MANUAL })
-    t.h.cwd = ''
+    t.stage.cwd = ''
     await start($, 'desktop', '')
     await t.reply($)
     await t.w.clock.advance(1000)
@@ -151,7 +151,7 @@ describe('the new conversation', () => {
 
   test('on a Mac: open, and never rundll32', async ($, on) => {
     const t = hearthWorld(on, { env: { HOME: '/Users/test', LANG: 'fr_FR' }, files: MANUAL })
-    t.h.cwd = '/Users/test/app'
+    t.stage.cwd = '/Users/test/app'
     t.w.answerRun = () => ({ value: { exitCode: 0, stdout: '', stderr: '' } })
     await ready($, t)
     await press($, 'briefing-start')
@@ -161,7 +161,7 @@ describe('the new conversation', () => {
 
   test('on Linux: straight to the link', async ($, on) => {
     const t = hearthWorld(on, { env: { HOME: '/home/test', LANG: 'fr_FR' }, files: { [`/home/test/.claude/pixeldesk/settings.json`]: JSON.stringify({ briefingMode: 'manual' }) } })
-    t.h.cwd = '/home/test/app'
+    t.stage.cwd = '/home/test/app'
     t.w.answerRun = () => ({ value: { exitCode: 0, stdout: '', stderr: '' } })
     await ready($, t)
     await press($, 'briefing-start')
@@ -174,9 +174,9 @@ describe('the new conversation', () => {
     const t = hearthWorld(on, { files: MANUAL })
     await ready($, t)
     await press($, 'briefing-copy', 'terminal')
-    expect(t.h.copies[0]).toContain(BRIEFING_TEXT)
+    expect(t.stage.copies[0]).toContain(BRIEFING_TEXT)
     expect(t.w.state.briefing.note).toBe('Copié. Colle-le dans une nouvelle conversation.')
-    t.h.copied = false
+    t.stage.copied = false
     await press($, 'briefing-copy')
     expect(t.w.state.briefing.note).toBe('La copie a échoué. Utilise plutôt Ouvrir.')
     expect(t.w.runs, 'no command for a clipboard').toEqual([])
@@ -221,13 +221,13 @@ describe('the gestures and the drawings', () => {
 
   test('in English: the briefing speaks it, and the prompt asks for it', async ($, on) => {
     const t = hearthWorld(on, { env: ENGLISH, files: MANUAL })
-    t.h.fork = prompt => (prompt.includes('Answer only') ? answers.pong() : answers.reply('# Briefing: the mod\n\nhello'))
+    t.stage.fork = prompt => (prompt.includes('Answer only') ? answers.pong() : answers.reply('# Briefing: the mod\n\nhello'))
     await start($)
     await t.reply($)
     await t.w.clock.advance(1000)
     expect((await command($, 'move')).text).toContain('Writing the briefing')
     await t.w.clock.settle()
-    expect(t.h.forks.at(-1)).toContain('Write in English')
+    expect(t.stage.forks.at(-1)).toContain('Write in English')
     expect(t.w.file(saved(t.w)[0])).toContain('## Work in progress')
     expect(saved(t.w)[0]).toContain('-the-mod.md')
   })

@@ -258,7 +258,7 @@ describe('the desks', () => {
     const low = (await short.find({ key: 'desk-a1' }))?.props.top as number
     const room = viewOf(1)
     const scaled = (room.h * 496) / room.w
-    const cropOf = (h: number) => Math.max(0, scaled - h) / 2
+    const cropOf = (high: number) => Math.max(0, scaled - high) / 2
     const box = deskBoxes(1, 496, 168)[0]!
     expect(low).toBe(Math.round((box.y - cropOf(168)) / CELL_H))
     expect(low).toBeLessThanOrEqual(top)

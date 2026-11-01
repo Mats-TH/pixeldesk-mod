@@ -243,9 +243,9 @@ export const register: Register = (on, options) => {
       const spent = step.usage ? sumOf(step.usage) : 0
       if (e.agentId === undefined) m.mainTokens += spent
       else {
-        const h = await known(host, m, e.agentId)
-        if (h) {
-          h.liveTokens += spent
+        const desk = await known(host, m, e.agentId)
+        if (desk) {
+          desk.liveTokens += spent
           await publish(host, m)
         }
       }

@@ -113,7 +113,7 @@ describe('the length of the cache', () => {
   })
 
   test('nothing is proven within five minutes, past the hour, or across a change of model', { timeoutMs: 30000 }, async ($, on) => {
-    const { w, h, spend } = unknown(on)
+    const { w, stage, spend } = unknown(on)
     await start($)
     await turn($, spend, 100, 90_000)
     await w.clock.advance(FIVE - 1000)
@@ -125,7 +125,7 @@ describe('the length of the cache', () => {
     await w.clock.advance(1)
     expect(w.state.hearth.lengthMs, 'past the hour').toBe(0)
     await w.clock.advance(FIVE + 1000)
-    h.model = 'sonnet'
+    stage.model = 'sonnet'
     await turn($, spend, 100, 90_000)
     await w.clock.advance(1)
     expect(w.state.hearth.lengthMs, 'a new model writes anyway').toBe(0)
