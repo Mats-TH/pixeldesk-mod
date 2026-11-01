@@ -1,4 +1,5 @@
 import type { RenderElement } from 'claude-code'
+import type { Box } from './draw'
 import type { Host } from './host'
 
 import type { AgentRecord, ChatTurn, DrawnPlan, Briefing, Hearth, Seen, SettingsView } from '../types'
@@ -46,7 +47,7 @@ export type RoomView = {
 export const clearOf = (zone: CardZone, panel: PanelCells | null) => !panel || zone.left >= panel.left + panel.cols || zone.top >= panel.top + panel.rows
 
 /** A desk's box in cells of the pane, on the rows a short pane keeps: it loses as much at the top as at the bottom. */
-function zoneOf(b: { x: number; y: number; w: number; h: number }, n: number, frame: Frame): CardZone {
+function zoneOf(b: Box, n: number, frame: Frame): CardZone {
   const room = viewOf(n)
   const crop = Math.max(0, (room.h * frame.width) / room.w - frame.height) / 2
   return { left: Math.round(b.x / CELL_W), top: Math.round((b.y - crop) / CELL_H), width: Math.max(1, Math.round(b.w / CELL_W)), height: Math.max(1, Math.round(b.h / CELL_H)) }

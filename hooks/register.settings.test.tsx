@@ -1,3 +1,4 @@
+import type { Box } from './draw'
 import { describe, expect, test } from 'claude-code/testing'
 
 import { settingsPlace } from './card'
@@ -250,7 +251,7 @@ describe('a zone falls on its drawing', () => {
   const WIDE = { bodyColumns: 118, scroll: { offset: 0, bodyRows: 66 } }
   const pixels = (z: any, at = { x: 0, y: 0 }) => ({ x: at.x + z.left * 8 + (z.marginLeft ?? 0) * 8, y: at.y + z.top * 21 + (z.marginTop ?? 0) * 10.5, w: z.width * 8, h: z.height * 21 })
 
-  function same(zone: { x: number; y: number; w: number; h: number }, art: { x: number; y: number; w: number; h: number }, name: string) {
+  function same(zone: Box, art: Box, name: string) {
     expect(Math.abs(zone.x - art.x), `${name}: left`).toBeLessThanOrEqual(0.5)
     expect(Math.abs(zone.y - art.y), `${name}: top`).toBeLessThanOrEqual(0.5)
     expect(Math.abs(zone.w - art.w), `${name}: width`).toBeLessThanOrEqual(0.5)

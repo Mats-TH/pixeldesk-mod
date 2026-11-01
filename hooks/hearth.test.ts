@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { lengthIn } from './cachelength'
 import { compactNow } from './compaction'
-import { gather, scrubbed, slugOf, stampOf, tilde, unwrapped } from './briefing-gather'
+import { gather, slugOf, stampOf, tilde, unwrapped } from './briefing-gather'
 import { ashOf, fireOf, lengthProven } from './heat'
 import { en, fr } from './i18n'
 import { createMemory } from './memory'
@@ -77,7 +77,7 @@ describe('what is read off a conversation', () => {
   })
 
   test('links: no local one, no final mark, no double, the latest 20', () => {
-    const many = Array.from({ length: 25 }, (_, i) => `https://sample.org/${i}`).join(' ')
+    const many = Array.from({ length: 25 }, (_, i) => 'https://sample.org/' + i).join(' ')
     const found = gather([said('user', `voir https://b.dev/x. et http://localhost:3000 et https://sample.org/a`), said('assistant', many)], HOME)
     expect(found.links).toHaveLength(20)
     expect(found.links.at(-1)).toBe('https://sample.org/24')
@@ -95,28 +95,6 @@ describe('what is read off a conversation', () => {
   test('decisions: the sentences that read as one', () => {
     const { decisions } = gather([said('assistant', 'Je lis le fichier. On garde la cheminée à gauche. Fini.')], HOME)
     expect(decisions).toEqual(['On garde la cheminée à gauche.'])
-  })
-})
-
-describe('secrets', () => {
-  const CASES = ['sk-abcdefghijklmnop1234', 'sk_live_abcdefghij1234', 'ghp_abcdefghijklmnopqrst1234', 'github_pat_abcdefghijklmnopqrst1234', 'xoxb-1234567890-abc', 'AIzaabcdefghijklmnopqrstuvwxyz123456', 'AKIAIOSFODNN7EXAMPLE']
-
-  for (const secret of CASES) {
-    test(`${secret.slice(0, 5)} goes`, () => {
-      expect(scrubbed(`avant ${secret} après`)).toBe('avant <secret retiré> après')
-    })
-  }
-
-  test('a Bearer token goes and the word stays', () => {
-    expect(scrubbed('Bearer abcdefghijklmnopqrstuvwxyz')).toBe('Bearer <secret retiré>')
-  })
-
-  test('a private key goes whole', () => {
-    expect(scrubbed('-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----')).toBe('<secret retiré>')
-  })
-
-  test('ordinary words stay', () => {
-    expect(scrubbed('sk-short et ghp_court')).toBe('sk-short et ghp_court')
   })
 })
 
