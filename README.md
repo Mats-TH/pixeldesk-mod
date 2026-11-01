@@ -1,10 +1,12 @@
 <p align="center"><a href="README.fr.md">Lire en français</a></p>
 
 <p align="center">
-  <img src="assets/banner.png" alt="PixelDesk Mod: keeps your cache alive, with a tiny pixel office around it">
+  <img src="assets/banner.png" alt="PixelDesk Mod: a stylish pixel art interface for your Claude agents">
 </p>
 
-<h3 align="center">Spend fewer tokens in Claude Code, and see everything it does.</h3>
+<h3 align="center">A super stylish pixel art interface for your Claude agents.</h3>
+
+<p align="center">Watch them work live in a tiny office, and spend fewer tokens without thinking about it.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-mod-FFC857?style=flat-square&labelColor=2A2036" alt="A mod for Claude Code">
@@ -14,10 +16,10 @@
 </p>
 
 <p align="center">
-  <a href="#install"><b>Install</b></a> &nbsp;·&nbsp;
-  <a href="#built-to-save-tokens"><b>Save tokens</b></a> &nbsp;·&nbsp;
-  <a href="#what-you-get"><b>Features</b></a> &nbsp;·&nbsp;
-  <a href="#six-rooms-one-command"><b>Themes</b></a> &nbsp;·&nbsp;
+  <a href="#how-to-install-pixeldesk-mod"><b>Install</b></a> &nbsp;·&nbsp;
+  <a href="#what-pixeldesk-mod-shows-on-your-screen"><b>The interface</b></a> &nbsp;·&nbsp;
+  <a href="#built-to-save-you-tokens"><b>Save tokens</b></a> &nbsp;·&nbsp;
+  <a href="#6-themes-available-for-your-pixeldesk"><b>Themes</b></a> &nbsp;·&nbsp;
   <a href="#commands"><b>Commands</b></a>
 </p>
 
@@ -27,29 +29,31 @@
 
 <p align="center"><sub>A mock-up, drawn by the mod's own code. The bar, the room and the keeper are the real art.</sub></p>
 
-PixelDesk Mod is a free plugin for the Claude desktop app.
+PixelDesk Mod turns Claude Code into a tiny pixel art office.
 
-It keeps your cache alive while you're away, and moves you to a fresh conversation before this one fills up. All of it runs in a tiny pixel office next to the chat.
+Every agent gets a desk, your plan hangs on the wall, and your limits stay in sight. You see everything that's going on, live, right next to your conversation.
 
-It looks nice. That's not the point. The point is to stop paying to rebuild the same conversation.
+And it's not just pretty. The mod keeps your cache alive and changes conversation at the right moment, so you spend fewer tokens.
 
-## Install
+It's free and open source.
 
-**In the Claude desktop app, open the Code tab and paste this into the conversation:**
+## How to install PixelDesk Mod
+
+**In the Claude desktop app, open the Code tab and paste this line into the conversation:**
 
 ```
 Install the PixelDesk Mod plugin. Run: claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod (if claude is not found, use the path in the CLAUDE_CODE_EXECPATH environment variable instead).
 ```
 
-Use the copy button: the line runs past the edge of the box. Claude runs the command for you. Allow it when asked.
+Use the copy button, as the line runs past the edge of the box. Claude runs the install for you: allow it when asked.
 
 Then open a new conversation in the Code tab. That's it.
 
 | Where you are | What to do |
 | --- | --- |
-| **Code tab of the desktop app** | Paste the line above. No terminal needed. |
-| **A normal chat** | It can't install a mod. A chat doesn't run commands on your computer, and the mod lives in the Code tab. Switch to the Code tab, then paste the line. |
-| **A terminal** | Run the command below. |
+| **In the Code tab** | Paste the line above. No terminal needed. |
+| **In a normal chat** | It can't install the mod. A chat doesn't run commands on your computer, and the mod lives in the Code tab. Switch to the Code tab, then paste the line. |
+| **In a terminal** | Run the command given in the block below. |
 
 <details>
 <summary><b>Other ways to install</b></summary>
@@ -62,9 +66,9 @@ Then open a new conversation in the Code tab. That's it.
 claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
 ```
 
-**From the app's buttons:** click **+** next to the prompt box, then **Plugins**, then **Add marketplace**. Paste `Mats-TH/pixeldesk-mod`, then click **Add plugin**.
+**With the app's buttons:** click **+** next to the prompt box, then **Plugins**, then **Add marketplace**. Paste `Mats-TH/pixeldesk-mod`, then click **Add plugin**.
 
-**From a running terminal session:**
+**From a terminal session that's already open:**
 
 ```
 /plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
@@ -72,7 +76,7 @@ claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod
 
 Answer `y` to add the marketplace, then choose a scope.
 
-**To force a language:**
+**To force a language at install:**
 
 ```bash
 claude plugin install pixeldesk --marketplace Mats-TH/pixeldesk-mod --config language=fr
@@ -82,135 +86,220 @@ You need Git on your machine: the plugin is fetched from GitHub.
 
 </details>
 
-## Built to save tokens
-
-**Your cache is what makes Claude cheap to come back to.**
-
-Claude keeps your conversation in a cache, for 5 minutes or 1 hour. While it lives, reading it back costs [a fraction of the normal price](https://platform.claude.com/docs/en/about-claude/pricing#prompt-caching).
-
-Once it expires, your next message pays to read and write everything again. On a long conversation, that hurts.
-
-**PixelDesk Mod watches that clock for you.**
-
-45 seconds before the cache cools, it sends one line, `Answer only: ok`. Claude reads the conversation from the cache, and the clock starts over.
-
-When you come back, your cache is still there.
-
-**It also keeps conversations from getting expensive.**
-
-The fuller the conversation, the more every message has to read. So at 80% of the context, PixelDesk Mod compacts, then moves you to a fresh conversation with a briefing already read.
-
-> **The honest part.** Relaunches use tokens, and they count toward your limits. They pay off when you come back. If you never do, they were spent for nothing.
->
-> How much you save depends on the size of your conversation and how you work. We haven't measured it, so we won't quote a number.
->
-> **Don't want them? `/pixeldesk fire off`.** It's one command, and it stops relaunches everywhere.
-
-## What you get
+## What PixelDesk Mod shows on your screen
 
 <table>
   <tr>
     <td width="33%" valign="top">
-      <img src="assets/feature-cache.png" alt="The stove and the keeper bringing a log">
-      <br><b>A cache that stays alive</b>
-      <br>Automatic relaunches, just before it cools. The fire shows the time left, and a keeper brings a log.
+      <img src="assets/feature-agents.png" alt="The Boss and two agents at their desks">
+      <br><b>A desk for every agent</b>
+      <br>Every subagent sits at its own desk, live. Hover it to read what it's doing. Your main conversation is the Boss.
     </td>
     <td width="33%" valign="top">
-      <img src="assets/feature-move.png" alt="A full pile of ash, and a plate saying the briefing is ready">
-      <br><b>A fresh conversation, by itself</b>
-      <br>Ash shows how full you are. When it's full, the mod compacts, then moves on with a briefing.
+      <img src="assets/feature-plan.png" alt="The plan on a board on the wall">
+      <br><b>Your plan on the wall</b>
+      <br>Claude announces its steps, and you follow along. Hover a step for its detail and who's on it.
     </td>
     <td width="33%" valign="top">
       <img src="assets/feature-band.png" alt="The bar above the prompt, with the plan and the two limits">
-      <br><b>Your limits, always in sight</b>
-      <br>A bar above the prompt with your plan and your 5-hour and weekly limits, live.
+      <br><b>Your limits, always visible</b>
+      <br>A bar above the prompt shows your progress and your 5-hour and weekly limits.
     </td>
   </tr>
   <tr>
     <td width="33%" valign="top">
-      <img src="assets/feature-agents.png" alt="Desks with the Boss and two agents at work">
-      <br><b>One desk per agent</b>
-      <br>Every subagent gets a desk, live. Hover it to read what it's doing. The main conversation is the Boss, the ones it starts are Managers.
+      <img src="assets/feature-cache.png" alt="The stove and the keeper bringing a log">
+      <br><b>A fire that shows your cache</b>
+      <br>The fire burns down as your cache gets close to expiring. A keeper brings a log to keep it alive.
     </td>
     <td width="33%" valign="top">
-      <img src="assets/feature-plan.png" alt="The plan on a board, in the Space base theme">
-      <br><b>A plan you can follow</b>
-      <br>Claude announces its steps, and they stay on the wall. Hover a step for its detail and who's on it.
+      <img src="assets/feature-move.png" alt="The stove, the ash, and a plate saying the briefing is ready">
+      <br><b>Ash that shows how full you are</b>
+      <br>The pile grows with your conversation. When it's full, the mod takes over.
     </td>
     <td width="33%" valign="top">
-      <img src="assets/feature-floor.png" alt="A floor plan with four conversations as camps in a forest">
-      <br><b>A floor plan</b>
-      <br>A conversation that runs others sees them all at a glance, one room each.
+      <img src="assets/feature-floor.png" alt="A street of houses, one per conversation">
+      <br><b>All your conversations on one map</b>
+      <br>A conversation that starts others sees them all at a glance. Each one has its room and its Manager.
     </td>
   </tr>
 </table>
 
-### It runs by itself
+### Plus plenty of small details
 
-Nothing to set up. Once installed, it just works.
-
-<table>
-  <tr>
-    <td><b>Relaunches</b></td>
-    <td>Before the cache cools, only while it's worth it. Caps below.</td>
-  </tr>
-  <tr>
-    <td><b>Compaction</b></td>
-    <td>At 80% of the context, twice by default. Compactions by Claude Code count too.</td>
-  </tr>
-  <tr>
-    <td><b>New conversation</b></td>
-    <td>In the same folder, worktree included, with its first message already sent.</td>
-  </tr>
-  <tr>
-    <td><b>Waiting for agents</b></td>
-    <td>Agents finish first, so their results land in the briefing.</td>
-  </tr>
-  <tr>
-    <td><b>Your notes</b></td>
-    <td>Files, decisions and requests are saved before each compaction, so a briefing never sums up a summary.</td>
-  </tr>
-</table>
-
-Prefer to decide? Pick **Manual** in the settings. Nothing moves until you click.
-
-### And the little things
-
-- **Hover the fire** for the time left, the relaunches and the exact percentage.
-- **Tidy desks.** Finished desks leave on their own, at the end of the plan or one by one.
-- **Tokens and cost** on the wall of every room.
-- **A settings panel** behind the button on the wall, for everything.
+- **A card on the fire.** Hover it for the time left and exactly how full you are.
+- **Desks that tidy themselves.** Finished agents leave on their own.
+- **Tokens and cost on display** on the wall of the room.
 - **A crab.** He lives there. He naps.
-- **French and English.** The whole interface speaks both, and picks by itself.
-- **A terminal version.** A simpler text bar and a list of agents. Relaunches run there too.
+- **French and English.** The mod picks by itself.
+- **A terminal version.** Simpler, in text, without the pixel art.
+
+## Built to save you tokens
+
+PixelDesk Mod works on two things: the cache, and the size of your conversation. First, the cache.
+
+### What is the Claude cache?
+
+With every message, Claude rereads your whole conversation. To keep that affordable, it stores a copy in a cache.
+
+While that cache is valid, rereading costs [a fraction of the normal price](https://platform.claude.com/docs/en/about-claude/pricing#prompt-caching). Once it expires, your next message has to reread everything at full price.
+
+On a long conversation, you feel the difference.
+
+### 5-minute or 1-hour cache: which one do you have?
+
+It depends on your account, not on where you type. That comes from [the Claude Code docs](https://code.claude.com/docs/en/prompt-caching):
+
+| Your account | Main conversation | Subagents |
+| --- | --- | --- |
+| Claude subscription, within your included usage | 1 hour | 5 minutes |
+| Claude subscription, on usage credits | 5 minutes | 5 minutes |
+| API key, Bedrock or Vertex | 5 minutes | 5 minutes |
+
+Every message restarts that timer. So while you're working, you lose nothing.
+
+The trouble starts when you step away: a break, a meeting, lunch.
+
+### How PixelDesk Mod keeps your cache alive
+
+The mod watches the cache of your main conversation. It finds out how long it lasts by itself, so there's nothing to set.
+
+Just before it expires, the mod sends Claude one very short line. Claude reads from the cache, and the timer starts over. That's a relaunch.
+
+When you come back, your cache is still there, and your next message costs far less.
 
 <p align="center">
   <img src="assets/panel.png" alt="The card of the fireplace next to the room, with the keeper at the stove" width="880">
 </p>
 
-## Six rooms, one command
+### What relaunches cost
+
+Let's be honest: a relaunch uses tokens too, and it counts toward your limits.
+
+It pays off if you come back. If you don't, it was spent for nothing. That's why the mod stops by itself after a while on an idle conversation.
+
+The saving depends on the size of your conversation and how you work. It hasn't been measured for the public, so there's no number here.
+
+Don't want them? Turn relaunches off in the Settings, in one click.
+
+## How PixelDesk Mod keeps you from losing context
+
+Context is everything Claude has in mind in your conversation. Its size is limited.
+
+When it fills up, Claude Code compacts: it replaces old messages with a summary. That frees up space, but details disappear each time. Compact enough, and Claude forgets.
+
+So PixelDesk Mod changes conversation at the right moment, on purpose, so you don't lose your context too fast.
+
+**By default, the mod compacts twice, then changes conversation:**
+
+1. Your conversation reaches 80% of its context limit: the ash pile is full.
+2. The mod compacts a first time, and you carry on.
+3. It climbs back to 80%: the mod compacts a second time.
+4. It climbs back to 80% again: the mod opens a new conversation, with a briefing already read.
+
+If Claude Code compacts by itself along the way, that counts as one of the two.
+
+**You save tokens here too.** A new conversation is short, so every message has far less to reread.
+
+**Nothing gets lost on the way.** Before each compaction, the mod notes the files, the decisions and your requests. The briefing starts from those notes, not from a summary of a summary.
+
+**It won't cut you off mid-work.** It waits for the end of the turn and for your agents to finish. The new conversation opens in the same folder.
+
+Rather decide for yourself? It's all in the Settings.
+
+## 6 themes available for your PixelDesk
 
 <p align="center">
   <img src="assets/themes.png" alt="The six themes: Cosy, Japanese, Nature, Futuristic, Geek and games, Space base" width="880">
 </p>
 
-**Cosy, Japanese, Nature, Futuristic, Geek and games, Space base.** Each one has its own furniture, its own stove and its own floor plan.
+**Cosy, Japanese, Nature, Futuristic, Geek and games, Space base.**
 
-Pick one in the settings, or type:
+Each theme changes everything: the decor, the desks, the stove and even the floor plan.
 
-```
-/pixeldesk theme nature
-```
+To switch, open the Settings and pick one in the Theme column.
 
-The names are `cosy`, `japonais`, `nature`, `futuriste`, `geek` and `base`.
+## Everything is in the Settings
+
+Click the button on the wall of the room. Your choice goes for all your conversations.
+
+| Setting | What you choose |
+| --- | --- |
+| **Theme** | One of the six themes. |
+| **When desks leave** | Finished agents leave at the end of the plan, or one by one. |
+| **Cache** | Relaunches on or off. |
+| **Briefing** | Automatic or Manual. |
+| **Automatic mode slider** | 0 to 3 compactions before changing conversation, or Always to compact and never change. |
+
+In Manual mode, the mod stops compacting and changing conversation by itself. A button appears on the fireplace, and nothing moves until you click it.
+
+## Good to know before you install
+
+<details>
+<summary><b>The limits on relaunches</b></summary>
+
+<br>
+
+A relaunch sends one line, `Answer only: ok`, on top of your cached context. A bigger conversation has more to read. Each relaunch is logged in `~/.claude/pixeldesk/logs/pixeldesk.log`, with the tokens it read and wrote.
+
+- **Idle conversation.** 30 relaunches or 2 hours at most, then the fire goes out.
+- **Conversation at work.** While a turn, an agent or a sub-conversation is running, there's no cap.
+- **Plan step in progress.** It only counts as work for 15 minutes after the last activity.
+- **Several conversations.** Each one counts on its own, and they add up.
+- **Unknown cache length.** No relaunch until your messages have proved it.
+- **Cache already expired.** The mod never relaunches it: that would cost the most and save nothing.
+- **Failures.** Three in a row stop relaunches until your next message.
+
+</details>
+
+<details>
+<summary><b>Changing conversation</b></summary>
+
+<br>
+
+- **Tokens too.** Writing a briefing, compacting and starting the new conversation all use your limits.
+- **It needs the `claude` command.** Without it, or on Linux, the text waits in the new conversation and you press Enter.
+- **Cache already expired.** The mod asks you before compacting or changing.
+- **In plain text on your disk.** Briefings are written in `~/.claude/pixeldesk/briefings/`, with the compaction notes. The latest 20 are kept. Known secret formats are removed, but check a file before you share it.
+
+</details>
+
+<details>
+<summary><b>The terminal version</b></summary>
+
+<br>
+
+In a terminal session, PixelDesk Mod shows up as text: a bar in characters and a list of agents. The pixel art stays in the desktop app.
+
+Relaunches run there too, without the fireplace.
+
+There's no wall to click. To go Manual, set `"briefingMode": "manual"` in `~/.claude/pixeldesk/settings.json`.
+
+</details>
+
+<details>
+<summary><b>Compatibility, files and privacy</b></summary>
+
+<br>
+
+- **Tested** on Windows only so far, with Claude Code 2.1.309. Reports from macOS and Linux are very welcome.
+- **Boss and Manager.** There's one Boss, your main conversation. The conversations it starts are Managers. The app's links are only read on Windows, so elsewhere a sub-conversation reads Boss too.
+- **Language.** The mod follows your Claude Code `language` setting, then your system language, and falls back to English. To force one, use the plugin's `language` option: `auto`, `fr` or `en`.
+- **Your files.** The mod writes in `~/.claude/pixeldesk/`. One exception: on Windows, when no language is set, it asks PowerShell once for your system language and keeps it in Claude Code's plugin storage.
+- **Limits.** The gauges show `--` until Claude Code reports a reading.
+- **Floor plan.** On Windows, it reads the links between conversations from the app. Elsewhere, it groups the conversations of the same project.
+- **Usage.** To keep the bar up to date, the mod adds a short instruction to Claude's prompt and to each subagent's, plus a short reminder after some tool calls. While the panel is open, the desk summaries come from small Haiku calls.
+- **Known limit.** A plugin cannot remove the panel's inner margin or its scroll gutter.
+
+</details>
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `/pixeldesk` | Opens the panel. |
-| `/pixeldesk theme <name>` | Changes the room. |
-| `/pixeldesk fire off` | Stops relaunches, in every conversation. `on` starts them again. |
+| `/pixeldesk theme <name>` | Changes the theme: `cosy`, `japonais`, `nature`, `futuriste`, `geek` or `base`. |
+| `/pixeldesk fire off` | Turns relaunches off, in every conversation. `on` turns them back on. |
 | `/pixeldesk fire` | Tells you where relaunches stand. |
 | `/pixeldesk move` | Writes a briefing now, or once the running work is done. |
 | `/pixeldesk compact` | Compacts now, once the turn is over. |
@@ -223,7 +312,7 @@ The names are `cosy`, `japonais`, `nature`, `futuriste`, `geek` and `base`.
 | Command | What it does |
 | --- | --- |
 | `/pixeldesk` | Opens the panel, and stops hiding it if it was hidden. |
-| `/pixeldesk hide` | Closes the panel in every conversation and stops it opening by itself. The bar stays. Tracking, relaunches and the automatic change keep running. |
+| `/pixeldesk hide` | Closes the panel everywhere and stops it opening by itself. The bar, the tracking and the relaunches keep running. |
 | `/pixeldesk show` | Opens the panel here and lets it open by itself again. |
 | `/pixeldesk theme` | Tells you the current theme and the names. |
 | `/pixeldesk theme <name>` | Changes the theme, in every conversation. |
@@ -237,82 +326,6 @@ The names are `cosy`, `japonais`, `nature`, `futuriste`, `geek` and `base`.
 | `/pixeldesk compact` | Compacts now, like Automatic mode does, once the turn is over. It counts toward the slider. |
 
 To remove the bar too, turn the plugin off with `/plugin`.
-
-</details>
-
-## Good to know
-
-<details>
-<summary><b>What relaunches cost, and their limits</b></summary>
-
-<br>
-
-**Each relaunch sends one line, `Answer only: ok`, on top of your cached context. It uses tokens, and it counts toward your limits.**
-
-A bigger conversation has more to read. Every relaunch is written to `~/.claude/pixeldesk/logs/pixeldesk.log`, with the tokens it read and wrote.
-
-- **Idle conversation.** 30 relaunches or 2 hours at most once it goes quiet, then the fire goes out.
-- **Conversation at work.** While a turn, an agent or a floor conversation is running, it stays hot with no cap.
-- **Plan steps.** A step in progress only counts as work for 15 minutes after the last activity.
-- **Several conversations.** Each one counts on its own. There is no shared cap, so they add up.
-- **Unknown cache length.** No relaunch at all. Your normal turns prove the length, for free.
-- **Cold cache.** PixelDesk Mod never relaunches a cache its clock says is cold. That would cost the most and save nothing.
-- **Failures.** Three in a row stop relaunches until your next turn.
-
-`/pixeldesk hide` only closes the panel: relaunches keep running.
-
-</details>
-
-<details>
-<summary><b>The automatic change of conversation</b></summary>
-
-<br>
-
-When the ash is full, PixelDesk Mod waits for the end of the turn. Then it compacts, or it changes conversation.
-
-In Automatic mode, a slider in the settings decides:
-
-- **0.** It changes conversation straight away.
-- **1, 2 or 3.** It compacts that many times, then changes. The default is 2.
-- **Always.** It only compacts, and never changes.
-
-In a hurry? `Change now` stays available.
-
-In Manual mode, a `Change` button appears on the fireplace once the ash is full. Once the briefing is ready, click `New conversation`.
-
-- **Tokens.** Writing a briefing, compacting and starting the new conversation all use your limits.
-- **It needs the `claude` command.** Without it, or on Linux, the text is ready in the new conversation and you press Enter.
-- **Cold cache.** If the cache has already gone cold when the ash fills up, PixelDesk Mod asks you first.
-- **In plain text.** Briefings are written in the clear in `~/.claude/pixeldesk/briefings/`, with the compaction notes. The latest 20 of each are kept. Known secret formats are removed, but check a file before you share it.
-
-</details>
-
-<details>
-<summary><b>The terminal version</b></summary>
-
-<br>
-
-PixelDesk Mod also runs in a terminal session, as a simpler text version: a bar drawn in characters and a list of agents. The pixel art stays in the desktop app.
-
-Cache relaunches run there too, without the fireplace. `/pixeldesk fire off` works the same.
-
-There is no wall to click in the terminal. To go Manual, set `"briefingMode": "manual"` in `~/.claude/pixeldesk/settings.json`.
-
-</details>
-
-<details>
-<summary><b>The rest</b></summary>
-
-<br>
-
-- **Tested on** Windows only so far, with Claude Code 2.1.309. Reports from macOS and Linux are very welcome.
-- **Language.** It follows your Claude Code `language` setting, then your system language, and falls back to English. To force one, use the `language` option: `auto`, `fr` or `en`.
-- **Your files.** PixelDesk Mod writes in `~/.claude/pixeldesk/`. One exception: on Windows, when no language is set anywhere, it asks PowerShell once for your system language and keeps it in Claude Code's plugin storage.
-- **Limits.** The gauges show `--` until Claude Code reports a reading.
-- **Floor plan.** On Windows, it reads the links between conversations from the desktop app. Elsewhere, it groups the conversations of the same project.
-- **Boss and Manager.** There is one Boss, the main conversation. The app's links are only read on Windows, so elsewhere a sub-conversation reads Boss too.
-- **Usage.** To keep the bar up to date, PixelDesk Mod adds a short instruction to Claude's prompt and to each subagent's, plus a short reminder after some tool calls. While the panel is open, the plain-language desk summaries come from small Haiku calls.
-- **Known limit.** A plugin cannot remove the panel's inner margin or its scroll gutter.
 
 </details>
 
