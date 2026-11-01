@@ -60,7 +60,7 @@ function metaOf(r: FloorRoom, i: number) {
 
 function mapRoom(r: FloorRoom, i: number): MapRoom {
   const manager = r.manager ?? AT_REST
-  const people = [...(manager.working ? [{ hue: 0, state: 'working' as const }] : []), ...r.desks.map(d => ({ hue: d.hue, state: d.state }))]
+  const people = [...(manager.working ? [{ hue: 0, state: 'working' as const, name: postName(r.sub) }] : []), ...r.desks.map(d => ({ hue: d.hue, state: d.state, name: d.title }))]
   return { id: r.id, seed: seedOf(r.id), title: r.title, post: postName(r.sub), meta: metaOf(r, i), rest: isDim(r, i), chief: i === 0, people, working: r.working + (manager.working ? 1 : 0) }
 }
 

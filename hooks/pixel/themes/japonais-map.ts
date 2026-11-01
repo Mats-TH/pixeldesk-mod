@@ -8,7 +8,7 @@ import { WORLD, pattern, pick } from '../pack'
 import type { MapPack, MapRoom, MapView } from '../pack'
 import { TENUES, person } from '../sprites'
 import type { DeskState } from '../sprites'
-import { def, line, use } from '../text'
+import { def, line, plateLine, plateName, use } from '../text'
 import { japonais } from './japonais'
 
 type C = Canvas
@@ -737,7 +737,7 @@ function atelier() {
   }
 }
 type Atelier = ReturnType<typeof atelier>
-type Personne = { hue: number; state: DeskState | 'rest' }
+type Personne = { hue: number; state: DeskState | 'rest'; name: string }
 
 const voile = (w: number, y: number, h: number, ink: string, alpha: string) => `<rect y="${y}" width="${w}" height="${h}" fill="${ink}" fill-opacity="${alpha}"/>`
 const PLAQUE_H = 26
@@ -745,7 +745,7 @@ const PLAQUE_H = 26
 const plaque = (s: string, x: number, y: number, w: number, fond: string, h = PLAQUE_H) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${PLAQUE_BORD}"/><rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${h - 4}" fill="${fond}"/>${s ? line(s, x + 7, y + Math.floor((h - 18) / 2), 16, CREME) : ''}`
 const largeurPlaque = (s: string) => pair(textWidth(s, 16) + 15)
 
-const siege = (a: Atelier, p: Personne, x: number, y: number) => `${a.sprite('chaise', x, y + 2)}${a.sprite(`perso${p.hue % TENUES.length}`, x + 22, y)}${a.sprite(`bureau-${p.state}`, x, y + 2)}`
+const siege = (a: Atelier, p: Personne, x: number, y: number) => `${a.sprite('chaise', x, y + 2)}${a.sprite(`perso${p.hue % TENUES.length}`, x + 22, y)}${a.sprite(`bureau-${p.state}`, x, y + 2)}<g transform="translate(${x} ${y + 2})">${plateLine(a.dit(plateName(p.name)))}</g>`
 
 function surplus(a: Atelier, n: number, x: number, y: number) {
   if (n <= 0) return ''
@@ -778,7 +778,7 @@ function salon(a: Atelier, v: MapView, r: MapRoom, m: Maison) {
   const cw = Math.ceil(textWidth(compte, 16)) + 14
   const badge = compte ? `<rect x="${557 - cw}" y="56" width="${cw}" height="22" fill="${LAQUE[0]}"/><rect x="${559 - cw}" y="58" width="${cw - 4}" height="18" fill="${LAQUE[2]}"/>${line(compte, 564 - cw, 58, 16, '#FFF6DE')}` : ''
   // The boss has his seat at work and at rest.
-  const gens: Personne[] = r.people[0]?.hue === 0 ? r.people : [{ hue: 0, state: 'rest' }, ...r.people]
+  const gens: Personne[] = r.people[0]?.hue === 0 ? r.people : [{ hue: 0, state: 'rest', name: r.post }, ...r.people]
   const seats = gens.slice(0, SIEGES).map((p, i) => siege(a, p, 17 + i * 66, 126)).join('')
   const nom = plaque(titre, 12, 20, largeurPlaque(titre), PLAQUE)
   return `<g transform="translate(${SALON.x} ${m.salonY})">${fond}${orne}${tele}${registreDe(a, v)}${a.sprite('casier', 443, 56)}${badge}${seats}${surplus(a, gens.length - SIEGES, 215, 146)}${nom}</g>${line(etat, 93, m.salonY + SALON.h + 8, 16, ETAT)}`

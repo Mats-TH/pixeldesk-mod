@@ -5,6 +5,7 @@ import { roomCard } from './card'
 import { floorBoxes, floorCountSvg, floorSvg, shownRooms } from './floor'
 import type { FloorRoom } from './desks'
 import { setLanguage } from './i18n'
+import { letterUses } from './pixel/text'
 import { packOf } from './pixel/themes'
 
 const THEMES: RoomTheme[] = ['cosy', 'japonais', 'nature', 'futuriste', 'geek', 'base']
@@ -35,6 +36,23 @@ for (const theme of ['cosy', 'nature', 'geek'] as const) {
       expect(letters(false), `${language}: the main one`).not.toContain('href="#M"')
       expect(letters(true), `${language}: started from another`).toContain('href="#M"')
       expect(letters(true), `${language}: started from another`).not.toContain(`href="${first}"`)
+    }
+    setLanguage('fr')
+  })
+}
+
+// The themes that seat each conversation at desks of the size of the floor.
+for (const theme of ['japonais', 'futuriste'] as const) {
+  test(`${theme}: every desk of a floor says whose it is`, async () => {
+    const seated = { title: 'Testeur', state: 'working' as const, hue: 1 }
+    const main = { ...room(0, 0), manager: { working: true }, desks: [seated], agents: 1, working: 1 }
+    const kid = { ...room(1, 0), manager: { working: true }, desks: [], sub: true }
+    for (const [language, boss] of [['fr', 'Patron'], ['en', 'Boss']] as const) {
+      setLanguage(language)
+      const svg = floorSvg(floor(theme, [main, { ...kid, agents: 1 }]))
+      expect(svg, `${language}: the main one`).toContain(letterUses(boss))
+      expect(svg, `${language}: a sub-conversation`).toContain(letterUses('Manager'))
+      expect(svg, `${language}: an agent`).toContain(letterUses('Testeur'))
     }
     setLanguage('fr')
   })

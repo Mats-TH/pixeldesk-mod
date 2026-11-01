@@ -1,5 +1,6 @@
 import { paths } from './canvas'
 import type { Canvas } from './canvas'
+import { SHARP, fit, textWidth } from './font'
 import { FONT_SIZE, GLYPHS, SPACE, UNIT } from './font-data'
 import { PX } from './pack'
 
@@ -34,3 +35,10 @@ export const fontScale = (size: number) => Math.round((size / FONT_SIZE) * UNIT 
 export function line(s: string, x: number, y: number, size: number, fill: string) {
   return `<g fill="${fill}" transform="translate(${x} ${y}) scale(${fontScale(size)})">${letterUses(s)}</g>`
 }
+
+// On a desk of one pixel a cell the font keeps two cells to that pixel, and its capitals fill the plate.
+const PLATE_SIZE = SHARP / 2
+
+/** What `name` writes on the plate of a desk 60 cells wide, one pixel a cell, from the desk's corner. */
+export const plateName = (name: string) => fit(name, PLATE_SIZE, 44)
+export const plateLine = (name: string) => line(name, Math.round(30 - textWidth(name, PLATE_SIZE) / 2), 29.5, PLATE_SIZE, '#1B1730')

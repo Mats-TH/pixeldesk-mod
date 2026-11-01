@@ -6,7 +6,7 @@ import { once, pattern, pick, PX, WORLD } from '../pack'
 import type { MapPack, MapRoom, MapView } from '../pack'
 import { TENUES, person } from '../sprites'
 import type { DeskState } from '../sprites'
-import { line, use } from '../text'
+import { line, plateLine, plateName, use } from '../text'
 import { bureau, chaise, droneLivreur, navette, tableau, tele, vaisseau, voiture } from './futuriste-art'
 
 const COQUE = ['#F4F8FC', '#D4DEEA', '#A8B6CA', '#7A88A4', '#525E7E', '#343C5A', '#1E2440'] as const
@@ -266,7 +266,10 @@ function rangees(n: number, w: number, h: number, top: number) {
   return { s: 0.18, cols: Math.floor(w / 10.8), rows: Math.max(1, Math.floor(h / 8.1)) }
 }
 
-type Gens = { hue: number | null; state: DeskState | 'rest' }
+type Gens = { hue: number | null; state: DeskState | 'rest'; name?: string }
+
+// Under this scale a plate is too small for a word: it stays bare.
+const NAMED = 1
 
 /** One sprite each per use: `need` only keeps what this floor draws. */
 function postes(gens: readonly Gens[], cx: number, y: number, w: number, h: number, top: number, need: (id: string, draw: () => string) => void) {
@@ -284,10 +287,12 @@ function postes(gens: readonly Gens[], cx: number, y: number, w: number, h: numb
       need(tenue, () => `<g id="${tenue}">${paths(person(tenue))}</g>`)
       body = `${use('ch')}${use(tenue, 22, -2)}${body}`
     }
+    if (g.name && s >= NAMED) body += plateLine(plateName(g.name))
     return `<g transform="translate(${r2(px)} ${r2(py)})${s === 1 ? '' : ` scale(${s})`}">${body}</g>`
   }).join('')
 }
 
+const namesOf = (gens: readonly Gens[]) => gens.map(g => plateName(g.name ?? '')).join('')
 const r2 = (n: number) => Math.round(n * 100) / 100
 const plate = (x: number, y: number, w: number, h: number, fill: string) => `<rect x="${r2(x)}" y="${y}" width="${r2(w)}" height="${h}" fill="${fill}"/>`
 
@@ -325,7 +330,7 @@ function dessinTete(r: MapRoom, v: MapView, n: number, need: (id: string, draw: 
   const label = t('room.tokens')
   const [tw, mw] = [textWidth(title, 14) + 16, textWidth(meta, 12) + 16]
   // The boss has his desk at work and at rest.
-  const gens: Gens[] = r.people[0]?.hue === 0 ? r.people : [{ hue: 0, state: 'rest' }, ...r.people]
+  const gens: Gens[] = r.people[0]?.hue === 0 ? r.people : [{ hue: 0, state: 'rest', name: r.post }, ...r.people]
   const panel = tableauDe(v.list, need)
   const shown = String(v.news.shown)
   const cw = textWidth(shown, 14) + 15
@@ -338,7 +343,7 @@ function dessinTete(r: MapRoom, v: MapView, n: number, need: (id: string, draw: 
     + `<g transform="translate(110 188)">${use('cas')}</g>${counter}`
     + `${plate(131 - tw / 2, 12, tw, 22, NUIT)}${plate(131 - tw / 2, 12, tw, 2, CYAN[3])}${line(title, 139 - tw / 2, 12, 14, CLAIR)}`
     + `${plate(20, 266, mw, 20, NUIT)}${line(meta, 28, 267, 12, AMBRE)}</g>`
-  return { svg, words: `${title}${meta}${label}${panel.words}${shown}` }
+  return { svg, words: `${title}${meta}${label}${panel.words}${shown}${namesOf(gens)}` }
 }
 
 function dessinAutre(r: MapRoom, p: Place, detail: number, need: (id: string, draw: () => string) => void) {
@@ -348,7 +353,7 @@ function dessinAutre(r: MapRoom, p: Place, detail: number, need: (id: string, dr
   const title = fit(r.title, 14, 170)
   const meta = fit(r.meta, 12, ETAT.text)
   const tw = textWidth(title, 14) + 16
-  const gens: Gens[] = r.people.length ? r.people.map(o => ({ hue: o.hue, state: o.state })) : r.rest ? [{ hue: null, state: 'rest' }, { hue: null, state: 'rest' }] : []
+  const gens: Gens[] = r.people.length ? r.people : r.rest ? [{ hue: null, state: 'rest' }, { hue: null, state: 'rest' }] : []
   const seats = postes(gens, 100, 45, 180, 50, 1, need)
   const [plaque, ligne, nom, etat] = r.rest ? ['#102736', '#3E4460', '#8088A8', '#8088A8'] : [NUIT, CYAN[3], CLAIR, CYAN[4]]
   const svg = `<g transform="translate(${p.x - 100 * p.k} ${p.y - 50 * p.k})${p.k === 1 ? '' : ` scale(${p.k})`}">`
@@ -356,7 +361,7 @@ function dessinAutre(r: MapRoom, p: Place, detail: number, need: (id: string, dr
     + (r.rest ? `<g opacity=".6">${seats}</g>` : seats)
     + `${plate(100 - tw / 2, 20, tw, 22, plaque)}${plate(100 - tw / 2, 20, tw, 2, ligne)}${line(title, 108 - tw / 2, 20, 14, nom)}`
     + `${plate(ETAT.x, 104, ETAT.w, 20, plaque)}${line(meta, r2(ETAT.x + 8 + (ETAT.text - textWidth(meta, 12)) / 2), 105, 12, etat)}</g>`
-  return { svg, words: `${title}${meta}` }
+  return { svg, words: `${title}${meta}${namesOf(gens)}` }
 }
 
 /** The drone: parked beside the rack, or down from the sky with the news, once. */
