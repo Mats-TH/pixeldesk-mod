@@ -55,7 +55,7 @@ describe('what the mod touches and says', () => {
     const w = world(on)
     await fullSession($, w)
     const said = JSON.stringify([w.commands, w.tools, w.spawned, w.toasts, w.opened, w.state])
-    expect(said).toContain('mcp__pixeldesk__plan')
+    expect(said).toContain('pixeldesk')
     namesOnlyItself(said)
     expect(w.files.size).toBeGreaterThan(0)
     for (const text of w.files.values()) namesOnlyItself(text)

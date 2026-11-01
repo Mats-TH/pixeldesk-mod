@@ -350,10 +350,91 @@ Il n'y a pas de mur à cliquer. Pour passer en Manuel, mets `"briefingMode": "ma
 - **Tes fichiers.** Le mod écrit dans `~/.claude/pixeldesk/`. Une exception : sous Windows, quand aucune langue n'est réglée, il demande une fois la langue du système à PowerShell et la garde dans le stockage de plugin de Claude Code.
 - **Limites.** Les jauges affichent `--` tant que Claude Code n'a pas donné de relevé.
 - **Vue globale.** Sous Windows, il lit les liens entre conversations dans l'application. Ailleurs, il regroupe les conversations du même projet.
-- **Consommation.** Pour garder la barre à jour, le mod ajoute une courte instruction au prompt de Claude et de chaque sous-agent, plus un court rappel après certains appels d'outils. Tant que le panneau est ouvert, les résumés des bureaux viennent de petits appels à Haiku.
+- **Consommation.** Pour garder la barre à jour, le mod ajoute une courte instruction au prompt de Claude, une note à chaque sous-agent à son premier appel d'outil, et un court rappel après certains appels d'outils. Tant que le panneau est ouvert, les résumés des bureaux viennent de petits appels à Haiku.
 - **Limite connue.** Un plugin ne peut pas retirer la marge intérieure du panneau ni sa gouttière de défilement.
 
 </details>
+
+## Ce que PixelDesk Mod lit, écrit, lance et envoie
+
+PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits d'utilisateur. Cette section liste tout ce qu'il fait sur ta machine. Le code est dans `hooks/`, lisible et non minifié.
+
+### En bref
+
+- **Pas de serveur, pas de compte, pas d'analytics, pas de télémétrie.** Le mod ne fait aucun appel réseau de son côté.
+- **Les appels au modèle** passent par Claude Code vers Anthropic, sur ton propre compte. Ils comptent dans tes limites.
+- **Aucun identifiant.** Le mod ne lit ni clé d'API ni jeton de connexion, et il n'en demande aucun.
+- **Aucune décision de permission.** Il n'autorise, ne refuse et ne réécrit jamais l'appel d'un autre outil. Il laisse les sous-agents et les réglages tels quels. Une exception annoncée : le lancement sans fenêtre décrit dans « Ce qu'il lance » ouvre l'outil Read pour ce lancement.
+
+### Ce qu'il lit
+
+| Quoi | Pourquoi |
+| --- | --- |
+| La conversation en cours, via Claude Code | Pour écrire les passations et les notes de compaction. Elles peuvent contenir tout ce que tu as écrit. |
+| Le transcript de la session dans `~/.claude/projects/`, jusqu'à 4 Mio, au plus toutes les 5 minutes | Uniquement pour trouver la durée du cache. |
+| Les noms et les entrées des outils que Claude utilise | Pour animer les bureaux, le plan et les cartes d'agents. |
+| L'usage et les limites donnés par Claude Code | Pour les jauges et la plaque du coût. |
+| Le réglage `language` de Claude Code | Pour choisir la langue. |
+| Sous Windows, les fichiers de session `local_*.json` de l'app, dans `%LOCALAPPDATA%\Claude-Data\`, au plus une fois par minute | Pour la vue globale. Il garde les identifiants de session, les titres, la marque d'archive et le lien entre conversations. |
+| `~/.claude/pixeldesk/` | Ses propres fichiers. |
+| Les variables d'environnement `USERPROFILE`, `HOME`, `LOCALAPPDATA`, `LC_ALL`, `LC_MESSAGES`, `LANG`, `LANGUAGE` | Pour trouver tes dossiers et ta langue. |
+
+### Ce qu'il écrit
+
+Tout va dans `~/.claude/pixeldesk/` et dans le stockage de plugin de Claude Code, et nulle part ailleurs.
+
+| Fichier | Contenu |
+| --- | --- |
+| `settings.json` | Tes réglages. |
+| `state/` | Plan, bureaux et état du cache de chaque conversation. |
+| `briefings/` | Passations, notes de compaction et brouillons, en texte brut. Les 20 dernières de chaque sorte sont gardées, les plus anciennes sont vidées. Les formats de secrets connus sont retirés avant. |
+| `logs/pixeldesk.log` | Le journal, plafonné à 256 Kio. |
+| Stockage de plugin | La langue de ton système, une fois lue. |
+
+Le mod ne touche ni à tes réglages, ni à ton `CLAUDE.md`, ni à tes hooks, ni aux fichiers de tes projets. Il n'écrit rien qu'un outil exécute.
+
+Un fichier est suivi par un modèle : une nouvelle conversation lit sa passation et reprend le travail à partir d'elle. Une passation vient de ta conversation, alors relis-la si cette conversation contenait un texte dont tu te méfies.
+
+### Ce qu'il lance
+
+Chaque programme démarre avec ses arguments en liste, sans shell.
+
+| Programme | Quand | Pourquoi |
+| --- | --- | --- |
+| `claude -p <phrase> --session-id <id> --allowedTools=Read` | À chaque changement de conversation, sous Windows et macOS | Démarre la nouvelle conversation dans le dossier de la session. La phrase lui demande de lire sa passation. Read est le seul outil que ce lancement ouvre sans demander. Il consomme tes limites. |
+| `rundll32 url.dll,FileProtocolHandler`, `open` ou `xdg-open` | À un changement de conversation, ou quand tu ouvres une passation | Confie un lien `claude://` ou un fichier de passation à ton système. Le lien contient une phrase et le dossier, jamais la passation. |
+| `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | Sous Windows, une fois, si aucune langue n'est réglée nulle part | Lit la langue du système. Il affiche cette langue et rien d'autre. Pour l'éviter, règle l'option `language` du plugin sur `fr` ou `en`. |
+
+Le mod lance aussi une commande de Claude Code tout seul : `/compact`, avec ses propres instructions, quand le contexte atteint ton seuil et que l'app n'offre pas d'autre moyen de compacter. Les Réglages permettent de choisir Manuel : il t'attend alors.
+
+### Ce qu'il envoie, et ce qu'il fait tout seul
+
+Tout passe par Claude Code vers Anthropic. Rien ne part ailleurs.
+
+| Appel | Quand | Ce qui part |
+| --- | --- | --- |
+| Relance du cache | Activée par défaut, 45 secondes avant l'expiration du cache | Ta conversation, lue depuis le cache, plus la ligne `Answer only: ok`. |
+| Passation | À un changement de conversation | Ta conversation, avec une demande d'écrire la passation. |
+| Compaction | À 80 % du contexte par défaut | Ta conversation, avec des instructions de compaction. |
+| Résumé d'agent | Tant que le panneau est ouvert, un appel Haiku toutes les 45 secondes au plus par agent au travail, 120 tokens au plus | La tâche de l'agent et ses 12 dernières étapes. |
+
+Pour arrêter les relances, utilise le réglage Cache ou `/pixeldesk fire off`. Pour décider toi-même de chaque changement de conversation, choisis Manuel dans les Réglages.
+
+### Ce qu'il ajoute à Claude
+
+- **Outils et commande.** Les outils `plan` et `move`, et la commande `/pixeldesk`.
+- **Prompt système.** Une courte section demande à Claude de tenir le plan à jour.
+- **Résultats d'outils.** Un court rappel après certains appels d'outils. Chaque sous-agent reçoit une note sur son plan avec le résultat de son premier appel.
+- **Prompts des sous-agents.** Inchangés. Le mod transmet chaque lancement tel quel, et n'en lit que la description et le type.
+- **Hooks.** Le mod suit les sessions, les tours, les appels d'outils, les compactions et les messages pour garder l'affichage à jour. Il ne répond que pour ses propres outils et sa propre commande.
+
+### Exemples
+
+- *« Refactorise le module de connexion et teste-le. »* Chaque agent a son bureau, et le plan se remplit au mur.
+- *« Continue pendant mon absence. »* Le cache reste valide et le feu montre pour combien de temps.
+- *`/pixeldesk move`.* Le mod écrit une passation et ouvre une nouvelle conversation qui l'a lue.
+
+Questions, bugs ou signalements de sécurité : [ouvre une issue](https://github.com/Mats-TH/pixeldesk-mod/issues).
 
 ## Commandes
 

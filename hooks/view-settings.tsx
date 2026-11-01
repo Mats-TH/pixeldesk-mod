@@ -4,8 +4,6 @@ import type { GearLook, OptionId, SettingsPlace } from './card'
 import { t } from './i18n'
 import type { Frame, Table } from './view-shared'
 
-export const PRESS_ZONES = ['settings-button', 'settings-plan', 'settings-each'] as const
-
 const NO_BREAK = ' '
 const OPTIONS: readonly Departure[] = ['plan', 'each']
 

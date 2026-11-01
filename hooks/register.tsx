@@ -18,7 +18,6 @@ import { writeCost, writeLimits } from './state'
 import { sumOf } from './tokens'
 import { drawBand } from './view-band'
 import { drawPane } from './view-pane'
-import { PRESS_ZONES } from './view-settings'
 
 export { desk } from './agents'
 
@@ -28,13 +27,20 @@ function notesAfter(m: Memory, ran: ToolCallResult) {
   return typeof ran === 'object' && ran !== null && ran.deny === undefined ? noteFor(m) : []
 }
 
+/** An agent's first answered call carries the note on its plan, once. The spawn itself passes through as it came. */
+function agentNote(m: Memory, id: string, ran: ToolCallResult) {
+  if (m.noted.has(id) || ran.deny !== undefined) return []
+  m.noted.add(id)
+  return [t('agent.suffix', { tool: PLAN_TOOL })]
+}
+
 /** Reads a finished call. Whatever goes wrong here stays here: the tool's result is left as it came. */
 async function afterCall($: EngineInterface, m: Memory, tool: string, input: Record<string, unknown>, ran: ToolCallResult, agentId: string | undefined) {
   if (isMirror(tool)) {
     if (ran.deny === undefined && !ran.isError) await applyMirror($, m, tool, input, ran.result, agentId)
     return []
   }
-  return agentId === undefined ? notesAfter(m, ran) : []
+  return agentId === undefined ? notesAfter(m, ran) : agentNote(m, agentId, ran)
 }
 
 export const register: Register = (on, options) => {
@@ -74,8 +80,8 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'pixeldesk' }, ($, e) => runCommand($, m, e.args))
 
   on('agent.spawn', async ($, e, next) => {
-    const fixed = e.resume !== undefined || e.workflow !== undefined
-    const started = await next(fixed ? e : { ...e, prompt: `${e.prompt}\n\n${t('agent.suffix', { tool: PLAN_TOOL })}` })
+    const started = await next(e)
+    if (started.agentId && (e.resume !== undefined || e.workflow !== undefined)) m.noted.add(started.agentId)
     if (started.agentId) await guard($, m, 'agent spawn', () => arrive($, m, started.agentId!, { description: e.description, type: e.subagentType }))
     return started
   })
@@ -83,7 +89,10 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     const tool = String(e.tool)
     const input = e as Record<string, unknown>
-    if (tool === PLAN_TOOL) return answerPlan($, m, input, e.agentId)
+    if (tool === PLAN_TOOL) {
+      if (e.agentId !== undefined) m.noted.add(e.agentId)
+      return answerPlan($, m, input, e.agentId)
+    }
     if (tool === MOVE_TOOL) return answerMove($, m, e.agentId)
     if (e.agentId === undefined && isMirror(tool)) m.turn = { ...m.turn, planSeen: true }
     if (e.agentId !== undefined) await guard($, m, 'agent action', () => act($, m, e.agentId!, tool, input))
@@ -112,7 +121,7 @@ export const register: Register = (on, options) => {
     return delivery
   })
 
-  on('prompt.compose', async (_$, e, next) => {
+  on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
     if (e.traits.includes('teammate') || e.traits.includes('bare')) return composed
     return { sections: [...composed.sections, { id: 'pixeldesk:plan', text: t('prompt.section', { tool: PLAN_TOOL }), scope: 'session' as const }] }
@@ -151,7 +160,9 @@ export const register: Register = (on, options) => {
   })
 
   // Each zone has its hook, and the tree's own `onPress` does nothing.
-  for (const zone of PRESS_ZONES) on('ui.press', { plugin: 'pixeldesk', element: `${zone}-0` }, ($, e) => pressSettings($, m, e.element))
+  on('ui.press', { plugin: 'pixeldesk', element: 'settings-button-0' }, ($, e) => pressSettings($, m, e.element))
+  on('ui.press', { plugin: 'pixeldesk', element: 'settings-plan-0' }, ($, e) => pressSettings($, m, e.element))
+  on('ui.press', { plugin: 'pixeldesk', element: 'settings-each-0' }, ($, e) => pressSettings($, m, e.element))
 
   on('ui.press', { plugin: 'pixeldesk', element: /^(?:briefing|hearth|theme)-/ }, ($, e) => pressGesture($, m, e))
 

@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { settingsPlace } from './card'
-import { PRESS_ZONES } from './view-settings'
 import { ENGLISH, FRENCH, HOME, LOG_FILE, NOON, SETTINGS_FILE, altOf, appTakes, callTool, command, endTurn, hasKey, keyed, kids, mountPane, onScreen, sendPlan, sourceOf, spawn, start, step, world } from './test-kit'
 
 const NO_BREAK = /^\u00A0+$/
@@ -83,7 +82,6 @@ describe('the button', () => {
       await press(ui, key)
       expect(w.state.settings.departure).toBe(departure)
     }
-    expect(PRESS_ZONES).toEqual(['settings-button', 'settings-plan', 'settings-each'])
   })
 
   test('a press elsewhere does nothing: the pane has no other button', async ($, on) => {

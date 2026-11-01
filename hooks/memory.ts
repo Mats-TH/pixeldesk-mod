@@ -116,6 +116,8 @@ export type Memory = {
   // Agents gone for good, and ids no list names: neither comes back through a call in flight.
   gone: Set<string>
   strangers: Set<string>
+  // Agents that have had the note on their plan, or must not get it.
+  noted: Set<string>
   goneTokens: number
   mainTokens: number
   shownTokens: number
@@ -206,6 +208,7 @@ export const createMemory = (forced: Language | null): Memory => ({
   agents: [],
   gone: new Set(),
   strangers: new Set(),
+  noted: new Set(),
   goneTokens: 0,
   mainTokens: 0,
   shownTokens: 0,

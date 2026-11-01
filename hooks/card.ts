@@ -47,11 +47,11 @@ export const WON = '#8CC265'
 export const STOP = '#E4633A'
 
 const MEDALS: Record<Tenue, string> = { Corail: '#EB8A6B', Turquoise: '#5FB6AB', Violet: '#9F90E0', Rose: '#DF7E9E', Bleu: '#6F9DD6', Or: '#E8B864' }
-const STATES: Record<DeskState | 'rest', { label: string; line: string; chip: string; light: string }> = {
-  working: { get label() { return t('state.working') }, line: SCREW, chip: '#2A2036', light: '#7FE0C8' },
-  done: { get label() { return t('state.done') }, line: '#6FAE5C', chip: '#3E7A4C', light: '#BFF5E6' },
-  failed: { get label() { return t('state.failed') }, line: '#B8452A', chip: '#B8452A', light: CHIP_TEXT },
-  rest: { get label() { return t('state.rest') }, line: SCREW, chip: '#544B70', light: SCREW },
+const STATES: Record<DeskState | 'rest', { key: 'state.working' | 'state.done' | 'state.failed' | 'state.rest'; line: string; chip: string; light: string }> = {
+  working: { key: 'state.working', line: SCREW, chip: '#2A2036', light: '#7FE0C8' },
+  done: { key: 'state.done', line: '#6FAE5C', chip: '#3E7A4C', light: '#BFF5E6' },
+  failed: { key: 'state.failed', line: '#B8452A', chip: '#B8452A', light: CHIP_TEXT },
+  rest: { key: 'state.rest', line: SCREW, chip: '#544B70', light: SCREW },
 }
 
 // The card of the design: 272 wide, a frame of 7 around the plate, 14 of padding inside it.
@@ -143,14 +143,15 @@ const isStep = (c: Card | StepCard): c is StepCard => 'who' in c
 export function cardAlt(c: Card | StepCard | DrawnCard) {
   if ('draw' in c) return c.alt
   if (isStep(c)) {
-    const who = c.who === 'claude' ? `Claude, ${t('card.mainChat')}` : c.who ? `${c.who.role}, ${STATES[c.who.state].label}` : t('card.unassigned')
+    const who = c.who === 'claude' ? `Claude, ${t('card.mainChat')}` : c.who ? `${c.who.role}, ${t(STATES[c.who.state].key)}` : t('card.unassigned')
     return [c.title, c.detail, who].filter(Boolean).join('. ')
   }
-  return [c.title, c.task, c.text, c.label, c.step, c.meta, c.chip ? STATES[c.chip].label : ''].filter(Boolean).join('. ')
+  return [c.title, c.task, c.text, c.label, c.step, c.meta, c.chip ? t(STATES[c.chip].key) : ''].filter(Boolean).join('. ')
 }
 
 function layout(c: Card, [taskLines, textLines, stepLines]: readonly [number, number, number]) {
-  const chip = c.chip ? STATES[c.chip] : null
+  const look = c.chip ? STATES[c.chip] : null
+  const chip = look && { ...look, label: t(look.key) }
   const textW = c.hue === null ? INNER : INNER - MEDAL_W - AFTER_MEDAL
   const task = wrap(c.task, BIG, textW, taskLines)
   const text = wrap(c.text, BIG, INNER, textLines)
@@ -311,7 +312,7 @@ function drawStep(c: StepCard, l: ReturnType<typeof stepLayout>, width: number, 
     parts.push(box(BUBBLE_LEFT, y, MEDAL, MEDAL, WOOD_DARK, 2), box(BUBBLE_LEFT + 2, y + 2, MEDAL - 4, MEDAL - 4, tenue ? MEDALS[tenue] : CRAB_BACK))
     const face = tenue ? paths(person(tenue), 2) : `<g transform="translate(2 6)">${paths(crab())}</g>`
     parts.push(`<svg x="${BUBBLE_LEFT + 2}" y="${y + 2}" width="${MEDAL - 4}" height="${MEDAL - 4}" viewBox="${tenue ? '4 1 24 24' : '0 0 24 24'}">${face}</svg>`)
-    const state = claude ? t('card.mainChat') : STATES[(c.who as StepAgent).state].label
+    const state = claude ? t('card.mainChat') : t(STATES[(c.who as StepAgent).state].key)
     const stateW = Math.ceil(textWidth(state, SMALL))
     const stateX = BUBBLE_LEFT + BUBBLE_INNER - stateW
     if (!claude) parts.push(box(stateX - 10, y + 11, 6, 6, LIGHTS[(c.who as StepAgent).state]))
@@ -320,7 +321,7 @@ function drawStep(c: StepCard, l: ReturnType<typeof stepLayout>, width: number, 
     write(fit(claude ? 'Claude' : (c.who as StepAgent).role, SMALL, stateX - (claude ? 0 : 10) - 6 - postX), postX, textY, SMALL, SMALL_LINE, INK)
     write(state, stateX, textY, SMALL, SMALL_LINE, PURPLE)
   }
-  const shown = `${l.title.join('')}${l.detail.join('')}${c.who === 'claude' ? `Claude${t('card.mainChat')}` : c.who ? `${c.who.role}${STATES[c.who.state].label}` : t('card.unassigned')}`
+  const shown = `${l.title.join('')}${l.detail.join('')}${c.who === 'claude' ? `Claude${t('card.mainChat')}` : c.who ? `${c.who.role}${t(STATES[c.who.state].key)}` : t('card.unassigned')}`
   const [fullW, fullH] = [BUBBLE_W + SHADOW, h + SHADOW]
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${fullW} ${fullH}" shape-rendering="crispEdges"><defs>${letterDefs(shown)}</defs>${parts.join('')}<g shape-rendering="geometricPrecision">${words.join('')}</g></svg>`
 }

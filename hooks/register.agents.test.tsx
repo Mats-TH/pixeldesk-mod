@@ -43,26 +43,37 @@ describe('an agent arrives', () => {
     expect(ids(w)).toEqual([])
   })
 
-  test('the note goes at the end of the prompt, after a blank line', async ($, on) => {
+  test('the spawn passes through as it came', async ($, on) => {
     const w = world(on)
     await start($)
     await spawn($, w, 'a1', { prompt: 'Find the bug.' })
-    expect(w.spawned[0].prompt).toBe(`Find the bug.\n\n${SUFFIX}`)
+    expect(w.spawned[0].prompt).toBe('Find the bug.')
   })
 
-  test('a resumed agent keeps its prompt', async ($, on) => {
+  test('the first answered call of an agent carries the note, once', async ($, on) => {
     const w = world(on)
     await start($)
-    await spawn($, w, 'a1', { prompt: 'Carry on.', resume: 'x' })
-    expect(w.spawned[0].prompt).toBe('Carry on.')
+    await spawn($, w, 'a1', { prompt: 'Find the bug.' })
+    expect((await callTool($, 'Read', { file_path: 'a.ts' }, 'a1')).context).toEqual([SUFFIX])
+    expect((await callTool($, 'Read', { file_path: 'b.ts' }, 'a1')).context).toBeUndefined()
   })
 
-  test('an agent of a workflow keeps its prompt', async ($, on) => {
+  test('an agent that has sent its plan needs no note', async ($, on) => {
     const w = world(on)
     await start($)
-    await spawn($, w, 'a1', { prompt: 'Step three.', workflow: { id: 'w' } })
-    expect(w.spawned[0].prompt).toBe('Step three.')
+    await spawn($, w, 'a1', { prompt: 'Find the bug.' })
+    await sendPlan($, [step('Look', 'in_progress')], undefined, 'a1')
+    expect((await callTool($, 'Read', { file_path: 'a.ts' }, 'a1')).context).toBeUndefined()
   })
+
+  for (const [name, more] of [['resumed', { resume: 'x' }], ['of a workflow', { workflow: { id: 'w' } }]] as const) {
+    test(`an agent ${name} gets no note`, async ($, on) => {
+      const w = world(on)
+      await start($)
+      await spawn($, w, 'a1', { prompt: 'Carry on.', ...more })
+      expect((await callTool($, 'Read', { file_path: 'a.ts' }, 'a1')).context).toBeUndefined()
+    })
+  }
 
   test('a record seen first by its calls is completed by the spawn', async ($, on) => {
     const w = world(on, { agents: [listed('a1', 'running')] })

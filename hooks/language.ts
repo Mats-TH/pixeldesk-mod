@@ -8,7 +8,6 @@ import { readLanguage, writeLanguage } from './state'
 
 const CULTURE_KEY = 'systemCulture'
 const CULTURE_TIMEOUT = 3000
-const CULTURE_COMMAND = ['powershell', '-NoProfile', '-NonInteractive', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name']
 
 /** What a setting, a locale or a culture means, or null when it names neither language. */
 export function recognize(value: unknown): Language | null {
@@ -35,7 +34,7 @@ async function fromLocale($: EngineInterface) {
 async function systemCulture($: EngineInterface) {
   const kept = await $.store.get(CULTURE_KEY)
   if (typeof kept === 'string' && kept) return kept
-  const { exitCode, stdout } = await $.process.run(CULTURE_COMMAND, { timeoutMs: CULTURE_TIMEOUT })
+  const { exitCode, stdout } = await $.process.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name'], { timeoutMs: CULTURE_TIMEOUT })
   const culture = stdout.trim()
   if (exitCode !== 0 || !culture) return null
   await $.store.set(CULTURE_KEY, culture)

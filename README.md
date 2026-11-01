@@ -350,10 +350,91 @@ There's no wall to click. To go Manual, set `"briefingMode": "manual"` in `~/.cl
 - **Your files.** The mod writes in `~/.claude/pixeldesk/`. One exception: on Windows, when no language is set, it asks PowerShell once for your system language and keeps it in Claude Code's plugin storage.
 - **Limits.** The gauges show `--` until Claude Code reports a reading.
 - **Global view.** On Windows, it reads the links between conversations from the app. Elsewhere, it groups the conversations of the same project.
-- **Usage.** To keep the bar up to date, the mod adds a short instruction to Claude's prompt and to each subagent's, plus a short reminder after some tool calls. While the panel is open, the desk summaries come from small Haiku calls.
+- **Usage.** To keep the bar up to date, the mod adds a short instruction to Claude's prompt, a note for each subagent at its first tool call, and a short reminder after some tool calls. While the panel is open, the desk summaries come from small Haiku calls.
 - **Known limit.** A plugin cannot remove the panel's inner margin or its scroll gutter.
 
 </details>
+
+## What PixelDesk Mod reads, writes, runs and sends
+
+PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights. This section lists all it does on your machine. The source is in `hooks/`, readable and not minified.
+
+### Quick view
+
+- **No server, no account, no analytics, no telemetry.** The mod makes no network call of its own.
+- **Model calls** go through Claude Code to Anthropic, on your own account. They count toward your limits.
+- **No credentials.** The mod doesn't read API keys or login tokens, and it asks for none.
+- **No permission decisions.** It never allows, refuses or rewrites a call of another tool, and it leaves subagents and settings as they are. One disclosed exception: the headless start listed under "What it runs" opens the Read tool for that run.
+
+### What it reads
+
+| What | Why |
+| --- | --- |
+| The current conversation, through Claude Code | To write briefings and compaction notes. They may hold anything you typed. |
+| The session transcript in `~/.claude/projects/`, up to 4 MiB, at most every 5 minutes | Only to find the cache length. |
+| Tool names and inputs as Claude uses them | To animate the desks, the plan and the agent cards. |
+| Usage and limits reported by Claude Code | For the gauges and the cost plate. |
+| The Claude Code `language` setting | To pick the language. |
+| On Windows, `local_*.json` session files of the desktop app, in `%LOCALAPPDATA%\Claude-Data\`, at most once a minute | For the global view. It keeps ids, titles, the archived mark and the link between conversations. |
+| `~/.claude/pixeldesk/` | Its own files. |
+| Environment variables `USERPROFILE`, `HOME`, `LOCALAPPDATA`, `LC_ALL`, `LC_MESSAGES`, `LANG`, `LANGUAGE` | To find your folders and your language. |
+
+### What it writes
+
+Everything goes in `~/.claude/pixeldesk/` and in Claude Code's plugin storage, and nowhere else.
+
+| File | Content |
+| --- | --- |
+| `settings.json` | Your settings. |
+| `state/` | Plan, desks and cache state of each conversation. |
+| `briefings/` | Briefings, compaction notes and drafts, in plain text. The latest 20 of each are kept, older ones are emptied. Known secret formats are removed first. |
+| `logs/pixeldesk.log` | The log, capped at 256 KiB. |
+| Plugin storage | Your system language, once read. |
+
+The mod doesn't touch your settings, your `CLAUDE.md`, your hooks or your project files. It writes nothing that a tool runs.
+
+One file is followed by a model: a new conversation reads its briefing and picks up the work from it. A briefing comes from your conversation, so check it if that conversation held text you don't trust.
+
+### What it runs
+
+Each program is started with its arguments as a list, without a shell.
+
+| Program | When | Why |
+| --- | --- | --- |
+| `claude -p <sentence> --session-id <id> --allowedTools=Read` | At each change of conversation, on Windows and macOS | Starts the new conversation in the session's folder. The sentence asks it to read its briefing. Read is the only tool this run opens without asking. It uses your limits. |
+| `rundll32 url.dll,FileProtocolHandler`, `open` or `xdg-open` | At a change of conversation, or when you open a briefing | Hands a `claude://` link or a briefing file to your system. The link holds one sentence and the folder, never the briefing. |
+| `powershell -NoProfile -NonInteractive -Command [System.Globalization.CultureInfo]::CurrentUICulture.Name` | On Windows, once, if no language is set anywhere | Reads the system language. It prints that language and nothing else. To skip it, set the plugin's `language` option to `fr` or `en`. |
+
+The mod also runs one Claude Code command by itself: `/compact`, with its own instructions, when the context reaches your threshold and the app has no direct way to compact. The Settings let you choose Manual, and then it waits for you.
+
+### What it sends, and what it does on its own
+
+All of this goes through Claude Code to Anthropic. Nothing goes anywhere else.
+
+| Call | When | What leaves |
+| --- | --- | --- |
+| Cache relaunch | On by default, 45 seconds before the cache expires | Your conversation, read from the cache, plus the line `Answer only: ok`. |
+| Briefing | At a change of conversation | Your conversation, with a request to write the briefing. |
+| Compaction | At 80% of the context by default | Your conversation, with compaction instructions. |
+| Agent summary | While the panel is open, one Haiku call every 45 seconds at most per working agent, 120 tokens at most | The agent's task and its latest 12 steps. |
+
+To stop relaunches, use the Cache setting or `/pixeldesk fire off`. To decide each change of conversation yourself, pick Manual in the Settings.
+
+### What it adds to Claude
+
+- **Tools and command.** The `plan` and `move` tools, and the `/pixeldesk` command.
+- **System prompt.** A short section asks Claude to keep the plan up to date.
+- **Tool results.** A short reminder after some tool calls. Each subagent gets one note on its plan with the result of its first call.
+- **Prompts of subagents.** Unchanged. The mod passes each spawn on as it came, and reads only its description and type.
+- **Hooks.** The mod watches sessions, turns, tool calls, compactions and messages to keep the display current. It answers only for its own tools and its own command.
+
+### Examples
+
+- *"Refactor the login module and test it."* Each agent gets a desk, and the plan fills in on the wall.
+- *"Keep going while I'm away."* The cache stays valid and the fire shows how long.
+- *`/pixeldesk move`.* The mod writes a briefing and opens a new conversation that has read it.
+
+Questions, bugs or security reports: [open an issue](https://github.com/Mats-TH/pixeldesk-mod/issues).
 
 ## Commands
 

@@ -134,11 +134,12 @@ describe('notes to the model', () => {
     expect((await read($)).context).toEqual(['already here', NEW])
   })
 
-  test('no note goes to an agent', async ($, on) => {
+  test('no reminder goes to an agent: it has its one note and no more', async ($, on) => {
     const w = world(on)
     await start($)
     await submit($)
     await spawn($, w, 'a1')
+    expect((await read($, 'a1')).context).toHaveLength(1)
     expect((await read($, 'a1')).context).toBeUndefined()
     expect((await read($)).context).toEqual([NEW])
   })
