@@ -4,6 +4,27 @@ All notable changes to PixelDesk Mod are listed here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-11-01
+
+Ready for the plugin directory, and clearer about what the mod does.
+
+### Added
+
+- The README now lists what the mod reads, writes, runs and sends, in English and French.
+- The new conversation takes its title from the briefing, where the app shows it.
+
+### Changed
+
+- A new conversation now gets its briefing in its first message. The mod no longer asks it to read a file.
+- The Read tool is no longer allowed automatically. That first answer has no tools and no connectors. Your tools come back when the conversation opens.
+- Subagent prompts stay as they were written. Each agent gets its note on the plan with its first tool result.
+- Every call the mod makes to Claude Code is now written out in one place: `hostOf`, in `hooks/register.tsx`.
+
+### Fixed
+
+- The directory can now read how the mod calls Claude Code.
+- `demo.gif` and `themes.gif` no longer hold byte runs that read like shell commands. Every pixel is the same.
+
 ## [1.3.1] - 2026-11-01
 
 Every desk says whose it is.
