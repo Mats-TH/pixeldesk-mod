@@ -300,7 +300,7 @@ En mode Manuel, le mod ne compacte plus et ne change plus de conversation tout s
 Tape `/pixeldesk look sober` et le pixel art disparaît.
 
 - **Une seule carte au-dessus de la saisie.** Sans animation, aux couleurs de Claude, en clair comme en sombre.
-- **Une jauge par limite de ton forfait.** Hebdo, semaine propre à un modèle, 5 heures : celles que tu n'as pas ne s'affichent pas.
+- **Une jauge par limite de ton forfait.** 5 heures, semaine propre à un modèle, hebdo : celles que tu n'as pas ne s'affichent pas.
 - **Tout d'un coup d'œil.** Ce qui est consommé, le temps restant et l'heure de remise à zéro.
 - **Ton rythme.** Orange jusqu'au rythme idéal, rouge au-delà.
 

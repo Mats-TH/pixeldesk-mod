@@ -56,7 +56,8 @@ export type SoberGauge = { kind: string; label: string; used: number; mark: numb
 const MINUTE = 60_000
 // A week kept for one model only, whatever the engine calls it: `seven_day_fable` reads "Fable hebdo".
 const WEEK_OF = /^seven_day_([a-z0-9_]+)$/
-const rank = (kind: string) => (kind === 'seven_day' ? 0 : kind === 'five_hour' ? 2 : 1)
+// Left to right, whatever order the engine sends them in: the five hours, each week of its own, the week of all.
+const rank = (kind: string) => (kind === 'five_hour' ? 0 : kind === 'seven_day' ? 2 : 1)
 
 /** The time left, as short as it reads: `3j 4h32`, `4h32`, `32min`. Never less than a minute. */
 export function countdown(ms: number) {
@@ -77,7 +78,7 @@ function soberLabel(kind: string) {
 }
 
 /**
- * One gauge for each window the account has: the week, then each week of its own, then the five hours.
+ * One gauge for each window the account has: the five hours, then each week of its own, then the week.
  * A window the engine does not send, or one past its reset, has none; neither has a kind that is no such window.
  */
 export function soberGauges(list: readonly Limit[], now: number): SoberGauge[] {

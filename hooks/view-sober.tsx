@@ -44,7 +44,10 @@ export function soberLines(gauges: readonly SoberGauge[], cells: number): 1 | 2 
   return 3
 }
 
-/** The fine bar: orange up to the mark of the ideal pace, red past it, the mark a hairline across. */
+/**
+ * The fine bar: orange up to the mark of the ideal pace, red past it, the mark a hairline across.
+ * What is used is round at both of its ends, by half the bar's height, and straight where orange meets red.
+ */
 export function soberBar(g: SoberGauge, width: number) {
   const top = (BAR_H - TRACK_H) / 2
   const at = (percent: number) => Math.round((width * percent) / 100)
@@ -55,9 +58,9 @@ export function soberBar(g: SoberGauge, width: number) {
   const line = mark === null ? '' : `<rect x="${mark}" y="0" width="1" height="${BAR_H}" fill="${GREY}"/>`
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${BAR_H}" viewBox="0 0 ${width} ${BAR_H}">` +
-    `<clipPath id="track"><rect y="${top}" width="${width}" height="${TRACK_H}" rx="2"/></clipPath>` +
-    `<g clip-path="url(#track)"><rect y="${top}" width="${width}" height="${TRACK_H}" fill="${GREY}" fill-opacity="0.3"/>` +
-    `<rect y="${top}" width="${calm}" height="${TRACK_H}" fill="${ORANGE}"/>${over}</g>${line}</svg>`
+    `<clipPath id="used"><rect y="${top}" width="${used}" height="${TRACK_H}" rx="${TRACK_H / 2}"/></clipPath>` +
+    `<rect y="${top}" width="${width}" height="${TRACK_H}" rx="${TRACK_H / 2}" fill="${GREY}" fill-opacity="0.3"/>` +
+    `<g clip-path="url(#used)"><rect y="${top}" width="${calm}" height="${TRACK_H}" fill="${ORANGE}"/>${over}</g>${line}</svg>`
   )
 }
 

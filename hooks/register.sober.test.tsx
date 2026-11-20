@@ -57,24 +57,33 @@ describe('the time left', () => {
 })
 
 describe('which gauges', () => {
-  test('one for each window the account sends, the week first and the five hours last', () => {
+  test('one for each window the account sends: the five hours, the week of a model, the week of all', () => {
     const gauges = soberGauges([FIVE, FABLE, WEEK], NOON)
-    expect(gauges.map(g => g.label)).toEqual(['Hebdo', 'Fable hebdo', '5 h'])
-    expect(gauges.map(g => g.percent)).toEqual(['42 %', '18 %', '96 %'])
-    expect(gauges.map(g => g.left)).toEqual(['2j 21h00', '2j 21h00', '2h00'])
-    expect(gauges.map(g => g.at)).toEqual(['ven 9h', 'ven 9h', '14:00'])
+    expect(gauges.map(g => g.label)).toEqual(['5 h', 'Fable hebdo', 'Hebdo'])
+    expect(gauges.map(g => g.percent)).toEqual(['96 %', '18 %', '42 %'])
+    expect(gauges.map(g => g.left)).toEqual(['2h00', '2j 21h00', '2j 21h00'])
+    expect(gauges.map(g => g.at)).toEqual(['14:00', 'ven 9h', 'ven 9h'])
+  })
+
+  test('the order holds whatever order the engine sends them in, and with one missing', () => {
+    const kinds = (list: (typeof WEEK)[]) => soberGauges(list, NOON).map(g => g.kind)
+    const all = ['five_hour', 'seven_day_fable', 'seven_day']
+    for (const sent of [[WEEK, FABLE, FIVE], [FABLE, WEEK, FIVE], [WEEK, FIVE, FABLE], [FIVE, WEEK, FABLE]]) expect(kinds(sent)).toEqual(all)
+    expect(kinds([WEEK, FIVE])).toEqual(['five_hour', 'seven_day'])
+    expect(kinds([WEEK, FABLE])).toEqual(['seven_day_fable', 'seven_day'])
+    expect(kinds([FABLE, FIVE])).toEqual(['five_hour', 'seven_day_fable'])
   })
 
   test('a window the account does not have has no gauge', () => {
     expect(soberGauges([WEEK], NOON).map(g => g.kind)).toEqual(['seven_day'])
-    expect(soberGauges([WEEK, FIVE], NOON).map(g => g.kind)).toEqual(['seven_day', 'five_hour'])
+    expect(soberGauges([WEEK, FIVE], NOON).map(g => g.kind)).toEqual(['five_hour', 'seven_day'])
     expect(soberGauges([], NOON)).toEqual([])
   })
 
   test('any other week of its own shows under its name, whatever the engine calls it', () => {
     const [gauge] = soberGauges([{ kind: 'seven_day_opus_plan', percentUsed: 7, resetsAt: at(FRIDAY) }], NOON)
     expect(gauge?.label).toBe('Opus plan hebdo')
-    expect(inEnglish(() => soberGauges([FABLE, WEEK], NOON).map(g => g.label))).toEqual(['Weekly', 'Fable weekly'])
+    expect(inEnglish(() => soberGauges([FABLE, WEEK], NOON).map(g => g.label))).toEqual(['Fable weekly', 'Weekly'])
   })
 
   test('what is no such window stays out: a spend limit, a kind named twice, a window past its reset', () => {
@@ -121,6 +130,14 @@ describe('the bar', () => {
     expect(source).toContain('width="60" height="4" fill="#D97757"')
     expect(source).not.toContain('height="8" fill="#87867F"')
     expect(source).not.toContain('#CF4A4A')
+  })
+
+  test('what is used is round at both ends and straight where orange meets red; the track and the mark stay as they are', () => {
+    const source = soberBar(gauge(71, 55), 200)
+    expect(source).toContain('<clipPath id="used"><rect y="2" width="142" height="4" rx="2"/></clipPath>')
+    expect(source).toContain('<g clip-path="url(#used)"><rect y="2" width="110" height="4" fill="#D97757"/><rect x="110" y="2" width="32" height="4" fill="#CF4A4A"/></g>')
+    expect(source).toContain('<rect y="2" width="200" height="4" rx="2" fill="#87867F" fill-opacity="0.3"/>')
+    expect(soberBar(gauge(40, 55), 200)).toContain('<clipPath id="used"><rect y="2" width="80" height="4" rx="2"/></clipPath>')
   })
 
   test('it never moves: no animation in its drawing', () => {
@@ -213,16 +230,16 @@ describe('the sober look', () => {
     const card = await ui.find({ key: 'sober-band' })
     expect(card.props).toMatchObject({ flexDirection: 'row', borderStyle: 'round', borderColor: 'promptBorder' })
     const columns = kids(card)
-    expect(columns.map((c: any) => c.props.key)).toEqual(['sober-seven_day', 'sober-seven_day_fable', 'sober-five_hour'])
+    expect(columns.map((c: any) => c.props.key)).toEqual(['sober-five_hour', 'sober-seven_day_fable', 'sober-seven_day'])
     expect(new Set(columns.map((c: any) => c.props.width)).size, 'columns of one width').toBe(1)
-    expect(columns.map((c: any) => allText(kids(c)[0]))).toEqual(['Hebdo 42 % · 2j 21h00 · ven 9h', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', '5 h 96 % · 2h00 · 14:00'])
+    expect(columns.map((c: any) => allText(kids(c)[0]))).toEqual(['5 h 96 % · 2h00 · 14:00', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', 'Hebdo 42 % · 2j 21h00 · ven 9h'])
     for (const column of columns) {
       const drawn = kids(column)
       expect(drawn.map((el: any) => el.type)).toEqual(['Text', 'Svg'])
       expect(drawn[1].props).toMatchObject({ height: 8, width: column.props.width * 8 })
       expect(drawn[1].props.isInteractive).toBeUndefined()
     }
-    expect(kids(columns[0])[1].props.alt).toBe('Hebdo : 42 %')
+    expect(kids(columns[2])[1].props.alt).toBe('Hebdo : 42 %')
   })
 
   test('nothing else is drawn: no plan, no world, no pixel band', async ($, on) => {
@@ -243,9 +260,9 @@ describe('the sober look', () => {
     const ui = await mountBand($, 'desktop', { bodyColumns: 45 })
     const columns = kids(await ui.find({ key: 'sober-band' }))
     expect(columns.map((c: any) => kids(c).map((el: any) => (el.type === 'Text' ? allText(el) : el.type)))).toEqual([
-      ['Hebdo', '42 % · 2j 21h00', 'ven 9h', 'Svg'],
-      ['Fable hebdo', '18 % · 2j 21h00', 'ven 9h', 'Svg'],
       ['5 h', '96 % · 2h00', '14:00', 'Svg'],
+      ['Fable hebdo', '18 % · 2j 21h00', 'ven 9h', 'Svg'],
+      ['Hebdo', '42 % · 2j 21h00', 'ven 9h', 'Svg'],
     ])
   })
 
@@ -281,9 +298,9 @@ describe('the sober look', () => {
     await start($, 'terminal')
     const ui = await mountBand($, 'terminal')
     const rows = kids(await ui.find({ key: 'sober-band' }))
-    expect(rows.map((r: any) => r.props.key)).toEqual(['sober-seven_day', 'sober-five_hour'])
-    expect(allText(kids(rows[0])[0])).toBe('Hebdo')
-    expect(allText(kids(rows[0])[3])).toBe('2j 21h00 · ven 9h')
+    expect(rows.map((r: any) => r.props.key)).toEqual(['sober-five_hour', 'sober-seven_day'])
+    expect(allText(kids(rows[1])[0])).toBe('Hebdo')
+    expect(allText(kids(rows[1])[3])).toBe('2j 21h00 · ven 9h')
     expect(await ui.findAll({ type: 'Svg' })).toHaveLength(0)
   })
 
@@ -292,6 +309,6 @@ describe('the sober look', () => {
     await start($)
     const ui = await mountBand($)
     const columns = kids(await ui.find({ key: 'sober-band' }))
-    expect(columns.map((c: any) => allText(kids(c)[0]))).toEqual(['Weekly 42% · 2d 21h00 · Fri 9am', 'Fable weekly 18% · 2d 21h00 · Fri 9am'])
+    expect(columns.map((c: any) => allText(kids(c)[0]))).toEqual(['Fable weekly 18% · 2d 21h00 · Fri 9am', 'Weekly 42% · 2d 21h00 · Fri 9am'])
   })
 })

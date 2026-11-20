@@ -300,7 +300,7 @@ In Manual mode, the mod stops compacting and changing conversation by itself. A 
 Type `/pixeldesk look sober` and the pixel art goes away.
 
 - **One card above the prompt.** No animation, in the colors of Claude, light or dark.
-- **A gauge for each limit of your plan.** Weekly, a model's own week, 5 hours: the ones you do not have are not shown.
+- **A gauge for each limit of your plan.** 5 hours, a model's own week, weekly: the ones you do not have are not shown.
 - **Everything at a glance.** How much is used, the time left and when it resets.
 - **Your pace.** Orange up to the ideal pace, red past it.
 
