@@ -87,6 +87,25 @@ You need Git on your machine: the plugin is fetched from GitHub.
 
 </details>
 
+### How to update
+
+A new version is out? In the Code tab, paste this line into a conversation:
+
+```
+Update the PixelDesk Mod plugin. Run: claude plugin marketplace update pixeldesk-mod, then claude plugin update pixeldesk (if claude is not found, use the path in the CLAUDE_CODE_EXECPATH environment variable instead). Then tell me to restart the app.
+```
+
+Then restart the Claude desktop app. The new version starts with it.
+
+**From a terminal:**
+
+```bash
+claude plugin marketplace update pixeldesk-mod
+claude plugin update pixeldesk
+```
+
+Your settings are kept.
+
 ## What PixelDesk Mod shows on your screen
 
 <p align="center">
