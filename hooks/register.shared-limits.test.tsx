@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { accountLimits, accountShape } from './account-limits'
+import { soberGauges } from './limits'
 import { NOON, ROOT, start, world } from './test-kit'
 
 const LIMITS_FILE = `${ROOT}/state/limits.json`
@@ -129,5 +130,35 @@ describe("the account's answer, wherever a window lies", () => {
     expect(accountLimits(text).map(l => [l.kind, l.percentUsed])).toEqual([['seven_day', 12], ['limits_fable_seven_day', 40]])
     expect(accountShape(text)).toBe('{seven_day:{utilization:number,resets_at:string},limits:[{model:string,window:string,utilization:number,resets_at:string}],seven_day_opus:null}')
     expect(accountShape(text)).not.toContain('40')
+  })
+})
+
+describe("the account's list of limits", () => {
+  const LIST = JSON.stringify({
+    seven_day: { utilization: 12, resets_at: FRIDAY },
+    limits: [
+      { kind: 'weekly', group: 'all_models', percent: 12, severity: 'ok', resets_at: FRIDAY, scope: null, is_active: true },
+      { kind: 'weekly', group: 'fable', percent: 41.26, severity: 'ok', resets_at: FRIDAY, scope: null, is_active: true },
+    ],
+    seven_day_breakdown: { as_of: FRIDAY, rows: [{ key: 'fable', display_name: 'Fable', percent: 30, percent_of_limit: 40 }] },
+  })
+
+  test("an item of the list reads by its kind and its group; a breakdown row with no reset is no window", () => {
+    expect(accountLimits(LIST).map(l => [l.kind, l.percentUsed])).toEqual([
+      ['seven_day', 12],
+      ['limits_weekly_all_models', 12],
+      ['limits_weekly_fable', 41.3],
+    ])
+  })
+
+  test("Fable's week of the list shows on the card, and the week of all once", () => {
+    expect(soberGauges(accountLimits(LIST), NOON).map(g => g.label)).toEqual(['Fable hebdo', 'Hebdo'])
+  })
+
+  test('the labels of the list go to the log as they are, the figures never', () => {
+    const shape = accountShape(LIST)
+    expect(shape).toContain('kind:"weekly",group:"fable",percent:number')
+    expect(shape).toContain('display_name:"Fable"')
+    expect(shape).not.toContain('41')
   })
 })

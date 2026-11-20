@@ -19,7 +19,7 @@ const isNode = (v: unknown): v is Node => !!v && typeof v === 'object' && !Array
 const tenth = (n: number) => Math.round(n * 10) / 10
 
 // The words of an object that say which window it is, when the window is told inside it rather than by its key.
-const NAMING = ['model', 'model_family', 'name', 'window', 'kind', 'type', 'period']
+const NAMING = ['kind', 'group', 'model', 'model_family', 'name', 'window', 'type', 'period']
 
 /** A word fit for a kind: lower case, only letters, digits and underscores. */
 const word = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -43,14 +43,16 @@ export function accountLimits(text: string): Limit[] {
     if (depth > 4) return
     if (Array.isArray(value)) return value.forEach(item => walk(item, path, depth + 1))
     if (!isNode(value)) return
-    if (typeof value.utilization === 'number') {
+    // A window: its `utilization`, or a `percent` with the time it resets (the account's list of limits).
+    const figure = typeof value.utilization === 'number' ? value.utilization : typeof value.percent === 'number' && typeof value.resets_at === 'string' ? value.percent : undefined
+    if (figure !== undefined) {
       const named = NAMING.map(key => value[key]).filter((v): v is string => typeof v === 'string')
       const kind = [...path, ...named].map(word).filter(Boolean).join('_')
       if (!kind || seen.has(kind)) return
       seen.add(kind)
       const reset = value.resets_at ?? value.reset_at ?? value.resetsAt
       const resetsAt = typeof reset === 'string' && !Number.isNaN(Date.parse(reset)) ? reset : undefined
-      limits.push({ kind, percentUsed: tenth(value.utilization), ...(resetsAt ? { resetsAt } : {}) })
+      limits.push({ kind, percentUsed: tenth(figure), ...(resetsAt ? { resetsAt } : {}) })
       return
     }
     for (const [key, child] of Object.entries(value)) walk(child, [...path, key], depth + 1)
@@ -63,7 +65,7 @@ export function accountLimits(text: string): Limit[] {
  * The shape of the answer, its names and the kinds of its values, never a figure: what the log keeps so that a window
  * the mod does not read yet can be found. `{"seven_day":{"utilization":12}}` reads `seven_day{utilization:number}`.
  */
-export function accountShape(text: string, room = 1500): string {
+export function accountShape(text: string, room = 4000): string {
   let body: unknown
   try {
     body = JSON.parse(text)
@@ -72,10 +74,12 @@ export function accountShape(text: string, room = 1500): string {
   }
   const shape = (value: unknown, depth: number): string => {
     if (value === null) return 'null'
-    if (Array.isArray(value)) return depth > 3 ? '[...]' : `[${value.length ? shape(value[0], depth + 1) : ''}]`
-    if (isNode(value)) return depth > 3 ? '{...}' : `{${Object.entries(value).map(([k, v]) => `${k}:${shape(v, depth + 1)}`).join(',')}}`
+    if (Array.isArray(value)) return depth > 3 ? '[...]' : `[${value.map(item => shape(item, depth + 1)).join(',')}]`
+    if (isNode(value)) return depth > 3 ? '{...}' : `{${Object.entries(value).map(([k, v]) => `${k}:${LABELS.has(k) && typeof v === 'string' ? JSON.stringify(v) : shape(v, depth + 1)}`).join(',')}}`
     return typeof value
   }
+  // The words that name a window are labels, never figures: they show as they are.
+  const LABELS = new Set(['kind', 'group', 'key', 'display_name', 'severity', 'scope'])
   const text2 = shape(body, 0)
   return text2.length > room ? `${text2.slice(0, room)}...` : text2
 }
