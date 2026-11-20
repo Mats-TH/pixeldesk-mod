@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import { getLanguage, setLanguage } from './i18n'
 import { countdown, soberGauges } from './limits'
 import { BENEATH, ENGLISH, NOON, SETTINGS_FILE, command, hasKey, kids, mountBand, sendPlan, spawn, start, step, world } from './test-kit'
-import { soberBar, soberLines } from './view-sober'
+import { SOBER_BREAK, soberLayout, soberLines, soberStretches } from './view-sober'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -112,46 +112,55 @@ describe('which gauges', () => {
 describe('the bar', () => {
   const gauge = (used: number, mark: number | null) => ({ kind: 'seven_day', label: 'Hebdo', used, mark, percent: '', left: '', at: '' })
 
-  test('orange up to what is used, under the pace', () => {
-    const source = soberBar(gauge(40, 55), 200)
-    expect(source).toContain('<rect y="2" width="80" height="4" fill="#D97757"/>')
-    expect(source).not.toContain('#CF4A4A')
-    expect(source).toContain('<rect x="110" y="0" width="1" height="8" fill="#87867F"/>')
+  test('orange up to what is used, then the track, the mark where the pace is', () => {
+    expect(soberStretches(gauge(40, 55))).toEqual([{ ink: 'orange', share: 40 }, { ink: 'track', share: 15 }, { ink: 'mark' }, { ink: 'track', share: 45 }])
   })
 
   test('past the pace the orange stops at the mark and the rest is red', () => {
-    const source = soberBar(gauge(71, 55), 200)
-    expect(source).toContain('<rect y="2" width="110" height="4" fill="#D97757"/>')
-    expect(source).toContain('<rect x="110" y="2" width="32" height="4" fill="#CF4A4A"/>')
+    expect(soberStretches(gauge(71, 55))).toEqual([{ ink: 'orange', share: 55 }, { ink: 'mark' }, { ink: 'red', share: 16 }, { ink: 'track', share: 29 }])
   })
 
   test('with no mark it is all orange, and no hairline', () => {
-    const source = soberBar(gauge(30, null), 200)
-    expect(source).toContain('width="60" height="4" fill="#D97757"')
-    expect(source).not.toContain('height="8" fill="#87867F"')
-    expect(source).not.toContain('#CF4A4A')
+    expect(soberStretches(gauge(30, null))).toEqual([{ ink: 'orange', share: 30 }, { ink: 'track', share: 70 }])
   })
 
-  test('what is used is round at both ends and straight where orange meets red; the track and the mark stay as they are', () => {
-    const source = soberBar(gauge(71, 55), 200)
-    expect(source).toContain('<clipPath id="used"><rect y="2" width="142" height="4" rx="2"/></clipPath>')
-    expect(source).toContain('<g clip-path="url(#used)"><rect y="2" width="110" height="4" fill="#D97757"/><rect x="110" y="2" width="32" height="4" fill="#CF4A4A"/></g>')
-    expect(source).toContain('<rect y="2" width="200" height="4" rx="2" fill="#87867F" fill-opacity="0.3"/>')
-    expect(soberBar(gauge(40, 55), 200)).toContain('<clipPath id="used"><rect y="2" width="80" height="4" rx="2"/></clipPath>')
-  })
-
-  test('it never moves: no animation in its drawing', () => {
-    expect(soberBar(gauge(71, 55), 200)).not.toMatch(/animate|<style|@keyframes/)
+  test('an empty stretch is left out: nothing used, everything used, right on the pace', () => {
+    expect(soberStretches(gauge(0, 20))).toEqual([{ ink: 'track', share: 20 }, { ink: 'mark' }, { ink: 'track', share: 80 }])
+    expect(soberStretches(gauge(100, 60))).toEqual([{ ink: 'orange', share: 60 }, { ink: 'mark' }, { ink: 'red', share: 40 }])
+    expect(soberStretches(gauge(50, 50))).toEqual([{ ink: 'orange', share: 50 }, { ink: 'mark' }, { ink: 'track', share: 50 }])
   })
 })
 
-describe('how many lines', () => {
+describe('how the card lays out', () => {
   const gauges = soberGauges([WEEK, FABLE, FIVE], NOON)
 
-  test('one line with room, the name over its values with less, the reset on a third line when narrow', () => {
+  test('one line with room, the name over its values with less, the reset on a third line, then nothing fits', () => {
     expect(soberLines(gauges, 30)).toBe(1)
     expect(soberLines(gauges, 20)).toBe(2)
     expect(soberLines(gauges, 12)).toBe(3)
+    expect(soberLines(gauges, 8)).toBe(null)
+  })
+
+  test('side by side while every column holds its text', () => {
+    expect(soberLayout(gauges, 100)).toEqual({ stacked: false, lines: 1 })
+    expect(soberLayout(gauges, 60)).toEqual({ stacked: false, lines: 3 })
+    expect(soberLayout(gauges, SOBER_BREAK)).toEqual({ stacked: false, lines: 3 })
+  })
+
+  test('under the break, one above the other, each on the whole width', () => {
+    expect(SOBER_BREAK).toBe(48)
+    expect(soberLayout(gauges, SOBER_BREAK - 1)).toEqual({ stacked: true, lines: 1 })
+    expect(soberLayout(gauges, 30)).toEqual({ stacked: true, lines: 2 })
+  })
+
+  test('a name too long for its column stacks the gauges above the break too', () => {
+    const long = soberGauges([WEEK, { kind: 'seven_day_a_very_long_model_name', percentUsed: 5, resetsAt: at(FRIDAY) }, FIVE], NOON)
+    expect(soberLayout(long, 60)).toEqual({ stacked: true, lines: 1 })
+    expect(soberLayout(long, 120)).toEqual({ stacked: false, lines: 2 })
+  })
+
+  test('a single gauge has the whole card', () => {
+    expect(soberLayout(soberGauges([WEEK], NOON), 60)).toEqual({ stacked: false, lines: 1 })
   })
 })
 
@@ -287,15 +296,42 @@ describe('the sober look', () => {
     expect(card.props).toMatchObject({ flexDirection: 'row', borderStyle: 'round', borderColor: 'promptBorder' })
     const columns = kids(card)
     expect(columns.map((c: any) => c.props.key)).toEqual(['sober-five_hour', 'sober-seven_day_fable', 'sober-seven_day'])
-    expect(new Set(columns.map((c: any) => c.props.width)).size, 'columns of one width').toBe(1)
     expect(columns.map((c: any) => allText(kids(c)[0]))).toEqual(['5 h 96 % · 2h00 · 14:00', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', 'Hebdo 42 % · 2j 21h00 · ven 9h'])
-    for (const column of columns) {
-      const drawn = kids(column)
-      expect(drawn.map((el: any) => el.type)).toEqual(['Text', 'Svg'])
-      expect(drawn[1].props).toMatchObject({ height: 8, width: column.props.width * 8 })
-      expect(drawn[1].props.isInteractive).toBeUndefined()
-    }
-    expect(kids(columns[2])[1].props.alt).toBe('Hebdo : 42 %')
+    // The app keeps no key on a Text or an Svg: they are told by their type.
+    for (const column of columns) expect(kids(column).map((el: any) => (el.type === 'Box' ? el.props.key : el.type))).toEqual(['Text', 'bar'])
+  })
+
+  test('nothing has a width of its own: the columns share the card evenly and each stretch of a bar grows by its share', async ($, on) => {
+    world(on, { ...SOBER, limits: [WEEK] })
+    await start($)
+    const ui = await mountBand($)
+    const column = await ui.find({ key: 'sober-seven_day' })
+    expect(column.props).toMatchObject({ flexDirection: 'column', flexGrow: 1, width: 0 })
+    const bar = kids(column)[1]
+    expect(bar.props).toMatchObject({ flexDirection: 'row', alignItems: 'center' })
+    expect(bar.props.width).toBeUndefined()
+    const stretches = kids(bar).filter((el: any) => el.type === 'Box')
+    // Tuesday noon, a week that ends Friday at nine: 99 of 168 hours are spent, so the pace stands at 58.9 %.
+    expect(stretches.map((el: any) => [el.props.key, el.props.backgroundColor])).toEqual([['orange-0', '#D97757'], ['track-1', '#87867F4D'], ['mark', '#87867F'], ['track-3', '#87867F4D']])
+    expect(stretches[0].props).toMatchObject({ flexGrow: 42, width: 0 })
+    expect(Math.round(stretches[1].props.flexGrow + stretches[3].props.flexGrow)).toBe(58)
+    expect(stretches[2].props.flexGrow).toBeUndefined()
+    for (const el of kids(bar).filter((el: any) => el.type === 'Svg')) expect(el.props).toMatchObject({ width: 2, height: 4, alt: 'Hebdo : 42 %' })
+  })
+
+  test('what is used is round at both ends, straight where orange meets red, and the track ends round too', async ($, on) => {
+    world(on, { ...SOBER, limits: [FIVE] })
+    await start($)
+    const ui = await mountBand($)
+    // Two hours left of five: the pace stands at 60 %, and 96 % is used.
+    const bar = kids(await ui.find({ key: 'sober-five_hour' }))[1]
+    expect(kids(bar).map((el: any) => (el.type === 'Box' ? el.props.key : el.type))).toEqual(['Svg', 'orange-0', 'mark', 'red-2', 'Svg', 'track-3', 'Svg'])
+    const [head, used, tail] = kids(bar).filter((el: any) => el.type === 'Svg').map((el: any) => el.props.source)
+    const caps = { start: head, used, end: tail }
+    expect(caps.start).toContain('<path d="M2 0A2 2 0 0 0 2 4Z" fill="#D97757"/>')
+    expect(caps.used).toContain('<rect width="2" height="4" fill="#87867F4D"/><path d="M0 0A2 2 0 0 1 0 4Z" fill="#CF4A4A"/>')
+    expect(caps.end).toContain('<path d="M0 0A2 2 0 0 1 0 4Z" fill="#87867F4D"/>')
+    for (const source of Object.values(caps)) expect(source).not.toMatch(/animate|<style|@keyframes/)
   })
 
   test('nothing else is drawn: no plan, no world, no pixel band', async ($, on) => {
@@ -307,19 +343,39 @@ describe('the sober look', () => {
     const text = JSON.stringify(await ui.drawn())
     expect(text).not.toContain('Poser les questions')
     expect(text).not.toContain('Mode sobre')
-    expect(await ui.findAll({ type: 'Svg' })).toHaveLength(1)
+    for (const svg of await ui.findAll({ type: 'Svg' })) expect(svg.props.width, 'only the ends of a bar are drawn').toBe(2)
   })
 
-  test('a narrow card breaks every column the same way', async ($, on) => {
+  test('with less room the columns break their text the same way, and nothing is cut', async ($, on) => {
+    world(on, { ...SOBER, limits: [FIVE, WEEK, FABLE] })
+    await start($)
+    const ui = await mountBand($, 'desktop', { bodyColumns: 60 })
+    const card = await ui.find({ key: 'sober-band' })
+    expect(card.props.flexDirection).toBe('row')
+    expect(kids(card).map((c: any) => kids(c).map((el: any) => (el.type === 'Text' ? allText(el) : el.props.key)))).toEqual([
+      ['5 h', '96 % · 2h00', '14:00', 'bar'],
+      ['Fable hebdo', '18 % · 2j 21h00', 'ven 9h', 'bar'],
+      ['Hebdo', '42 % · 2j 21h00', 'ven 9h', 'bar'],
+    ])
+    for (const text of await ui.findAll({ type: 'Text' })) if (text.props.wrap) expect(text.props.wrap).toBe('wrap')
+  })
+
+  test('under the break the gauges stand one above the other, each on the whole width', async ($, on) => {
     world(on, { ...SOBER, limits: [FIVE, WEEK, FABLE] })
     await start($)
     const ui = await mountBand($, 'desktop', { bodyColumns: 45 })
-    const columns = kids(await ui.find({ key: 'sober-band' }))
-    expect(columns.map((c: any) => kids(c).map((el: any) => (el.type === 'Text' ? allText(el) : el.type)))).toEqual([
-      ['5 h', '96 % · 2h00', '14:00', 'Svg'],
-      ['Fable hebdo', '18 % · 2j 21h00', 'ven 9h', 'Svg'],
-      ['Hebdo', '42 % · 2j 21h00', 'ven 9h', 'Svg'],
+    const card = await ui.find({ key: 'sober-band' })
+    expect(card.props).toMatchObject({ flexDirection: 'column', borderStyle: 'round' })
+    const stacked = kids(card)
+    expect(stacked.map((c: any) => kids(c).map((el: any) => (el.type === 'Text' ? allText(el) : el.props.key)))).toEqual([
+      ['5 h 96 % · 2h00 · 14:00', 'bar'],
+      ['Fable hebdo 18 % · 2j 21h00 · ven 9h', 'bar'],
+      ['Hebdo 42 % · 2j 21h00 · ven 9h', 'bar'],
     ])
+    for (const gauge of stacked) {
+      expect(gauge.props.width).toBeUndefined()
+      expect(gauge.props.flexGrow).toBeUndefined()
+    }
   })
 
   test('before the first reading the card says it waits', async ($, on) => {
