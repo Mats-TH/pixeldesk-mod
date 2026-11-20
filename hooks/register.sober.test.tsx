@@ -155,50 +155,106 @@ describe('how many lines', () => {
   })
 })
 
-describe('/pixeldesk look', () => {
-  test('pixel art is the default, and the command says so', async ($, on) => {
+describe('/pixeldesk theme Sobre and Pixel', () => {
+  const NAMES = 'cosy, japonais, nature, futuriste, geek, base'
+
+  test('pixel art is the default, and the command says so with the room theme', async ($, on) => {
     const w = world(on)
     await start($)
-    expect((await command($, 'look')).text).toBe('Apparence : Pixel. Change-la avec /pixeldesk look pixel ou /pixeldesk look sober.')
+    expect((await command($, 'theme')).text).toBe(`Thème : Pixel (Cosy). Change-le avec /pixeldesk theme suivi de Pixel, Sobre ou d’un thème de pièce : ${NAMES}.`)
     expect('look' in w.state).toBe(false)
     const ui = await mountBand($)
     expect(await hasKey(ui, 'idle-band')).toBe(true)
     expect(await hasKey(ui, 'sober-band')).toBe(false)
   })
 
-  test('sober writes the setting, closes the pane and answers', async ($, on) => {
+  test('Sobre writes the setting, closes the pane and answers; the room theme stays', async ($, on) => {
     const w = world(on, { files: { [SETTINGS_FILE]: '{"theme":"nature"}' } })
     await start($)
-    const answer = await command($, 'look sober')
-    expect(answer.text).toBe('Apparence réglée sur Sobre.')
+    const answer = await command($, 'theme Sobre')
+    expect(answer.text).toBe('Thème réglé sur Sobre : une simple carte des limites, sans pixel art.')
     expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'nature', look: 'sober' })
     expect(w.state.look).toBe('sober')
     expect(w.closed).toEqual(['pixeldesk'])
+    expect((await command($, 'theme')).text).toBe(`Thème : Sobre. Change-le avec /pixeldesk theme suivi de Pixel, Sobre ou d’un thème de pièce : ${NAMES}.`)
   })
 
-  test('back to pixel the key leaves the file and the pane opens again', async ($, on) => {
-    const w = world(on, SOBER)
+  for (const word of ['sobre', 'Sobre', 'SOBRE', 'sober', 'Sober']) {
+    test(`${word} is the sober theme, whatever its case or its language`, async ($, on) => {
+      const w = world(on)
+      await start($)
+      await command($, `theme ${word}`)
+      expect(w.json(SETTINGS_FILE)).toEqual({ look: 'sober' })
+      expect(w.state.look).toBe('sober')
+    })
+  }
+
+  for (const word of ['pixel', 'Pixel', 'PIXEL']) {
+    test(`${word} brings the pixel art back with the room theme last chosen`, async ($, on) => {
+      const w = world(on, { files: { [SETTINGS_FILE]: '{"theme":"nature","look":"sober"}' } })
+      await start($)
+      expect(w.opened, 'no pane at the start').toHaveLength(0)
+      const answer = await command($, `theme ${word}`)
+      expect(answer.text).toBe('Thème réglé sur Pixel (Nature).')
+      expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'nature' })
+      expect(w.state.look).toBe('pixel')
+      expect(w.state.settings.theme).toBe('nature')
+      expect(w.opened).toHaveLength(1)
+    })
+  }
+
+  test('Pixel in pixel art changes nothing', async ($, on) => {
+    const w = world(on, { files: { [SETTINGS_FILE]: '{"theme":"geek"}' } })
     await start($)
-    expect(w.opened, 'no pane at the start').toHaveLength(0)
-    const answer = await command($, 'look pixel')
-    expect(answer.text).toBe('Apparence réglée sur Pixel.')
-    expect(w.json(SETTINGS_FILE)).toEqual({})
-    expect(w.state.look).toBe('pixel')
+    expect((await command($, 'theme Pixel')).text).toBe('Thème réglé sur Pixel (Geek et jeu).')
+    expect(w.file(SETTINGS_FILE)).toBe('{"theme":"geek"}')
     expect(w.opened).toHaveLength(1)
+    expect('look' in w.state).toBe(false)
   })
 
-  test('an unknown value changes nothing', async ($, on) => {
+  test('a room theme from the sober theme sets it and brings the pixel art back', async ($, on) => {
+    const w = world(on, { files: { [SETTINGS_FILE]: '{"theme":"nature","look":"sober"}' } })
+    await start($)
+    const answer = await command($, 'theme Geek')
+    expect(answer.text).toBe('Thème réglé sur Geek et jeu.')
+    expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'geek' })
+    expect(w.state.look).toBe('pixel')
+    expect(w.state.settings.theme).toBe('geek')
+    expect(w.opened).toHaveLength(1)
+    const ui = await mountBand($)
+    expect(await hasKey(ui, 'sober-band')).toBe(false)
+  })
+
+  test('a room theme in pixel art works as before', async ($, on) => {
     const w = world(on)
     await start($)
-    expect((await command($, 'look dark')).text).toBe('Valeur inconnue. Utilise /pixeldesk look pixel ou /pixeldesk look sober.')
+    expect((await command($, 'theme nature')).text).toBe('Thème réglé sur Nature.')
+    expect(w.json(SETTINGS_FILE)).toEqual({ theme: 'nature' })
+    expect('look' in w.state).toBe(false)
+  })
+
+  test('an unknown value changes nothing and lists the choices', async ($, on) => {
+    const w = world(on)
+    await start($)
+    expect((await command($, 'theme dark')).text).toBe(`Thème inconnu. Choisis parmi Pixel, Sobre ou un thème de pièce : ${NAMES}.`)
+    expect(w.file(SETTINGS_FILE)).toBeUndefined()
+  })
+
+  test('look is no command any more', async ($, on) => {
+    const w = world(on)
+    await start($)
+    expect((await command($, 'look sober')).text).toContain('Option inconnue')
     expect(w.file(SETTINGS_FILE)).toBeUndefined()
   })
 
   test('in English', async ($, on) => {
     world(on, { env: ENGLISH })
     await start($)
-    expect((await command($, 'look sober')).text).toBe('The look is now Sober.')
-    expect((await command($, 'look')).text).toBe('Look: Sober. Change it with /pixeldesk look pixel or /pixeldesk look sober.')
+    expect((await command($, 'theme Sober')).text).toBe('The theme is now Sober: one plain card of limits, with no pixel art.')
+    expect((await command($, 'theme')).text).toBe(`Theme: Sober. Change it with /pixeldesk theme and Pixel, Sober or a room theme: ${NAMES}.`)
+    expect((await command($)).text).toBe('Sober theme: the panel stays closed. Go back to pixel art with /pixeldesk theme Pixel.')
+    expect((await command($, 'theme Pixel')).text).toBe('The theme is now Pixel (Cosy).')
+    expect((await command($, 'theme dark')).text).toBe(`Unknown theme. Choose from Pixel, Sober or a room theme: ${NAMES}.`)
   })
 
   test('the setting of another conversation is followed within three seconds', async ($, on) => {
@@ -218,8 +274,8 @@ describe('the sober look', () => {
     await start($)
     await spawn($, w, 'a1')
     expect(w.opened).toHaveLength(0)
-    expect((await command($)).text).toBe('Apparence sobre : le panneau reste fermé. Reviens au pixel art avec /pixeldesk look pixel.')
-    expect((await command($, 'show')).text).toBe('Apparence sobre : le panneau reste fermé. Reviens au pixel art avec /pixeldesk look pixel.')
+    expect((await command($)).text).toBe('Thème Sobre : le panneau reste fermé. Reviens au pixel art avec /pixeldesk theme Pixel.')
+    expect((await command($, 'show')).text).toBe('Thème Sobre : le panneau reste fermé. Reviens au pixel art avec /pixeldesk theme Pixel.')
     expect(w.opened).toHaveLength(0)
   })
 

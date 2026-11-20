@@ -51,8 +51,8 @@ const compactOf = (value: unknown): CompactBefore => (value === 0 || value === 1
 export const isTheme = (value: unknown): value is RoomTheme => ROOM_THEMES.includes(value as RoomTheme)
 const themeOf = (settings: SettingsFile): RoomTheme => (isTheme(settings.theme) ? settings.theme : 'cosy')
 
-export const LOOKS: readonly Look[] = ['pixel', 'sober']
-export const isLook = (value: unknown): value is Look => LOOKS.includes(value as Look)
+const LOOKS: readonly Look[] = ['pixel', 'sober']
+const isLook = (value: unknown): value is Look => LOOKS.includes(value as Look)
 const lookOf = (settings: SettingsFile): Look => (isLook(settings.look) ? settings.look : 'pixel')
 
 const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme })

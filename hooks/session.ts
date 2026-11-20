@@ -8,7 +8,7 @@ import { readFloor } from './floorfile'
 import { readOwnDesk, writeDesk } from './deskfile'
 import { guard, readHome } from './disk'
 import { pulse, runCompact, runMove, runFire, startHearth } from './hearth'
-import { ROOM_THEMES, isLook, isTheme, setLook, setTheme, closeSettings, followSettings, setDeparture, setHidden } from './preferences'
+import { ROOM_THEMES, isTheme, setLook, setTheme, closeSettings, followSettings, setDeparture, setHidden } from './preferences'
 import { t } from './i18n'
 import type { TextKey } from './i18n'
 import { settleLanguage } from './language'
@@ -49,7 +49,7 @@ function planSpec() {
 const moveSpec = () => ({ name: 'move', description: t('briefing.toolDescription'), inputSchema: { type: 'object', properties: {} }, isDeferred: false })
 
 async function registerAll(host: Host, m: Memory) {
-  await guard(host, m, 'command', () => host.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|fire on|off|theme <name>|look pixel|sober|move|compact]', immediate: true }))
+  await guard(host, m, 'command', () => host.command.register({ name: 'pixeldesk', description: t('cmd.description'), argumentHint: '[hide|show|departure plan|each|fire on|off|theme <name>|move|compact]', immediate: true }))
   await guard(host, m, 'plan tool', () => host.tool.register(planSpec()))
   await guard(host, m, 'move tool', () => host.tool.register(moveSpec()))
 }
@@ -132,39 +132,52 @@ async function runDeparture(host: Host, m: Memory, value: string | undefined) {
   return { text: t('cmd.departure.set', { name: t(OPTION_NAMES[value]), value }) }
 }
 
-/** `/pixeldesk theme`: says which world the rooms stand in, or changes it. */
+// The two words of the sober theme, in either language; the engine's words come lowered.
+const SOBER_WORDS: readonly string[] = ['sobre', 'sober']
+
+/** Pixel art again, whatever room theme was chosen last: the pane comes back with it. */
+async function backToPixel(host: Host, m: Memory) {
+  if (m.look === 'pixel') return
+  await setLook(host, m, 'pixel')
+  if (!m.hidden) await openPane(host, m)
+}
+
+/**
+ * `/pixeldesk theme`: says how the mod looks, or changes it. `Sobre` is the plain card of limits and `Pixel` the pixel
+ * art with the room theme last chosen; a room theme by its name is pixel art too.
+ */
 async function runTheme(host: Host, m: Memory, value: string | undefined) {
-  const names = ROOM_THEMES.join(', ')
-  if (value === undefined) return { text: t('cmd.theme.current', { name: t(`theme.${m.theme}`), names }) }
-  if (!isTheme(value)) return { text: t('cmd.theme.usage', { names }) }
+  const words = { pixel: t('theme.pixel'), sober: t('theme.sober'), names: ROOM_THEMES.join(', ') }
+  const pixelName = (theme: typeof m.theme) => t('cmd.theme.pixelName', { ...words, name: t(`theme.${theme}`) })
+  if (value === undefined) return { text: t('cmd.theme.current', { ...words, name: m.look === 'sober' ? words.sober : pixelName(m.theme) }) }
+  if (SOBER_WORDS.includes(value)) {
+    await setLook(host, m, 'sober')
+    return { text: t('cmd.theme.sober', words) }
+  }
+  if (value === 'pixel') {
+    await backToPixel(host, m)
+    return { text: t('cmd.theme.set', { name: pixelName(m.theme) }) }
+  }
+  if (!isTheme(value)) return { text: t('cmd.theme.usage', words) }
   await setTheme(host, m, value)
+  await backToPixel(host, m)
   return { text: t('cmd.theme.set', { name: t(`theme.${value}`) }) }
 }
 
-/** `/pixeldesk look`: says how the mod looks, or changes it. Back to pixel art, the pane opens again. */
-async function runLook(host: Host, m: Memory, value: string | undefined) {
-  if (value === undefined) return { text: t('cmd.look.current', { name: t(`look.${m.look}`) }) }
-  if (!isLook(value)) return { text: t('cmd.look.usage') }
-  await setLook(host, m, value)
-  if (value === 'pixel' && !m.hidden) await openPane(host, m)
-  return { text: t('cmd.look.set', { name: t(`look.${value}`) }) }
-}
-
-/** `/pixeldesk`, with `hide`, `show`, `departure`, `fire`, `theme`, `look`, `move`, `compact` or nothing. */
+/** `/pixeldesk`, with `hide`, `show`, `departure`, `fire`, `theme`, `move`, `compact` or nothing. */
 export async function runCommand(host: Host, m: Memory, args: string) {
   const word = args.trim().toLowerCase()
   const [head, value, extra] = word.split(/\s+/)
   if (head === 'departure' && extra === undefined) return runDeparture(host, m, value)
   if (head === 'fire' && extra === undefined) return runFire(host, m, value)
   if (head === 'theme' && extra === undefined) return runTheme(host, m, value)
-  if (head === 'look' && extra === undefined) return runLook(host, m, value)
   if (word === 'move') return runMove(host, m)
   if (word === 'compact') return runCompact(host, m)
   if (word === 'hide') {
     await setHidden(host, m, true)
     return { text: t('cmd.hidden') }
   }
-  if ((word === 'show' || !word) && m.look === 'sober') return { text: t('cmd.look.closed') }
+  if ((word === 'show' || !word) && m.look === 'sober') return { text: t('cmd.theme.closed', { pixel: t('theme.pixel'), sober: t('theme.sober') }) }
   if (word === 'show') {
     await setHidden(host, m, false)
     await openPane(host, m)

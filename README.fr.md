@@ -295,9 +295,9 @@ Les Réglages s'ouvrent avec le bouton sur le mur de la pièce. Ton choix vaut p
 
 En mode Manuel, le mod ne compacte plus et ne change plus de conversation tout seul. Un bouton apparaît sur la cheminée, et rien ne bouge tant que tu ne cliques pas.
 
-### Envie de plus discret ? L'apparence sobre
+### Envie de plus discret ? Le thème Sobre
 
-Tape `/pixeldesk look sober` et le pixel art disparaît.
+Tape `/pixeldesk theme Sobre` et le pixel art disparaît.
 
 - **Une seule carte au-dessus de la saisie.** Sans animation, aux couleurs de Claude, en clair comme en sombre.
 - **Une jauge par limite de ton forfait.** 5 heures, semaine propre à un modèle, hebdo : celles que tu n'as pas ne s'affichent pas.
@@ -306,7 +306,7 @@ Tape `/pixeldesk look sober` et le pixel art disparaît.
 
 La pièce, le feu et le plan ne sont plus dessinés. Le suivi et les relances continuent.
 
-Tape `/pixeldesk look pixel` pour retrouver le pixel art.
+Tape `/pixeldesk theme Pixel` pour retrouver le pixel art, avec le thème de pièce que tu avais.
 
 ## À savoir avant d'installer
 
@@ -453,7 +453,7 @@ Questions, bugs ou signalements de sécurité : [ouvre une issue](https://github
 | --- | --- |
 | `/pixeldesk` | Ouvre le panneau. |
 | `/pixeldesk theme <nom>` | Change le thème : `cosy`, `japonais`, `nature`, `futuriste`, `geek` ou `base`. |
-| `/pixeldesk look sober` | Remplace le pixel art par une simple carte des limites. `pixel` le fait revenir. |
+| `/pixeldesk theme Sobre` | Remplace le pixel art par une simple carte des limites. `Pixel` le fait revenir. |
 | `/pixeldesk fire off` | Coupe les relances, dans toutes les conversations. `on` les réactive. |
 | `/pixeldesk fire` | Dit où en sont les relances. |
 | `/pixeldesk move` | Écrit un briefing maintenant, ou dès que le travail en cours est fini. |
@@ -469,11 +469,10 @@ Questions, bugs ou signalements de sécurité : [ouvre une issue](https://github
 | `/pixeldesk` | Ouvre le panneau, et cesse de le masquer s'il l'était. |
 | `/pixeldesk hide` | Ferme le panneau partout et l'empêche de s'ouvrir seul. La barre, le suivi et les relances continuent. |
 | `/pixeldesk show` | Ouvre le panneau ici et le laisse de nouveau s'ouvrir seul. |
-| `/pixeldesk theme` | Dit le thème actuel et les noms disponibles. |
-| `/pixeldesk theme <nom>` | Change le thème, dans toutes les conversations. |
-| `/pixeldesk look` | Dit l'apparence actuelle : pixel ou sobre. |
-| `/pixeldesk look sober` | Une simple carte des limites, dans toutes les conversations. Le panneau reste fermé. |
-| `/pixeldesk look pixel` | Le pixel art de nouveau, dans toutes les conversations. C'est le réglage par défaut. |
+| `/pixeldesk theme` | Dit le thème actuel et les noms disponibles : Pixel, Sobre et les thèmes de pièce. |
+| `/pixeldesk theme <nom>` | Change le thème de pièce, dans toutes les conversations. Depuis le thème Sobre, il fait aussi revenir le pixel art. |
+| `/pixeldesk theme Sobre` | Une simple carte des limites, dans toutes les conversations. Le panneau reste fermé. |
+| `/pixeldesk theme Pixel` | Le pixel art de nouveau, avec le dernier thème de pièce choisi. C'est le réglage par défaut. |
 | `/pixeldesk departure` | Dit quand partent les bureaux finis. |
 | `/pixeldesk departure plan` | Les bureaux finis restent jusqu'à la fin du plan, puis partent ensemble. C'est le réglage par défaut. |
 | `/pixeldesk departure each` | Chaque bureau part 30 secondes après la fin de son agent. |
