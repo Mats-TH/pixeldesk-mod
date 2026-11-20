@@ -11,16 +11,24 @@ export const USAGE_HEADERS = { 'anthropic-beta': 'oauth-2025-04-20' }
 /** Read again no sooner than this, whichever conversation read last: the figures move slowly. */
 export const ACCOUNT_MS = 3 * 60_000
 
-type Window = { utilization?: unknown; resets_at?: unknown }
+type Node = Record<string, unknown>
 
-const isWindow = (v: unknown): v is Window => !!v && typeof v === 'object' && typeof (v as Window).utilization === 'number'
+const isNode = (v: unknown): v is Node => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** One decimal at most, as the engine gives its own percents. */
 const tenth = (n: number) => Math.round(n * 10) / 10
 
+// The words of an object that say which window it is, when the window is told inside it rather than by its key.
+const NAMING = ['model', 'model_family', 'name', 'window', 'kind', 'type', 'period']
+
+/** A word fit for a kind: lower case, only letters, digits and underscores. */
+const word = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+
 /**
- * Every window of the answer, under the name the account gives it: `five_hour`, `seven_day`, `seven_day_fable`...
- * A window with no figure (null, a plan without it) is left out. Anything that is no such answer reads as none.
+ * Every window of the answer, wherever it lies: an object with a numeric `utilization` is one, named by the path that
+ * leads to it and the naming words it holds, so `seven_day_fable` stays `seven_day_fable` and
+ * `{ limits: [{ model: "fable", window: "seven_day", ... }] }` reads `limits_fable_seven_day`. A window with no figure
+ * is left out; anything that is no such answer reads as none.
  */
 export function accountLimits(text: string): Limit[] {
   let body: unknown
@@ -29,12 +37,45 @@ export function accountLimits(text: string): Limit[] {
   } catch {
     return []
   }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return []
   const limits: Limit[] = []
-  for (const [kind, value] of Object.entries(body as Record<string, unknown>)) {
-    if (!isWindow(value)) continue
-    const resetsAt = typeof value.resets_at === 'string' && !Number.isNaN(Date.parse(value.resets_at)) ? value.resets_at : undefined
-    limits.push({ kind, percentUsed: tenth(value.utilization as number), ...(resetsAt ? { resetsAt } : {}) })
+  const seen = new Set<string>()
+  const walk = (value: unknown, path: string[], depth: number) => {
+    if (depth > 4) return
+    if (Array.isArray(value)) return value.forEach(item => walk(item, path, depth + 1))
+    if (!isNode(value)) return
+    if (typeof value.utilization === 'number') {
+      const named = NAMING.map(key => value[key]).filter((v): v is string => typeof v === 'string')
+      const kind = [...path, ...named].map(word).filter(Boolean).join('_')
+      if (!kind || seen.has(kind)) return
+      seen.add(kind)
+      const reset = value.resets_at ?? value.reset_at ?? value.resetsAt
+      const resetsAt = typeof reset === 'string' && !Number.isNaN(Date.parse(reset)) ? reset : undefined
+      limits.push({ kind, percentUsed: tenth(value.utilization), ...(resetsAt ? { resetsAt } : {}) })
+      return
+    }
+    for (const [key, child] of Object.entries(value)) walk(child, [...path, key], depth + 1)
   }
+  walk(body, [], 0)
   return limits
+}
+
+/**
+ * The shape of the answer, its names and the kinds of its values, never a figure: what the log keeps so that a window
+ * the mod does not read yet can be found. `{"seven_day":{"utilization":12}}` reads `seven_day{utilization:number}`.
+ */
+export function accountShape(text: string, room = 1500): string {
+  let body: unknown
+  try {
+    body = JSON.parse(text)
+  } catch {
+    return 'not json'
+  }
+  const shape = (value: unknown, depth: number): string => {
+    if (value === null) return 'null'
+    if (Array.isArray(value)) return depth > 3 ? '[...]' : `[${value.length ? shape(value[0], depth + 1) : ''}]`
+    if (isNode(value)) return depth > 3 ? '{...}' : `{${Object.entries(value).map(([k, v]) => `${k}:${shape(v, depth + 1)}`).join(',')}}`
+    return typeof value
+  }
+  const text2 = shape(body, 0)
+  return text2.length > room ? `${text2.slice(0, room)}...` : text2
 }

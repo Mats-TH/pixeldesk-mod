@@ -1,7 +1,7 @@
 import type { Host } from './host'
 import type { Limit } from '../types'
 
-import { ACCOUNT_MS, accountLimits } from './account-limits'
+import { ACCOUNT_MS, accountLimits, accountShape } from './account-limits'
 import { log, onDisk, readText, stateDir } from './disk'
 import type { Memory } from './memory'
 import { readLimits, writeLimits } from './state'
@@ -73,6 +73,7 @@ export async function refreshAccount(host: Host, m: Memory) {
   if (!m.windowsLogged) {
     m.windowsLogged = true
     await log(host, m, reply.ok ? `account windows: ${limits.map(l => l.kind).join(', ') || 'none'}` : `account usage: status ${reply.status}`)
+    if (reply.ok) await log(host, m, `account shape: ${accountShape(reply.text)}`)
   }
   await keepLimits(host, m, limits, true, now)
 }

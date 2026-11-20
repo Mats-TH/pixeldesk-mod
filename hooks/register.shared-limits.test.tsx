@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { accountLimits, accountShape } from './account-limits'
 import { NOON, ROOT, start, world } from './test-kit'
 
 const LIMITS_FILE = `${ROOT}/state/limits.json`
@@ -115,5 +116,14 @@ describe("the account's own figures", () => {
     await settle()
     expect(w.state.limits).toEqual([WEEK])
     expect(w.log()).toContain('account usage: status 401')
+  })
+})
+
+describe("the account's answer, wherever a window lies", () => {
+  test('a window told inside its object reads by its path and its naming words', () => {
+    const text = JSON.stringify({ seven_day: { utilization: 12, resets_at: FRIDAY }, limits: [{ model: 'Fable', window: 'seven_day', utilization: 40.04, resets_at: FRIDAY }], seven_day_opus: null })
+    expect(accountLimits(text).map(l => [l.kind, l.percentUsed])).toEqual([['seven_day', 12], ['limits_fable_seven_day', 40]])
+    expect(accountShape(text)).toBe('{seven_day:{utilization:number,resets_at:string},limits:[{model:string,window:string,utilization:number,resets_at:string}],seven_day_opus:null}')
+    expect(accountShape(text)).not.toContain('40')
   })
 })
