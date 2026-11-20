@@ -51,7 +51,8 @@ export function gauge(list: readonly Limit[], kind: LimitKind, now: number): Gau
 // ---------- The sober look: a gauge for each limit the account sends ----------
 
 /** A gauge of the sober card. `mark`, `left` and `at` are unknown without a reset time. */
-export type SoberGauge = { kind: string; label: string; used: number; mark: number | null; percent: string; left: string; at: string }
+/** `over`: how far past the ideal pace, `+9 %`; empty while on or under it, or with no pace known. */
+export type SoberGauge = { kind: string; label: string; used: number; mark: number | null; percent: string; over: string; left: string; at: string }
 
 const MINUTE = 60_000
 // The models a week of its own can be kept for. The account names such a week after its model, `seven_day_fable`
@@ -60,6 +61,13 @@ const MODELS = ['fable', 'mythos', 'opus', 'sonnet', 'haiku'] as const
 const modelOf = (kind: string) => (/seven_day|week/.test(kind) ? MODELS.find(name => kind.split(/[^a-z0-9]+/).includes(name)) : undefined)
 // Left to right, whatever order the engine sends them in: the five hours, each week of its own, the week of all.
 const rank = (kind: string) => (kind === 'five_hour' ? 0 : kind === 'seven_day' ? 2 : 1)
+
+/** How far past the pace, in whole points: `+9 %`. Nothing under a point, on the pace or under it. */
+function overText(used: number, mark: number | null) {
+  if (mark === null) return ''
+  const over = Math.round(Math.min(100, used) - Math.max(0, Math.min(100, mark)))
+  return over >= 1 ? t('sober.over', { n: over }) : ''
+}
 
 /** The time left, as short as it reads: `3j 4h32`, `4h32`, `32min`. Never less than a minute. */
 export function countdown(ms: number) {
@@ -103,6 +111,7 @@ export function soberGauges(list: readonly Limit[], now: number): SoberGauge[] {
       used: Math.max(0, Math.min(100, l.percentUsed)),
       mark: known ? Math.max(0, Math.min(100, (1 - (end - now) / span) * 100)) : null,
       percent: t('sober.percent', { n: Math.round(l.percentUsed) }),
+      over: overText(l.percentUsed, known ? (1 - (end - now) / span) * 100 : null),
       left: known ? countdown(end - now) : '',
       at: known ? resetText(fiveHour, end) : '',
     }

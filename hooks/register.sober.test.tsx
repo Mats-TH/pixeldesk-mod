@@ -116,7 +116,7 @@ describe('which gauges', () => {
 })
 
 describe('the bar', () => {
-  const gauge = (used: number, mark: number | null) => ({ kind: 'seven_day', label: 'Hebdo', used, mark, percent: '', left: '', at: '' })
+  const gauge = (used: number, mark: number | null) => ({ kind: 'seven_day', label: 'Hebdo', used, mark, percent: '', over: '', left: '', at: '' })
 
   test('orange up to what is used, then the track, the mark where the pace is', () => {
     expect(soberStretches(gauge(40, 55))).toEqual([{ ink: 'orange', share: 40 }, { ink: 'track', share: 15 }, { ink: 'mark' }, { ink: 'track', share: 45 }])
@@ -281,7 +281,7 @@ describe('the sober look', () => {
     expect(card.props).toMatchObject({ flexDirection: 'row', borderStyle: 'round', borderColor: 'promptBorder' })
     const columns = kids(card)
     expect(columns.map((c: any) => c.props.key)).toEqual(['sober-five_hour', 'sober-seven_day_fable', 'sober-seven_day'])
-    expect(columns.map((c: any) => plain(kids(c)[0]))).toEqual(['5 h 96 % · 2h00 · 14:00', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', 'Hebdo 42 % · 2j 21h00 · ven 9h'])
+    expect(columns.map((c: any) => plain(kids(c)[0]))).toEqual(['5 h 96 % +36 % · 2h00 · 14:00', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', 'Hebdo 42 % · 2j 21h00 · ven 9h'])
     // The app keeps no key on a Text or an Svg: they are told by their type.
     for (const column of columns) expect(kids(column).map((el: any) => (el.type === 'Box' ? el.props.key : el.type))).toEqual(['Text', 'bar'])
   })

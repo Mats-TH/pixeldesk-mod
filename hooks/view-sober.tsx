@@ -95,6 +95,7 @@ function words({ Text }: Pick<Card, 'Text'>, g: SoberGauge) {
       <Text>{together(g.label)}</Text>
       <Text> </Text>
       <Text weight="medium" tabular>{together(g.percent)}</Text>
+      {g.over ? <Text weight="medium" color={RED} tabular>{` ${together(g.over)}`}</Text> : null}
       {[g.left, g.at].filter(Boolean).map(text => dim(text))}
     </Text>
   )
@@ -150,6 +151,7 @@ function rows(ui: Words, gauges: readonly SoberGauge[], columns: number) {
           <Text dimColor>{g.label}</Text>
           {meter(ui, g, room)}
           <Text>{g.percent}</Text>
+          {g.over ? <Text color={RED}>{g.over}</Text> : null}
           <Text dimColor>{[g.left, g.at].filter(Boolean).join(' · ')}</Text>
         </Box>
       ))}

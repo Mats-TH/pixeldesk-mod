@@ -188,3 +188,18 @@ describe('the time of a reset', () => {
     expect(early?.at.replace(/\u00A0/g, ' ')).toBe('ven 9h')
   })
 })
+
+describe('how far past the pace', () => {
+  // Tuesday noon, a week that ends Friday at nine: the ideal pace stands at 58.9 %.
+  const at = (percentUsed: number) => soberGauges([{ kind: 'seven_day', percentUsed, resetsAt: new Date(2026, 9, 30, 9, 0).toISOString() }], NOON)[0]!
+
+  test('past the pace it says by how much, in whole points; on it or under it, nothing', () => {
+    expect(at(71).over.replace(/\u00A0/g, ' ')).toBe('+12 %')
+    expect(at(59).over).toBe('')
+    expect(at(42).over).toBe('')
+  })
+
+  test('without a reset there is no pace, so no overrun', () => {
+    expect(soberGauges([{ kind: 'seven_day', percentUsed: 90 }], NOON)[0]!.over).toBe('')
+  })
+})
