@@ -281,9 +281,13 @@ describe('the sober look', () => {
     expect(card.props).toMatchObject({ flexDirection: 'row', borderStyle: 'round', borderColor: 'promptBorder' })
     const columns = kids(card)
     expect(columns.map((c: any) => c.props.key)).toEqual(['sober-five_hour', 'sober-seven_day_fable', 'sober-seven_day'])
-    expect(columns.map((c: any) => plain(kids(c)[0]))).toEqual(['5 h 96 % +36 % · 2h00 · 14:00', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', 'Hebdo 42 % · 2j 21h00 · ven 9h'])
+    expect(columns.map((c: any) => plain(kids(c)[0]))).toEqual(['5 h 96 % · 2h00 · 14:00', 'Fable hebdo 18 % · 2j 21h00 · ven 9h', 'Hebdo 42 % · 2j 21h00 · ven 9h'])
     // The app keeps no key on a Text or an Svg: they are told by their type.
-    for (const column of columns) expect(kids(column).map((el: any) => (el.type === 'Box' ? el.props.key : el.type))).toEqual(['Text', 'bar'])
+    for (const column of columns) expect(kids(column).map((el: any) => (el.type === 'Box' ? el.props.key : el.type))).toEqual(['line', 'bar'])
+    const over = kids(kids(columns[0])[0]).find((el: any) => el.type === 'Svg')
+    expect(over.props.alt.replace(/ /g, ' ')).toBe('+36 %')
+    expect(over.props.source).toContain('font-size="9"')
+    expect(over.props.source).toContain('(+36')
   })
 
   test('nothing has a width of its own: the columns share the card evenly and each stretch of a bar grows by its share', async ($, on) => {
@@ -352,7 +356,7 @@ describe('the sober look', () => {
     await start($)
     const ui = await mountBand($)
     const line = kids(await ui.find({ key: 'sober-seven_day_fable' }))[0]
-    expect(line.props.wrap).toBe('wrap')
+    expect(line.props.flexWrap).toBe('wrap')
     expect(allText(line)).toBe('Fable hebdo 18 % · 2j 21h00 · ven 9h')
     for (const text of await ui.findAll({ type: 'Text' })) if (text.props.wrap) expect(text.props.wrap).toBe('wrap')
   })

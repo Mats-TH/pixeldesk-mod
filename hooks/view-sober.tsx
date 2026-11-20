@@ -88,16 +88,33 @@ function bar({ Box, Svg }: Card, g: SoberGauge) {
  * A gauge's text, one line that wraps where the column runs out: only before a dot, never inside a value. Its colours
  * are the theme's own, and nothing of it is cut.
  */
-function words({ Text }: Pick<Card, 'Text'>, g: SoberGauge) {
+function words({ Box, Text, Svg }: Card, g: SoberGauge) {
   const dim = (text: string) => <Text color="inactive" tabular>{` · ${together(text)}`}</Text>
   return (
-    <Text size="caption" wrap="wrap">
-      <Text>{together(g.label)}</Text>
-      <Text> </Text>
-      <Text weight="medium" tabular>{together(g.percent)}</Text>
-      {g.over ? <Text weight="medium" color={RED} tabular>{` ${together(g.over)}`}</Text> : null}
-      {[g.left, g.at].filter(Boolean).map(text => dim(text))}
-    </Text>
+    <Box key="line" flexDirection="row" flexWrap="wrap" alignItems="center">
+      <Text size="caption" wrap="wrap">
+        <Text>{together(g.label)}</Text>
+        <Text> </Text>
+        <Text weight="medium" tabular>{together(g.percent)}</Text>
+      </Text>
+      {g.over ? <Svg key="over" source={overSvg(g.over)} alt={g.over} width={overWidth(g.over)} height={OVER_H} /> : null}
+      <Text size="caption" wrap="wrap">{[g.left, g.at].filter(Boolean).map(text => dim(text))}</Text>
+    </Box>
+  )
+}
+
+// The overrun is smaller than the gauge's text: a caption is the smallest size the app has, so it is drawn.
+const OVER_H = 12
+const OVER_FONT = 9
+const overWidth = (text: string) => Math.ceil((text.length + 2) * OVER_FONT * 0.6) + 6
+
+/** `(+16 %)` in red, a step below the text around it, with a space before it. */
+export function overSvg(text: string) {
+  const width = overWidth(text)
+  const safe = `(${text})`.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${OVER_H}" viewBox="0 0 ${width} ${OVER_H}">` +
+    `<text x="4" y="9" font-family="Inter, 'Segoe UI', system-ui, sans-serif" font-size="${OVER_FONT}" font-weight="600" fill="${RED}">${safe}</text></svg>`
   )
 }
 
