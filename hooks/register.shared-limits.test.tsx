@@ -94,13 +94,17 @@ describe("the account's own figures", () => {
     expect(w.fetches).toHaveLength(2)
   })
 
-  test('another conversation asked a minute ago: this one takes its figures and asks nothing', async ($, on) => {
+  test('a conversation asks once as it opens, then leaves it to whichever asked in the last three minutes', async ($, on) => {
     const shared = { at: NOON - 60_000, accountAt: NOON - 60_000, limits: [{ kind: 'seven_day_fable', percentUsed: 30, resetsAt: FRIDAY }] }
     const w = world(on, { account: { status: 200, text: ANSWER }, files: { [LIMITS_FILE]: JSON.stringify(shared) } })
     await start($)
     await settle()
-    expect(w.fetches).toHaveLength(0)
-    expect(w.state.limits).toEqual(shared.limits)
+    expect(w.fetches).toHaveLength(1)
+    const later = { at: NOON + 60_000, accountAt: NOON + 60_000, limits: shared.limits }
+    w.files.set(LIMITS_FILE, JSON.stringify(later))
+    await w.clock.advance(185_000)
+    await settle()
+    expect(w.fetches).toHaveLength(1)
   })
 
   test('with no sign-in to ask with nothing is sent; a refusal goes to the log once and changes nothing', async ($, on) => {

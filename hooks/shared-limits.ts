@@ -63,7 +63,8 @@ export async function adoptLimits(host: Host, m: Memory) {
  */
 export async function refreshAccount(host: Host, m: Memory) {
   const now = await host.clock.now()
-  const asked = Math.max(m.accountAt, (await readShared(host, m))?.accountAt ?? 0)
+  // A conversation asks once as it opens, whatever the others did: so each one starts with the account's figures.
+  const asked = m.accountAt ? Math.max(m.accountAt, (await readShared(host, m))?.accountAt ?? 0) : 0
   if (now - asked < ACCOUNT_MS) return
   m.accountAt = now
   const reply = await host.account.usage()
