@@ -15,6 +15,7 @@ import { entered, received } from './news'
 import { pressSettings } from './preferences'
 import { answerPlan, applyMirror, isMirror, newTurn, noteFor } from './planning'
 import { runCommand, startSession } from './session'
+import { keepLimits } from './shared-limits'
 import { writeCost, writeLimits } from './state'
 import { sumOf } from './tokens'
 import { drawBand } from './view-band'
@@ -169,7 +170,8 @@ export const register: Register = (on, options) => {
   on('session.measure', async ($, e, next) => {
     const host = m.host
     if (!host) return next(e)
-    await guard(host, m, 'limits', () => writeLimits(host, e.rateLimits))
+    // A reading of its own is shared with the other conversations; none at all (off a subscription) clears the gauges.
+    await guard(host, m, 'limits', () => (e.rateLimits.length ? keepLimits(host, m, e.rateLimits) : writeLimits(host, e.rateLimits)))
     if (e.cost) await guard(host, m, 'cost', () => writeCost(host, e.cost!.usd))
     return next(e)
   })

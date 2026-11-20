@@ -152,6 +152,8 @@ export type Memory = {
   deskAt: number
   links: SessionLink[]
   linksAt: number
+  /** When the limits shown here were read, by this conversation or another: 0 before any. */
+  limitsAt: number
   ticking: boolean
 }
 
@@ -244,5 +246,6 @@ export const createMemory = (forced: Language | null): Memory => ({
   deskAt: 0,
   links: [],
   linksAt: 0,
+  limitsAt: 0,
   ticking: false,
 })

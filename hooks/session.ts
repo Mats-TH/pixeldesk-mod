@@ -16,7 +16,8 @@ import { slashed } from './lines'
 import type { Memory } from './memory'
 import { restoreNews } from './news'
 import { restorePlan } from './planning'
-import { readHearth, writeCardClock, writeLimits, writeMinute } from './state'
+import { adoptLimits, keepLimits } from './shared-limits'
+import { readHearth, writeCardClock, writeMinute } from './state'
 import { restoreTokens, showTokens } from './tokens'
 
 const TICK_MS = 5000
@@ -63,6 +64,7 @@ async function tick(host: Host, m: Memory) {
   await guard(host, m, 'floor', () => readFloor(host, m))
   await guard(host, m, 'hearth', () => pulse(host, m))
   await guard(host, m, 'card clock', () => tickCard(host))
+  await guard(host, m, 'limits', () => adoptLimits(host, m))
   m.ticking = false
 }
 
@@ -83,11 +85,13 @@ function startTimers(host: Host, m: Memory) {
   })
 }
 
+/** The limits at the start: this conversation's own reading, else the last one another conversation left. */
 async function readLimits(host: Host, m: Memory) {
   await guard(host, m, 'limits', async () => {
     const { rateLimits } = await host.session.usage()
-    if (rateLimits.length) await writeLimits(host, rateLimits)
+    await keepLimits(host, m, rateLimits)
   })
+  await guard(host, m, 'limits', () => adoptLimits(host, m))
 }
 
 /** What a reload or a restart left: the host's copy of the agents, the plan, and, the first time, the saved counts. */
