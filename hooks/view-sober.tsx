@@ -10,13 +10,11 @@ type Words = Pick<Elements['terminal'], 'Box' | 'Text'>
 type Card = Pick<Elements['desktop'], 'Box' | 'Text' | 'Svg'>
 
 const DEFAULT_COLS = 100
-// The card's border and its padding, on both sides, then the room between two columns.
-const EDGES = 4
-const GAP = 2
-/** Under this many cells (about 384 px) the gauges stand one above the other, whatever they say. */
-export const SOBER_BREAK = 48
-// A letter of the small text against a cell: what a line of it takes, counted wide.
-const LETTER = 0.8
+// Between two columns and between two rows of the card, in cells: 20 px across, 10 px down, as in the design.
+const COLUMN_GAP = 20 / CELL_W
+const ROW_GAP = 10 / CELL_H
+/** A column never gets narrower than this (105 px): one more would not fit, so the last one goes to the next row. */
+export const COLUMN_MIN = 105 / CELL_W
 const BAR_H = 8
 const TRACK_H = 4
 // The app's orange, and tones that read on its light theme as on its dark one: a bar cannot follow the theme.
@@ -30,32 +28,8 @@ const METER_MARGIN = 34
 
 const clamp = (v: number, low: number, high: number) => Math.max(low, Math.min(high, v))
 
-/** The words after the name: what is used, the time left, when it resets. The last two only with a reset time. */
-const values = (g: SoberGauge) => [g.percent, g.left, g.at].filter(Boolean)
-
-/**
- * How many lines every gauge writes on in `cells` of room, the same for all so that the bars stay level: the name and
- * its values on one, else the name over its values, else the reset on a third line. Null: not even three hold it.
- */
-export function soberLines(gauges: readonly SoberGauge[], cells: number): 1 | 2 | 3 | null {
-  const room = cells / LETTER
-  const fits = (...words: ((g: SoberGauge) => string)[]) => gauges.every(g => words.every(word => word(g).length <= room))
-  if (fits(g => `${g.label} ${values(g).join(' · ')}`)) return 1
-  if (fits(g => g.label, g => values(g).join(' · '))) return 2
-  if (fits(g => g.label, g => [g.percent, g.left].filter(Boolean).join(' · '), g => g.at)) return 3
-  return null
-}
-
-/**
- * How the card lays its gauges out in `columns` cells: side by side while each column holds its text, else one above
- * the other, each on the whole width. Under the break they always stand one above the other.
- */
-export function soberLayout(gauges: readonly SoberGauge[], columns: number): { stacked: boolean; lines: 1 | 2 | 3 } {
-  const inner = columns - EDGES
-  const beside = columns < SOBER_BREAK ? null : soberLines(gauges, (inner - GAP * (gauges.length - 1)) / gauges.length)
-  if (beside) return { stacked: false, lines: beside }
-  return { stacked: true, lines: soberLines(gauges, inner) ?? 3 }
-}
+/** Words that stay together on a line: `3j 4h32` never breaks between its day and its hours. */
+export const together = (text: string) => text.replace(/ /g, ' ')
 
 /** One stretch of a bar: its ink and its share of the width. The mark has no share: it is a hairline. */
 export type Stretch = { ink: 'orange' | 'red' | 'track'; share: number } | { ink: 'mark' }
@@ -110,23 +84,28 @@ function bar({ Box, Svg }: Card, g: SoberGauge) {
   )
 }
 
-/** A gauge's text, on as many lines as the card settled. Its colours are the theme's own, and nothing of it is cut. */
-function words({ Text }: Pick<Card, 'Text'>, g: SoberGauge, lines: 1 | 2 | 3) {
-  const name = <Text>{g.label}</Text>
-  const percent = <Text weight="medium" tabular>{g.percent}</Text>
-  const dim = (text: string) => <Text color="inactive" tabular>{text}</Text>
-  const row = (key: string, ...parts: RenderElement[]) => <Text key={key} size="caption" wrap="wrap">{parts}</Text>
-  const rest = [g.left, g.at].filter(Boolean)
-  if (lines === 1) return [row('line', name, <Text> </Text>, percent, ...rest.map(text => dim(` · ${text}`)))]
-  if (lines === 2) return [row('name', name), row('values', percent, ...rest.map(text => dim(` · ${text}`)))]
-  return [row('name', name), row('values', percent, ...(g.left ? [dim(` · ${g.left}`)] : [])), ...(g.at ? [row('reset', dim(g.at))] : [])]
+/**
+ * A gauge's text, one line that wraps where the column runs out: only before a dot, never inside a value. Its colours
+ * are the theme's own, and nothing of it is cut.
+ */
+function words({ Text }: Pick<Card, 'Text'>, g: SoberGauge) {
+  const dim = (text: string) => <Text color="inactive" tabular>{` · ${together(text)}`}</Text>
+  return (
+    <Text size="caption" wrap="wrap">
+      <Text>{together(g.label)}</Text>
+      <Text> </Text>
+      <Text weight="medium" tabular>{together(g.percent)}</Text>
+      {[g.left, g.at].filter(Boolean).map(text => dim(text))}
+    </Text>
+  )
 }
 
 /**
- * The card on a surface that draws. Nothing in it has a width of its own: side by side, the columns share the card's
- * width evenly, and one above the other each takes it whole, the text over its bar.
+ * The card on a surface that draws, laid out by flex alone so that it follows its width live: the columns share a row
+ * evenly, and when one would get narrower than `COLUMN_MIN` the last goes to the next row and takes it whole. In a row
+ * every column is as tall as the tallest, its text at the top and its bar at the bottom, so the bars stay level.
  */
-function card(ui: Card, gauges: readonly SoberGauge[], columns: number) {
+function card(ui: Card, gauges: readonly SoberGauge[]) {
   const { Box, Text } = ui
   if (!gauges.length) {
     return (
@@ -135,12 +114,11 @@ function card(ui: Card, gauges: readonly SoberGauge[], columns: number) {
       </Box>
     )
   }
-  const { stacked, lines } = soberLayout(gauges, columns)
   return (
-    <Box key="sober-band" flexDirection={stacked ? 'column' : 'row'} gap={stacked ? 'xs' : GAP} borderStyle="round" borderColor="promptBorder" paddingX={1}>
+    <Box key="sober-band" flexDirection="row" flexWrap="wrap" alignItems="stretch" columnGap={COLUMN_GAP} rowGap={ROW_GAP} borderStyle="round" borderColor="promptBorder" paddingX={1}>
       {gauges.map(g => (
-        <Box key={`sober-${g.kind}`} flexDirection="column" {...(stacked ? {} : { flexGrow: 1, width: 0 })}>
-          {words(ui, g, lines)}
+        <Box key={`sober-${g.kind}`} flexDirection="column" justifyContent="space-between" flexGrow={1} width={0} minWidth={COLUMN_MIN}>
+          {words(ui, g)}
           {bar(ui, g)}
         </Box>
       ))}
@@ -183,5 +161,5 @@ function rows(ui: Words, gauges: readonly SoberGauge[], columns: number) {
 export function soberBand(host: Host, e: Band, gauges: readonly SoberGauge[]) {
   const columns = e.props.bodyColumns || DEFAULT_COLS
   if (e.surface === 'terminal') return rows(host.ui.resolve(e) as unknown as Words, gauges, columns)
-  return card(host.ui.resolve(e) as unknown as Card, gauges, columns)
+  return card(host.ui.resolve(e) as unknown as Card, gauges)
 }
