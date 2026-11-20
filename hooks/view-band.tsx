@@ -7,13 +7,14 @@ import type { OverviewInput } from './band'
 import { keptRoom } from './desks'
 import { t } from './i18n'
 import { cut } from './lines'
-import { gauge } from './limits'
+import { gauge, soberGauges } from './limits'
 import type { Gauge } from './limits'
 import type { Memory } from './memory'
 import { mix } from './pixel/canvas'
-import { readFloorRooms, readLimits, readMinute, readNews, readPlan, readShimmer } from './state'
+import { readFloorRooms, readLimits, readLook, readMinute, readNews, readPlan, readShimmer } from './state'
 import { hearthRows } from './view-hearth'
 import { bandWidth, followLanguage } from './view-shared'
+import { soberBand } from './view-sober'
 
 type Band = RenderInput<'AbovePrompt'>
 type TerminalTable = Pick<Elements['terminal'], 'Box' | 'Text'>
@@ -205,6 +206,14 @@ export async function drawBand(host: Host, m: Memory, e: Band, pass: () => Promi
   const now = await host.clock.now()
   // A gauge's mark moves with the clock: held to the minute, the source stands still between two ticks.
   const minute = Math.floor(now / MINUTE_MS) * MINUTE_MS
+  // The sober look: the limits alone, in one card. No plan, no world, no row of the hearth.
+  if (((await readLook(host)) ?? m.look) === 'sober') {
+    const card = soberBand(host, e, soberGauges(limits, minute))
+    const above = await beneath(pass)
+    if (!above) return card
+    const { Box } = host.ui.resolve(e)
+    return <Box flexDirection="column" backgroundColor="transparent">{above}{card}</Box>
+  }
   const gauges: Gauges = [gauge(limits, 'five_hour', minute), gauge(limits, 'seven_day', minute)]
   const open = !!plan && plan.steps.some(st => st.status !== 'completed')
   const view = await overviewOf(host, news?.count ?? 0, gauges)

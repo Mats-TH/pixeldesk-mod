@@ -61,6 +61,14 @@ export function writeLimits(host: Host, value: Values['limits']) {
   return host.values.limits.set(value)
 }
 
+export async function readLook(host: Host) {
+  return host.values.look.get()
+}
+
+export function writeLook(host: Host, value: Values['look']) {
+  return host.values.look.set(value)
+}
+
 export async function readMinute(host: Host) {
   return host.values.minute.get()
 }

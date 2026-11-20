@@ -2,7 +2,7 @@ import type { Timer } from 'claude-code'
 
 import type { Host } from './host'
 
-import type { AgentRecord, Ash, ChatTurn, CompactBefore, Departure, Fire, BriefingMode, BriefingPhase, Keeper, News, PlanStep, RoomTheme, Seen, RelaunchStop } from '../types'
+import type { AgentRecord, Ash, ChatTurn, CompactBefore, Departure, Fire, BriefingMode, BriefingPhase, Keeper, Look, News, PlanStep, RoomTheme, Seen, RelaunchStop } from '../types'
 import type { ChatState, SessionLink } from './desks'
 import type { Language } from './i18n'
 import type { SummaryMark } from './plain'
@@ -109,6 +109,7 @@ export type Memory = {
   hidden: boolean
   departure: Departure
   theme: RoomTheme
+  look: Look
   fire: boolean
   briefingMode: BriefingMode
   compactBefore: CompactBefore
@@ -202,6 +203,7 @@ export const createMemory = (forced: Language | null): Memory => ({
   hidden: false,
   departure: 'plan',
   theme: 'cosy',
+  look: 'pixel',
   fire: true,
   briefingMode: 'auto',
   compactBefore: 2,

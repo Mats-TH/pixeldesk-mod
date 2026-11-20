@@ -295,6 +295,19 @@ The Settings open with the button on the wall of the room. Your choice applies t
 
 In Manual mode, the mod stops compacting and changing conversation by itself. A button appears on the fireplace, and nothing moves until you click it.
 
+### Prefer something quieter? The sober look
+
+Type `/pixeldesk look sober` and the pixel art goes away.
+
+- **One card above the prompt.** No animation, in the colors of Claude, light or dark.
+- **A gauge for each limit of your plan.** Weekly, a model's own week, 5 hours: the ones you do not have are not shown.
+- **Everything at a glance.** How much is used, the time left and when it resets.
+- **Your pace.** Orange up to the ideal pace, red past it.
+
+The room, the fire and the plan are no longer drawn. Tracking and relaunches keep running.
+
+Type `/pixeldesk look pixel` to bring the pixel art back.
+
 ## Good to know before you install
 
 <details>
@@ -440,6 +453,7 @@ Questions, bugs or security reports: [open an issue](https://github.com/Mats-TH/
 | --- | --- |
 | `/pixeldesk` | Opens the panel. |
 | `/pixeldesk theme <name>` | Changes the theme: `cosy`, `japonais`, `nature`, `futuriste`, `geek` or `base`. |
+| `/pixeldesk look sober` | Swaps the pixel art for one plain card of limits. `pixel` brings it back. |
 | `/pixeldesk fire off` | Turns relaunches off, in every conversation. `on` turns them back on. |
 | `/pixeldesk fire` | Tells you where relaunches stand. |
 | `/pixeldesk move` | Writes a briefing now, or once the running work is done. |
@@ -457,6 +471,9 @@ Questions, bugs or security reports: [open an issue](https://github.com/Mats-TH/
 | `/pixeldesk show` | Opens the panel here and lets it open by itself again. |
 | `/pixeldesk theme` | Tells you the current theme and the names. |
 | `/pixeldesk theme <name>` | Changes the theme, in every conversation. |
+| `/pixeldesk look` | Tells you the current look: pixel or sober. |
+| `/pixeldesk look sober` | One plain card of limits, in every conversation. The panel stays closed. |
+| `/pixeldesk look pixel` | The pixel art again, in every conversation. This is the default. |
 | `/pixeldesk departure` | Tells you when finished desks leave. |
 | `/pixeldesk departure plan` | Finished desks stay until the plan ends, then leave together. This is the default. |
 | `/pixeldesk departure each` | Each desk leaves 30 seconds after its agent finishes. |

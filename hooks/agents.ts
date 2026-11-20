@@ -81,8 +81,9 @@ export function paneOpen(host: Host) {
   return host.ui.panes().then(list => list.some(pane => pane.id === PANE), () => false)
 }
 
-/** Opens the pane; a refusal goes to the log. */
+/** Opens the pane; a refusal goes to the log. The sober look has none. */
 export function openPane(host: Host, m: Memory) {
+  if (m.look === 'sober') return Promise.resolve(undefined)
   return guard(host, m, 'open pane', () => host.ui.open({ id: PANE, title: t('brand') }))
 }
 

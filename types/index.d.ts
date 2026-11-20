@@ -62,6 +62,9 @@ export type CompactBefore = 0 | 1 | 2 | 3 | 'always'
 /** The world the rooms stand in, for every conversation. */
 export type RoomTheme = 'cosy' | 'japonais' | 'nature' | 'futuriste' | 'geek' | 'base'
 
+/** How the mod looks: the pixel art world, or one plain card of limits in the app's own colours. */
+export type Look = 'pixel' | 'sober'
+
 /** What the settings button shows. `open` never reaches the disk. */
 export type SettingsView = { open: boolean; departure: Departure; fire: boolean; briefingMode: BriefingMode; compactBefore: CompactBefore; theme: RoomTheme }
 
@@ -166,6 +169,7 @@ declare module 'claude-code' {
       hearth: Hearth
       language: 'fr' | 'en'
       limits: Limit[]
+      look: Look
       minute: number
       cardClock: number
       news: News

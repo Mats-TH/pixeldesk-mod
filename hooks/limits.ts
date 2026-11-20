@@ -20,11 +20,11 @@ const LABEL: Record<LimitKind, TextKey> = { five_hour: 'gauge.five', seven_day: 
 const DAYS: readonly TextKey[] = ['day.0', 'day.1', 'day.2', 'day.3', 'day.4', 'day.5', 'day.6']
 const EMPTY = { used: null, mark: null, percent: '--', at: '--:--' }
 
-function resetText(kind: LimitKind, end: number) {
+function resetText(fiveHour: boolean, end: number) {
   const date = new Date(end)
   const h = date.getHours()
   const m = String(date.getMinutes()).padStart(2, '0')
-  if (kind === 'five_hour') return `${String(h).padStart(2, '0')}:${m}`
+  if (fiveHour) return `${String(h).padStart(2, '0')}:${m}`
   const day = t(DAYS[date.getDay()]!)
   // English reads the week's end on a twelve-hour clock.
   const hour = getLanguage() === 'en' ? h % 12 || 12 : h
@@ -44,6 +44,63 @@ export function gauge(list: readonly Limit[], kind: LimitKind, now: number): Gau
     used: Math.max(0, Math.min(100, reading.percentUsed)),
     mark,
     percent: `${Math.round(reading.percentUsed)}%`,
-    at: known ? resetText(kind, end) : '--:--',
+    at: known ? resetText(kind === 'five_hour', end) : '--:--',
   }
+}
+
+// ---------- The sober look: a gauge for each limit the account sends ----------
+
+/** A gauge of the sober card. `mark`, `left` and `at` are unknown without a reset time. */
+export type SoberGauge = { kind: string; label: string; used: number; mark: number | null; percent: string; left: string; at: string }
+
+const MINUTE = 60_000
+// A week kept for one model only, whatever the engine calls it: `seven_day_fable` reads "Fable hebdo".
+const WEEK_OF = /^seven_day_([a-z0-9_]+)$/
+const rank = (kind: string) => (kind === 'seven_day' ? 0 : kind === 'five_hour' ? 2 : 1)
+
+/** The time left, as short as it reads: `3j 4h32`, `4h32`, `32min`. Never less than a minute. */
+export function countdown(ms: number) {
+  const total = Math.max(1, Math.ceil(ms / MINUTE))
+  const d = Math.floor(total / 1440)
+  const h = Math.floor((total % 1440) / 60)
+  const m = String(total % 60).padStart(2, '0')
+  if (d) return t('left.days', { d, h, m })
+  if (h) return t('left.hours', { h, m })
+  return t('left.minutes', { m: total % 60 })
+}
+
+function soberLabel(kind: string) {
+  if (kind === 'seven_day') return t('sober.week')
+  if (kind === 'five_hour') return t('sober.five')
+  const words = kind.match(WEEK_OF)![1]!.replace(/_/g, ' ')
+  return t('sober.weekOf', { name: words.charAt(0).toUpperCase() + words.slice(1) })
+}
+
+/**
+ * One gauge for each window the account has: the week, then each week of its own, then the five hours.
+ * A window the engine does not send, or one past its reset, has none; neither has a kind that is no such window.
+ */
+export function soberGauges(list: readonly Limit[], now: number): SoberGauge[] {
+  const seen = new Set<string>()
+  const kept = list.filter(l => {
+    if (seen.has(l.kind) || !(l.kind === 'seven_day' || l.kind === 'five_hour' || WEEK_OF.test(l.kind))) return false
+    seen.add(l.kind)
+    const end = l.resetsAt ? Date.parse(l.resetsAt) : NaN
+    return Number.isNaN(end) || end > now
+  })
+  return [...kept].sort((a, b) => rank(a.kind) - rank(b.kind)).map(l => {
+    const end = l.resetsAt ? Date.parse(l.resetsAt) : NaN
+    const known = !Number.isNaN(end)
+    const fiveHour = l.kind === 'five_hour'
+    const span = fiveHour ? SPAN.five_hour : SPAN.seven_day
+    return {
+      kind: l.kind,
+      label: soberLabel(l.kind),
+      used: Math.max(0, Math.min(100, l.percentUsed)),
+      mark: known ? Math.max(0, Math.min(100, (1 - (end - now) / span) * 100)) : null,
+      percent: t('sober.percent', { n: Math.round(l.percentUsed) }),
+      left: known ? countdown(end - now) : '',
+      at: known ? resetText(fiveHour, end) : '',
+    }
+  })
 }

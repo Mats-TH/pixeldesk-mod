@@ -32,6 +32,7 @@ const LANGUAGE = { plugin: 'pixeldesk', key: 'language' } as const
 const PLAN = { plugin: 'pixeldesk', key: 'plan' } as const
 const SHIMMER = { plugin: 'pixeldesk', key: 'shimmer' } as const
 const LIMITS = { plugin: 'pixeldesk', key: 'limits' } as const
+const LOOK = { plugin: 'pixeldesk', key: 'look' } as const
 const MINUTE = { plugin: 'pixeldesk', key: 'minute' } as const
 const CARD_CLOCK = { plugin: 'pixeldesk', key: 'cardClock' } as const
 const SUMMARIES = { plugin: 'pixeldesk', key: 'summaries' } as const
@@ -128,6 +129,7 @@ export const register: Register = (on, options) => {
         plan: { get: async () => (await $.state.get(PLAN)).value, set: value => $.state.set(PLAN, value) },
         shimmer: { get: async () => (await $.state.get(SHIMMER)).value, set: value => $.state.set(SHIMMER, value) },
         limits: { get: async () => (await $.state.get(LIMITS)).value, set: value => $.state.set(LIMITS, value) },
+        look: { get: async () => (await $.state.get(LOOK)).value, set: value => $.state.set(LOOK, value) },
         minute: { get: async () => (await $.state.get(MINUTE)).value, set: value => $.state.set(MINUTE, value) },
         cardClock: { get: async () => (await $.state.get(CARD_CLOCK)).value, set: value => $.state.set(CARD_CLOCK, value) },
         summaries: { get: async () => (await $.state.get(SUMMARIES)).value, set: value => $.state.set(SUMMARIES, value) },

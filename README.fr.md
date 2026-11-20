@@ -295,6 +295,19 @@ Les Réglages s'ouvrent avec le bouton sur le mur de la pièce. Ton choix vaut p
 
 En mode Manuel, le mod ne compacte plus et ne change plus de conversation tout seul. Un bouton apparaît sur la cheminée, et rien ne bouge tant que tu ne cliques pas.
 
+### Envie de plus discret ? L'apparence sobre
+
+Tape `/pixeldesk look sober` et le pixel art disparaît.
+
+- **Une seule carte au-dessus de la saisie.** Sans animation, aux couleurs de Claude, en clair comme en sombre.
+- **Une jauge par limite de ton forfait.** Hebdo, semaine propre à un modèle, 5 heures : celles que tu n'as pas ne s'affichent pas.
+- **Tout d'un coup d'œil.** Ce qui est consommé, le temps restant et l'heure de remise à zéro.
+- **Ton rythme.** Orange jusqu'au rythme idéal, rouge au-delà.
+
+La pièce, le feu et le plan ne sont plus dessinés. Le suivi et les relances continuent.
+
+Tape `/pixeldesk look pixel` pour retrouver le pixel art.
+
 ## À savoir avant d'installer
 
 <details>
@@ -440,6 +453,7 @@ Questions, bugs ou signalements de sécurité : [ouvre une issue](https://github
 | --- | --- |
 | `/pixeldesk` | Ouvre le panneau. |
 | `/pixeldesk theme <nom>` | Change le thème : `cosy`, `japonais`, `nature`, `futuriste`, `geek` ou `base`. |
+| `/pixeldesk look sober` | Remplace le pixel art par une simple carte des limites. `pixel` le fait revenir. |
 | `/pixeldesk fire off` | Coupe les relances, dans toutes les conversations. `on` les réactive. |
 | `/pixeldesk fire` | Dit où en sont les relances. |
 | `/pixeldesk move` | Écrit un briefing maintenant, ou dès que le travail en cours est fini. |
@@ -457,6 +471,9 @@ Questions, bugs ou signalements de sécurité : [ouvre une issue](https://github
 | `/pixeldesk show` | Ouvre le panneau ici et le laisse de nouveau s'ouvrir seul. |
 | `/pixeldesk theme` | Dit le thème actuel et les noms disponibles. |
 | `/pixeldesk theme <nom>` | Change le thème, dans toutes les conversations. |
+| `/pixeldesk look` | Dit l'apparence actuelle : pixel ou sobre. |
+| `/pixeldesk look sober` | Une simple carte des limites, dans toutes les conversations. Le panneau reste fermé. |
+| `/pixeldesk look pixel` | Le pixel art de nouveau, dans toutes les conversations. C'est le réglage par défaut. |
 | `/pixeldesk departure` | Dit quand partent les bureaux finis. |
 | `/pixeldesk departure plan` | Les bureaux finis restent jusqu'à la fin du plan, puis partent ensemble. C'est le réglage par défaut. |
 | `/pixeldesk departure each` | Chaque bureau part 30 secondes après la fin de son agent. |

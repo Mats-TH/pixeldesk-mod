@@ -1,13 +1,13 @@
 import type { Host } from './host'
 
-import type { CompactBefore, Departure, BriefingMode, RoomTheme, SettingsView } from '../types'
+import type { CompactBefore, Departure, BriefingMode, Look, RoomTheme, SettingsView } from '../types'
 import { sweep } from './agents'
 import { departureOf } from './desks'
 import { ROOM_THEMES } from './card'
 import { guard, log, onDisk, reason, settingsPath } from './disk'
 import { PANE } from './memory'
 import type { Memory } from './memory'
-import { readSettings, writeSettings } from './state'
+import { readSettings, writeLook, writeSettings } from './state'
 
 type SettingsFile = Record<string, unknown>
 
@@ -51,6 +51,10 @@ const compactOf = (value: unknown): CompactBefore => (value === 0 || value === 1
 export const isTheme = (value: unknown): value is RoomTheme => ROOM_THEMES.includes(value as RoomTheme)
 const themeOf = (settings: SettingsFile): RoomTheme => (isTheme(settings.theme) ? settings.theme : 'cosy')
 
+export const LOOKS: readonly Look[] = ['pixel', 'sober']
+export const isLook = (value: unknown): value is Look => LOOKS.includes(value as Look)
+const lookOf = (settings: SettingsFile): Look => (isLook(settings.look) ? settings.look : 'pixel')
+
 const viewOf = (m: Memory, open: boolean): SettingsView => ({ open, departure: m.departure, fire: m.fire, briefingMode: m.briefingMode, compactBefore: m.compactBefore, theme: m.theme })
 
 function closePane(host: Host, m: Memory) {
@@ -74,6 +78,13 @@ async function applyTheme(host: Host, m: Memory, theme: RoomTheme) {
   await writeSettings(host, viewOf(m, await isOpen(host)))
 }
 
+/** The sober look has no room: its pane closes, and stays closed until the pixel look comes back. */
+async function applyLook(host: Host, m: Memory, look: Look) {
+  m.look = look
+  await writeLook(host, look)
+  if (look === 'sober') await closePane(host, m)
+}
+
 async function applyDeparture(host: Host, m: Memory, departure: Departure) {
   m.departure = departure
   await writeSettings(host, viewOf(m, await isOpen(host)))
@@ -90,6 +101,12 @@ export async function setDeparture(host: Host, m: Memory, departure: Departure) 
 export async function setTheme(host: Host, m: Memory, theme: RoomTheme) {
   await save(host, m, settings => ({ ...settings, theme }))
   await applyTheme(host, m, theme)
+}
+
+/** Pixel art or one plain card, for every conversation. */
+export async function setLook(host: Host, m: Memory, look: Look) {
+  await save(host, m, ({ look: _old, ...others }) => (look === 'sober' ? { ...others, look } : others))
+  await applyLook(host, m, look)
 }
 
 /** Hiding is about the pane alone: the band and the tracking go on. */
@@ -127,6 +144,8 @@ export async function followSettings(host: Host, m: Memory) {
     m.hidden = hidden
     if (hidden) await closePane(host, m)
   }
+  const look = lookOf(settings)
+  if (look !== m.look) await applyLook(host, m, look)
   const departure = departureOf(settings)
   if (departure !== m.departure) await applyDeparture(host, m, departure)
   const theme = themeOf(settings)
