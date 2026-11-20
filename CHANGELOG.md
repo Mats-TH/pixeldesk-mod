@@ -4,6 +4,19 @@ All notable changes to PixelDesk Mod are listed here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-20
+
+A quieter look, and Fable's weekly limit.
+
+### Added
+
+- **Sober theme.** `/pixeldesk theme Sobre` swaps the pixel art for one plain card of limits above the prompt. `/pixeldesk theme Pixel` brings it back.
+- **Fable's weekly limit.** The card shows it beside the 5 hours and the weekly limit, as `/usage` does.
+
+### Changed
+
+- New conversations show the limits at once: they share the last reading.
+
 ## [1.3.3] - 2026-11-01
 
 The plugin directory can now read the whole mod.
