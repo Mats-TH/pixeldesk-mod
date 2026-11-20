@@ -33,6 +33,8 @@ export type WorldOptions = {
   now?: number
   agents?: Record<string, unknown>[]
   limits?: { kind: string; percentUsed: number; resetsAt?: string }[]
+  /** What the account's usage answers, with a first-party sign-in; absent, the session has none to ask with. */
+  account?: { status: number; text: string }
   store?: Record<string, unknown>
   /** What `$.settings.read` answers: an object of settings, or a function that throws or denies. */
   settings?: Record<string, unknown> | (() => Answer)
@@ -81,6 +83,9 @@ export function world(on: Loose, options: WorldOptions = {}) {
     settingsReads: 0,
     agents: [...(options.agents ?? [])] as Loose[],
     limits: options.limits ?? [],
+    account: options.account,
+    /** Every request the mod sent through the host, with what it asked. */
+    fetches: [] as Loose[],
     /** The context the status line reports. */
     context: {} as Record<string, unknown>,
     /** Answers a host command, or leaves it to the culture's answer. */
@@ -130,6 +135,12 @@ export function world(on: Loose, options: WorldOptions = {}) {
 
   on('session.id', () => (options.session === null ? denied('no session') : { value: options.session ?? SESSION }))
   on('session.usage', () => (w.refuse.has('session.usage') ? denied('no usage') : { value: { startedAt: 0, context: w.context, rateLimits: w.limits } }))
+  on('session.authorize', () => ({ value: w.account ? { handle: 'handle-1', kind: 'bearer' } : null }))
+  on('http.fetch', (_: Loose, e: Loose) => {
+    w.fetches.push(e)
+    const reply = w.account ?? { status: 404, text: '' }
+    return { value: { status: reply.status, ok: reply.status >= 200 && reply.status < 300, headers: {}, text: reply.text } }
+  })
   on('session.start', (_: Loose, e: Loose) => ({ cwd: e.cwd }))
   on('session.measure', (_: Loose, e: Loose) => ({ changed: e.changed ?? [] }))
   on('session.receive', (_: Loose, e: Loose) => (w.consumeReceived ? { consumed: 'taken' } : { text: e.text }))

@@ -82,9 +82,13 @@ describe('which gauges', () => {
     expect(soberGauges([], NOON)).toEqual([])
   })
 
-  test('any other week of its own shows under its name, whatever the engine calls it', () => {
-    const [gauge] = soberGauges([{ kind: 'seven_day_opus_plan', percentUsed: 7, resetsAt: at(FRIDAY) }], NOON)
-    expect(gauge?.label).toBe('Opus plan hebdo')
+  test("a model's week shows under the model's name, whatever the account calls it; a week of no model stays out", () => {
+    const named = (kind: string) => soberGauges([{ kind, percentUsed: 7, resetsAt: at(FRIDAY) }], NOON).map(g => g.label)
+    expect(named('seven_day_opus')).toEqual(['Opus hebdo'])
+    expect(named('seven_day_fable_5')).toEqual(['Fable hebdo'])
+    expect(named('fable_weekly')).toEqual(['Fable hebdo'])
+    expect(named('seven_day_oauth_apps')).toEqual([])
+    expect(named('five_hour_fable')).toEqual([])
     expect(inEnglish(() => soberGauges([FABLE, WEEK], NOON).map(g => g.label))).toEqual(['Fable weekly', 'Weekly'])
   })
 
@@ -293,7 +297,7 @@ describe('the sober look', () => {
     expect(bar.props.width).toBeUndefined()
     const stretches = kids(bar).filter((el: any) => el.type === 'Box')
     // Tuesday noon, a week that ends Friday at nine: 99 of 168 hours are spent, so the pace stands at 58.9 %.
-    expect(stretches.map((el: any) => [el.props.key, el.props.backgroundColor])).toEqual([['orange-0', '#D97757'], ['track-1', '#87867F4D'], ['mark', '#87867F'], ['track-3', '#87867F4D']])
+    expect(stretches.map((el: any) => [el.props.key, el.props.backgroundColor])).toEqual([['orange-0', '#F26522'], ['track-1', '#87867F4D'], ['mark', '#87867F'], ['track-3', '#87867F4D']])
     expect(stretches[0].props).toMatchObject({ flexGrow: 42, width: 0 })
     expect(Math.round(stretches[1].props.flexGrow + stretches[3].props.flexGrow)).toBe(58)
     expect(stretches[2].props.flexGrow).toBeUndefined()
@@ -309,8 +313,8 @@ describe('the sober look', () => {
     expect(kids(bar).map((el: any) => (el.type === 'Box' ? el.props.key : el.type))).toEqual(['Svg', 'orange-0', 'mark', 'red-2', 'Svg', 'track-3', 'Svg'])
     const [head, used, tail] = kids(bar).filter((el: any) => el.type === 'Svg').map((el: any) => el.props.source)
     const caps = { start: head, used, end: tail }
-    expect(caps.start).toContain('<path d="M2 0A2 2 0 0 0 2 4Z" fill="#D97757"/>')
-    expect(caps.used).toContain('<rect width="2" height="4" fill="#87867F4D"/><path d="M0 0A2 2 0 0 1 0 4Z" fill="#CF4A4A"/>')
+    expect(caps.start).toContain('<path d="M2 0A2 2 0 0 0 2 4Z" fill="#F26522"/>')
+    expect(caps.used).toContain('<rect width="2" height="4" fill="#87867F4D"/><path d="M0 0A2 2 0 0 1 0 4Z" fill="#E5262A"/>')
     expect(caps.end).toContain('<path d="M0 0A2 2 0 0 1 0 4Z" fill="#87867F4D"/>')
     for (const source of Object.values(caps)) expect(source).not.toMatch(/animate|<style|@keyframes/)
   })
@@ -397,5 +401,16 @@ describe('the sober look', () => {
     const ui = await mountBand($)
     const columns = kids(await ui.find({ key: 'sober-band' }))
     expect(columns.map((c: any) => plain(kids(c)[0]))).toEqual(['Fable weekly 18% · 2d 21h00 · Fri 9am', 'Weekly 42% · 2d 21h00 · Fri 9am'])
+  })
+})
+
+describe('the edges of the sober card', () => {
+  test('on the desktop the card runs over the band margins, as the pixel band does, and fills the width', async ($, on) => {
+    world(on, { ...SOBER, limits: [WEEK] })
+    await start($)
+    const ui = await mountBand($)
+    const edge = await ui.find({ key: 'sober-edge' })
+    expect(edge.props).toMatchObject({ marginX: -1, marginBottom: -1 })
+    expect((await ui.find({ key: 'sober-band' })).props.flexGrow).toBe(1)
   })
 })

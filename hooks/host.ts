@@ -1,4 +1,4 @@
-import type { EngineInterface, PluginState, SessionMessage } from 'claude-code'
+import type { EngineInterface, HttpResponse, PluginState, SessionMessage } from 'claude-code'
 
 export type System = 'windows' | 'mac' | 'linux'
 
@@ -12,6 +12,8 @@ type Ran = { exitCode: number }
  * so one file shows everything the mod reads, writes and runs. The commands it starts have their words in that file too.
  */
 export type Host = {
+  /** The account's own figures, as `/usage` reads them; null with no first-party sign-in to ask them with. */
+  account: { usage: () => Promise<HttpResponse | null> }
   agent: Pick<EngineInterface['agent'], 'list'>
   clock: Pick<EngineInterface['clock'], 'after' | 'every' | 'now'>
   command: Pick<EngineInterface['command'], 'register'> & { compact: (brief: string) => Promise<unknown> }

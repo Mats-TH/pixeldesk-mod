@@ -54,8 +54,10 @@ export function gauge(list: readonly Limit[], kind: LimitKind, now: number): Gau
 export type SoberGauge = { kind: string; label: string; used: number; mark: number | null; percent: string; left: string; at: string }
 
 const MINUTE = 60_000
-// A week kept for one model only, whatever the engine calls it: `seven_day_fable` reads "Fable hebdo".
-const WEEK_OF = /^seven_day_([a-z0-9_]+)$/
+// The models a week of its own can be kept for. The account names such a week after its model, `seven_day_fable`
+// today; any name that holds a model and says it is a week is taken, so a new spelling still shows.
+const MODELS = ['fable', 'mythos', 'opus', 'sonnet', 'haiku'] as const
+const modelOf = (kind: string) => (/seven_day|week/.test(kind) ? MODELS.find(name => kind.split(/[^a-z0-9]+/).includes(name)) : undefined)
 // Left to right, whatever order the engine sends them in: the five hours, each week of its own, the week of all.
 const rank = (kind: string) => (kind === 'five_hour' ? 0 : kind === 'seven_day' ? 2 : 1)
 
@@ -73,8 +75,8 @@ export function countdown(ms: number) {
 function soberLabel(kind: string) {
   if (kind === 'seven_day') return t('sober.week')
   if (kind === 'five_hour') return t('sober.five')
-  const words = kind.match(WEEK_OF)![1]!.replace(/_/g, ' ')
-  return t('sober.weekOf', { name: words.charAt(0).toUpperCase() + words.slice(1) })
+  const model = modelOf(kind)!
+  return t('sober.weekOf', { name: model.charAt(0).toUpperCase() + model.slice(1) })
 }
 
 /**
@@ -84,7 +86,7 @@ function soberLabel(kind: string) {
 export function soberGauges(list: readonly Limit[], now: number): SoberGauge[] {
   const seen = new Set<string>()
   const kept = list.filter(l => {
-    if (seen.has(l.kind) || !(l.kind === 'seven_day' || l.kind === 'five_hour' || WEEK_OF.test(l.kind))) return false
+    if (seen.has(l.kind) || !(l.kind === 'seven_day' || l.kind === 'five_hour' || modelOf(l.kind))) return false
     seen.add(l.kind)
     const end = l.resetsAt ? Date.parse(l.resetsAt) : NaN
     return Number.isNaN(end) || end > now

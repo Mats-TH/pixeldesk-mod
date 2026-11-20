@@ -16,7 +16,7 @@ import { slashed } from './lines'
 import type { Memory } from './memory'
 import { restoreNews } from './news'
 import { restorePlan } from './planning'
-import { adoptLimits, keepLimits } from './shared-limits'
+import { adoptLimits, keepLimits, refreshAccount } from './shared-limits'
 import { readHearth, writeCardClock, writeMinute } from './state'
 import { restoreTokens, showTokens } from './tokens'
 
@@ -65,6 +65,8 @@ async function tick(host: Host, m: Memory) {
   await guard(host, m, 'hearth', () => pulse(host, m))
   await guard(host, m, 'card clock', () => tickCard(host))
   await guard(host, m, 'limits', () => adoptLimits(host, m))
+  // The network never holds the start or the beat: the figures come when they come.
+  void guard(host, m, 'account', () => refreshAccount(host, m))
   m.ticking = false
 }
 
@@ -92,6 +94,8 @@ async function readLimits(host: Host, m: Memory) {
     await keepLimits(host, m, rateLimits)
   })
   await guard(host, m, 'limits', () => adoptLimits(host, m))
+  // The network never holds the start or the beat: the figures come when they come.
+  void guard(host, m, 'account', () => refreshAccount(host, m))
 }
 
 /** What a reload or a restart left: the host's copy of the agents, the plan, and, the first time, the saved counts. */

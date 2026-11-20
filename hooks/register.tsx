@@ -9,6 +9,7 @@ import { isForkTurn, stepBack, stepLeaves } from './heat'
 import { setLanguage, t } from './i18n'
 import { forcedBy } from './language'
 import { PLAN_TOOL, MOVE_TOOL, createMemory } from './memory'
+import { USAGE_HEADERS, USAGE_URL } from './account-limits'
 import type { Host, System } from './host'
 import type { Memory } from './memory'
 import { entered, received } from './news'
@@ -77,6 +78,14 @@ export const register: Register = (on, options) => {
   // hook works through what this one binds.
   on('session.start', async ($, e, next) => {
     const host: Host = {
+      account: {
+        // The credential stays the engine's: it sets the header itself, for Anthropic's own host only.
+        usage: async () => {
+          const auth = await $.session.authorize()
+          if (auth?.kind !== 'bearer') return null
+          return $.http.fetch(USAGE_URL, { auth: auth.handle, headers: USAGE_HEADERS })
+        },
+      },
       agent: { list: () => $.agent.list() },
       clock: { after: (ms, fn) => $.clock.after(ms, fn), every: (ms, fn) => $.clock.every(ms, fn), now: () => $.clock.now() },
       command: {

@@ -154,6 +154,10 @@ export type Memory = {
   linksAt: number
   /** When the limits shown here were read, by this conversation or another: 0 before any. */
   limitsAt: number
+  /** When this conversation last asked the account for its figures: 0 before it did. */
+  accountAt: number
+  /** Whether the account's windows went to the log in this session. */
+  windowsLogged: boolean
   ticking: boolean
 }
 
@@ -247,5 +251,7 @@ export const createMemory = (forced: Language | null): Memory => ({
   links: [],
   linksAt: 0,
   limitsAt: 0,
+  accountAt: 0,
+  windowsLogged: false,
   ticking: false,
 })

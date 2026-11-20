@@ -351,13 +351,13 @@ describe('the band in the terminal', () => {
 })
 
 describe('the limits', () => {
-  test('the state follows the start, then each measure', async ($, on) => {
+  test('the state follows the start, then each measure: the windows it names change, the others keep theirs', async ($, on) => {
     const w = world(on, { limits: LIMITS })
     await start($)
     expect(w.state.limits).toEqual(LIMITS)
     const next = [{ kind: 'five_hour', percentUsed: 60 }]
     await $.session.measure({ context: {} as never, rateLimits: next, changed: [] })
-    expect(w.state.limits).toEqual(next)
+    expect(w.state.limits).toEqual([...next, ...LIMITS.filter(l => l.kind !== 'five_hour')])
   })
 
   test('both gauges are always there, empty ones saying so', async ($, on) => {

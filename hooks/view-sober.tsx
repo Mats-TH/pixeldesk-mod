@@ -17,9 +17,9 @@ const ROW_GAP = 10 / CELL_H
 export const COLUMN_MIN = 105 / CELL_W
 const BAR_H = 8
 const TRACK_H = 4
-// The app's orange, and tones that read on its light theme as on its dark one: a bar cannot follow the theme.
-const ORANGE = '#D97757'
-const RED = '#CF4A4A'
+// A vivid orange and red, so that the bars stand out, in tones that read on the light theme as on the dark one.
+const ORANGE = '#F26522'
+const RED = '#E5262A'
 const GREY = '#87867F'
 const TRACK = '#87867F4D'
 const METER_MIN = 6
@@ -109,13 +109,13 @@ function card(ui: Card, gauges: readonly SoberGauge[]) {
   const { Box, Text } = ui
   if (!gauges.length) {
     return (
-      <Box key="sober-band" borderStyle="round" borderColor="promptBorder" paddingX={1}>
+      <Box key="sober-band" flexGrow={1} borderStyle="round" borderColor="promptBorder" paddingX={1}>
         <Text size="caption" color="inactive">{t('sober.none')}</Text>
       </Box>
     )
   }
   return (
-    <Box key="sober-band" flexDirection="row" flexWrap="wrap" alignItems="stretch" columnGap={COLUMN_GAP} rowGap={ROW_GAP} borderStyle="round" borderColor="promptBorder" paddingX={1}>
+    <Box key="sober-band" flexGrow={1} flexDirection="row" flexWrap="wrap" alignItems="stretch" columnGap={COLUMN_GAP} rowGap={ROW_GAP} borderStyle="round" borderColor="promptBorder" paddingX={1}>
       {gauges.map(g => (
         <Box key={`sober-${g.kind}`} flexDirection="column" justifyContent="space-between" flexGrow={1} width={0} minWidth={COLUMN_MIN}>
           {words(ui, g)}

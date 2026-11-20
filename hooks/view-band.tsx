@@ -210,9 +210,21 @@ export async function drawBand(host: Host, m: Memory, e: Band, pass: () => Promi
   if (((await readLook(host)) ?? m.look) === 'sober') {
     const card = soberBand(host, e, soberGauges(limits, minute))
     const above = await beneath(pass)
-    if (!above) return card
+    if (e.surface === 'terminal') {
+      if (!above) return card
+      const { Box } = host.ui.resolve(e)
+      return <Box flexDirection="column">{above}{card}</Box>
+    }
+    // As the pixel band does: the card runs over the band's own margins, so its border is the band's edge.
     const { Box } = host.ui.resolve(e)
-    return <Box flexDirection="column" backgroundColor="transparent">{above}{card}</Box>
+    return (
+      <Box flexDirection="column" backgroundColor="transparent">
+        {above}
+        <Box key="sober-edge" marginX={-1} marginTop={above ? 0 : -1} marginBottom={-1}>
+          {card}
+        </Box>
+      </Box>
+    )
   }
   const gauges: Gauges = [gauge(limits, 'five_hour', minute), gauge(limits, 'seven_day', minute)]
   const open = !!plan && plan.steps.some(st => st.status !== 'completed')
