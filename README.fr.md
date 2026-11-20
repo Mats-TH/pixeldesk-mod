@@ -300,7 +300,7 @@ En mode Manuel, le mod ne compacte plus et ne change plus de conversation tout s
 Tape `/pixeldesk theme Sobre` et le pixel art disparaît.
 
 - **Une seule carte au-dessus de la saisie.** Sans animation, aux couleurs de Claude, en clair comme en sombre.
-- **Une jauge par limite de ton forfait.** 5 heures, semaine propre à un modèle, hebdo : celles que tu n'as pas ne s'affichent pas.
+- **Une jauge par limite de ton forfait.** 5 heures, hebdo de Fable, hebdo de tous les modèles : celles que tu n'as pas ne s'affichent pas.
 - **Tout d'un coup d'œil.** Ce qui est consommé, le temps restant et l'heure de remise à zéro.
 - **Ton rythme.** Orange jusqu'au rythme idéal, rouge au-delà.
 
@@ -374,9 +374,9 @@ PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits 
 
 ### En bref
 
-- **Pas de serveur, pas de compte, pas d'analytics, pas de télémétrie.** Le mod ne fait aucun appel réseau de son côté.
+- **Pas de serveur, pas de compte, pas d'analytics, pas de télémétrie.** Le seul appel réseau du mod lit les limites de ton forfait chez Anthropic, les mêmes chiffres que `/usage`.
 - **Les appels au modèle** passent par Claude Code vers Anthropic, sur ton propre compte. Ils comptent dans tes limites.
-- **Aucun identifiant.** Le mod ne lit ni clé d'API ni jeton de connexion, et il n'en demande aucun.
+- **Aucun identifiant.** Le mod ne lit ni clé d'API ni jeton de connexion, et il n'en demande aucun. Pour les limites, c'est Claude Code qui ajoute ta connexion à la requête : le mod ne la voit jamais.
 - **Aucune décision de permission.** Il n'autorise, ne refuse et ne réécrit jamais l'appel d'un autre outil. Il laisse les sous-agents et les réglages tels quels.
 
 ### Ce qu'il lit
@@ -387,6 +387,7 @@ PixelDesk Mod est un plugin avec un module de hooks : il tourne avec tes droits 
 | Le transcript de la session dans `~/.claude/projects/`, jusqu'à 4 Mio, au plus toutes les 5 minutes | Uniquement pour trouver la durée du cache. |
 | Les noms et les entrées des outils que Claude utilise | Pour animer les bureaux, le plan et les cartes d'agents. |
 | L'usage et les limites donnés par Claude Code | Pour les jauges et la plaque du coût. |
+| Les limites de ton forfait chez Anthropic, les chiffres de `/usage`, à l'ouverture d'une conversation puis toutes les 3 minutes au plus | Pour les jauges du thème Sobre, limite hebdo de Fable comprise. Le journal garde le nom des limites, jamais leurs chiffres. |
 | Le réglage `language` de Claude Code, puis ta locale et celle du système | Pour choisir la langue. |
 | Sous Windows, les fichiers de session `local_*.json` de l'app, dans `%LOCALAPPDATA%\Claude-Data\`, au plus une fois par minute | Pour la vue globale. Il garde les identifiants de session, les titres, la marque d'archive et le lien entre conversations. |
 | `~/.claude/pixeldesk/` | Ses propres fichiers. |
@@ -399,7 +400,7 @@ Tout va dans `~/.claude/pixeldesk/`, et nulle part ailleurs.
 | Fichier | Contenu |
 | --- | --- |
 | `settings.json` | Tes réglages. |
-| `state/` | Plan, bureaux et état du cache de chaque conversation. |
+| `state/` | Plan, bureaux et état du cache de chaque conversation, et la dernière lecture de tes limites. |
 | `briefings/` | Passations, notes de compaction et brouillons, en texte brut. Les 20 dernières de chaque sorte sont gardées, les plus anciennes sont vidées. Les formats de secrets connus sont retirés avant. |
 | `logs/pixeldesk.log` | Le journal, plafonné à 256 Kio. |
 
@@ -424,6 +425,7 @@ Tout passe par Claude Code vers Anthropic. Rien ne part ailleurs.
 
 | Appel | Quand | Ce qui part |
 | --- | --- | --- |
+| Limites | À l'ouverture d'une conversation, puis toutes les 3 minutes au plus, partagé entre toutes tes conversations | Une demande de lecture à `https://api.anthropic.com/api/oauth/usage`, l'adresse que lit `/usage`. Claude Code y ajoute ta connexion. Rien de ta conversation ne part. |
 | Relance du cache | Activée par défaut, 45 secondes avant l'expiration du cache | Ta conversation, lue depuis le cache, plus la ligne `Answer only: ok`. |
 | Passation | À un changement de conversation | Ta conversation, avec une demande d'écrire la passation. |
 | Compaction | À 80 % du contexte par défaut | Ta conversation, avec des instructions de compaction. |

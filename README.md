@@ -300,7 +300,7 @@ In Manual mode, the mod stops compacting and changing conversation by itself. A 
 Type `/pixeldesk theme Sober` and the pixel art goes away.
 
 - **One card above the prompt.** No animation, in the colors of Claude, light or dark.
-- **A gauge for each limit of your plan.** 5 hours, a model's own week, weekly: the ones you do not have are not shown.
+- **A gauge for each limit of your plan.** 5 hours, Fable's weekly limit, the weekly limit of all models: the ones you do not have are not shown.
 - **Everything at a glance.** How much is used, the time left and when it resets.
 - **Your pace.** Orange up to the ideal pace, red past it.
 
@@ -374,9 +374,9 @@ PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights.
 
 ### Quick view
 
-- **No server, no account, no analytics, no telemetry.** The mod makes no network call of its own.
+- **No server, no account, no analytics, no telemetry.** The mod's only network call of its own reads your plan limits from Anthropic, the same figures as `/usage`.
 - **Model calls** go through Claude Code to Anthropic, on your own account. They count toward your limits.
-- **No credentials.** The mod doesn't read API keys or login tokens, and it asks for none.
+- **No credentials.** The mod doesn't read API keys or login tokens, and it asks for none. For the limits, Claude Code adds your login to the request itself: the mod never sees it.
 - **No permission decisions.** It never allows, refuses or rewrites a call of another tool, and it leaves subagents and settings as they are.
 
 ### What it reads
@@ -387,6 +387,7 @@ PixelDesk Mod is a plugin with a hooks module, so it runs with your user rights.
 | The session transcript in `~/.claude/projects/`, up to 4 MiB, at most every 5 minutes | Only to find the cache length. |
 | Tool names and inputs as Claude uses them | To animate the desks, the plan and the agent cards. |
 | Usage and limits reported by Claude Code | For the gauges and the cost plate. |
+| Your plan limits from Anthropic, the figures `/usage` shows, when a conversation opens and then every 3 minutes at most | For the Sober theme's gauges, Fable's weekly limit included. The log keeps the names of the limits, never their figures. |
 | The Claude Code `language` setting, then your locale and the system's | To pick the language. |
 | On Windows, `local_*.json` session files of the desktop app, in `%LOCALAPPDATA%\Claude-Data\`, at most once a minute | For the global view. It keeps ids, titles, the archived mark and the link between conversations. |
 | `~/.claude/pixeldesk/` | Its own files. |
@@ -399,7 +400,7 @@ Everything goes in `~/.claude/pixeldesk/`, and nowhere else.
 | File | Content |
 | --- | --- |
 | `settings.json` | Your settings. |
-| `state/` | Plan, desks and cache state of each conversation. |
+| `state/` | Plan, desks and cache state of each conversation, and the last reading of your limits. |
 | `briefings/` | Briefings, compaction notes and drafts, in plain text. The latest 20 of each are kept, older ones are emptied. Known secret formats are removed first. |
 | `logs/pixeldesk.log` | The log, capped at 256 KiB. |
 
@@ -424,6 +425,7 @@ All of this goes through Claude Code to Anthropic. Nothing goes anywhere else.
 
 | Call | When | What leaves |
 | --- | --- | --- |
+| Limits | When a conversation opens, then every 3 minutes at most, shared by all your conversations | A read request to `https://api.anthropic.com/api/oauth/usage`, the address `/usage` reads. Claude Code adds your login. Nothing of your conversation leaves. |
 | Cache relaunch | On by default, 45 seconds before the cache expires | Your conversation, read from the cache, plus the line `Answer only: ok`. |
 | Briefing | At a change of conversation | Your conversation, with a request to write the briefing. |
 | Compaction | At 80% of the context by default | Your conversation, with compaction instructions. |
