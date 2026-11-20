@@ -162,3 +162,22 @@ describe("the account's list of limits", () => {
     expect(shape).not.toContain('41')
   })
 })
+
+describe("the account as it answers today", () => {
+  // The answer of a real account, its figures changed: the week of all, and a week scoped to Fable.
+  const REAL = JSON.stringify({
+    five_hour: null,
+    seven_day: { utilization: 13, resets_at: '2026-11-27T08:00:00.490432+00:00', limit_dollars: null },
+    seven_day_opus: null,
+    limits: [
+      { kind: 'weekly_all', group: 'weekly', percent: 13, severity: 'normal', resets_at: '2026-11-27T08:00:00.490432+00:00', scope: null, is_active: true },
+      { kind: 'weekly_scoped', group: 'weekly', percent: 21, severity: 'normal', resets_at: '2026-11-27T08:00:00.490575+00:00', scope: { model: { id: 'claude-fable-5-2', display_name: 'Fable' }, surface: null }, is_active: true },
+    ],
+    weekly_scoped_shares: [{ limit_index: 1, used_percent_of_weekly: 10, allowance_percent_of_weekly: 50 }],
+  })
+
+  test('the week scoped to Fable reads as the week of Fable, beside the week of all, as /usage shows them', () => {
+    const now = Date.parse('2026-11-20T18:00:00Z')
+    expect(soberGauges(accountLimits(REAL), now).map(g => [g.label, g.percent])).toEqual([['Fable hebdo', '21 %'], ['Hebdo', '13 %']])
+  })
+})

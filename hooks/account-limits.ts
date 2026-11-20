@@ -21,6 +21,15 @@ const tenth = (n: number) => Math.round(n * 10) / 10
 // The words of an object that say which window it is, when the window is told inside it rather than by its key.
 const NAMING = ['kind', 'group', 'model', 'model_family', 'name', 'window', 'type', 'period']
 
+/** Every text inside a window's `scope`: a limit kept for one model says which there (`scope.model`). */
+function scopeWords(scope: unknown, depth = 0): string[] {
+  if (depth > 3) return []
+  if (typeof scope === 'string') return [scope]
+  if (Array.isArray(scope)) return scope.flatMap(item => scopeWords(item, depth + 1))
+  if (isNode(scope)) return Object.values(scope).flatMap(item => scopeWords(item, depth + 1))
+  return []
+}
+
 /** A word fit for a kind: lower case, only letters, digits and underscores. */
 const word = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 
@@ -46,7 +55,7 @@ export function accountLimits(text: string): Limit[] {
     // A window: its `utilization`, or a `percent` with the time it resets (the account's list of limits).
     const figure = typeof value.utilization === 'number' ? value.utilization : typeof value.percent === 'number' && typeof value.resets_at === 'string' ? value.percent : undefined
     if (figure !== undefined) {
-      const named = NAMING.map(key => value[key]).filter((v): v is string => typeof v === 'string')
+      const named = [...NAMING.map(key => value[key]).filter((v): v is string => typeof v === 'string'), ...scopeWords(value.scope)]
       const kind = [...path, ...named].map(word).filter(Boolean).join('_')
       if (!kind || seen.has(kind)) return
       seen.add(kind)
