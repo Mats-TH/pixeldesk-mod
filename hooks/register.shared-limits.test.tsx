@@ -181,3 +181,10 @@ describe("the account as it answers today", () => {
     expect(soberGauges(accountLimits(REAL), now).map(g => [g.label, g.percent])).toEqual([['Fable hebdo', '21 %'], ['Hebdo', '13 %']])
   })
 })
+
+describe('the time of a reset', () => {
+  test('reads to the nearest minute: a reset the account puts a fraction of a second before nine reads nine', () => {
+    const [early] = soberGauges([{ kind: 'seven_day', percentUsed: 21, resetsAt: '2026-11-27T07:59:59.817982+00:00' }], Date.parse('2026-11-20T18:00:00Z'))
+    expect(early?.at.replace(/\u00A0/g, ' ')).toBe('ven 9h')
+  })
+})

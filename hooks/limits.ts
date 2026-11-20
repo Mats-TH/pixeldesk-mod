@@ -92,7 +92,8 @@ export function soberGauges(list: readonly Limit[], now: number): SoberGauge[] {
     return Number.isNaN(end) || end > now
   })
   return [...kept].sort((a, b) => rank(a.kind) - rank(b.kind)).map(l => {
-    const end = l.resetsAt ? Date.parse(l.resetsAt) : NaN
+    // To the nearest minute: the account may say 8:59:59.8 for a reset at nine.
+    const end = l.resetsAt ? Math.round(Date.parse(l.resetsAt) / MINUTE) * MINUTE : NaN
     const known = !Number.isNaN(end)
     const fiveHour = l.kind === 'five_hour'
     const span = fiveHour ? SPAN.five_hour : SPAN.seven_day
